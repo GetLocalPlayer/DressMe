@@ -14,14 +14,13 @@ db = mysql.connector.connect(
 cursor = db.cursor()
 
 
-
-models_query = """SELECT displayid, entry, name FROM item_template
+query = """SELECT displayid, entry, name FROM item_template
     WHERE
-        quality > %s AND quality < %s
+        quality >= %s AND quality <= %s
         AND inventorytype = %s
         AND class = %s AND subclass = %s
     ORDER BY
-        requiredlevel; """
+        quality, itemlevel, requiredlevel; """
 
 result = {}
 
@@ -70,7 +69,7 @@ for slot, columns in armor_slots.items():
     armor_result[slot] = {}
     for subclass in columns["subclasses"]:
         grouped_by_display_id = OrderedDict()
-        cursor.execute(models_query, (columns["minquality"], columns["maxquality"], columns["inventorytype"], columns["class"], columns["subclasses"][subclass]))
+        cursor.execute(query, (columns["minquality"], columns["maxquality"], columns["inventorytype"], columns["class"], columns["subclasses"][subclass]))
         for display_id, entry, name in cursor:
             if display_id not in grouped_by_display_id:
                 grouped_by_display_id[display_id] = [[entry], [name]]
@@ -152,7 +151,7 @@ ranged_weapon = OrderedDict([
     ("Bow",         {"inventorytype": 15, "class": 2, "subclass": 2}),
     ("Crossbow",    {"inventorytype": 26, "class": 2, "subclass": 18}),
     ("Gun",         {"inventorytype": 26, "class": 2, "subclass": 3}),
-    ("Throw",       {"inventorytype": 25, "class": 2, "subclass": 16}),
+    ("Thrown",       {"inventorytype": 25, "class": 2, "subclass": 16}),
     ("Wand",        {"inventorytype": 26, "class": 2, "subclass": 19}),
 ])
 
@@ -160,7 +159,7 @@ ranged_weapon = OrderedDict([
 def get_data(items):
     result = OrderedDict()
     for weapon, columns in items:
-        cursor.execute(models_query, (min_quality, max_quality, columns["inventorytype"], columns["class"], columns["subclass"]))
+        cursor.execute(query, (min_quality, max_quality, columns["inventorytype"], columns["class"], columns["subclass"]))
         grouped_by_display_id = OrderedDict()
         for display_id, entry, name in cursor:
             if display_id not in grouped_by_display_id:

@@ -127,12 +127,15 @@ do
     local previewRecycler = {}
     local previewList = {}
 
+    local label = previewListFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("TOP", previewListFrame, "BOTTOM")
+    label:SetJustifyH("CENTER")
+    label:SetHeight(15)
+
     local slider = CreateFrame("Slider", "DressMePageSlider", previewListFrame, "UIPanelScrollBarTemplateLightBorder")
     slider:SetPoint("TOP", previewListFrame, "TOPRIGHT", -15, -20)
     slider:SetHeight(dressingRoom:GetHeight() - 40)
-    slider:SetScript("OnValueChanged", function(self, value)
-        print(value)
-    end)
+    slider:SetScript("OnValueChanged", nil)
     slider:SetMinMaxValues(1, 10)
     slider:SetValueStep(1)
     slider:SetValue(1)
@@ -188,7 +191,6 @@ do
                     preview:SetBackdrop(previewBackdrop)
                     preview:SetBackdropColor(previewBackdropColor.r, previewBackdropColor.g, previewBackdropColor.b, previewBackdropColor.a)
                     preview:EnableDragRotation(false)
-                    preview:SetScript("OnShow", preview.Reset)
                 else
                     preview:Show()
                 end
@@ -225,18 +227,32 @@ do
             book[items].selected = nil
         end
         local pages = book[items].pages
-        local current = pages[book[items].current]
-        for i = 1, #previewList do
-            local preview = previewList[i]
-            local data = current[i]
-            if data then
-                preview:Show()
-                preview:Undress()
-                preview:TryOn(data[1][1])
-            else
-                preview:Hide()
+        slider:SetMinMaxValues(1, #pages)
+        slider:SetScript("OnValueChanged", function(self, value)
+            for i = 1, #previewList do
+                local current = pages[value]
+                local preview = previewList[i]
+                local data = current[i]
+                if data then
+                    preview:Show()
+                    preview:Reset()
+                    preview:Undress()
+                    preview:TryOn(data[1][1])
+                else
+                    preview:Hide()
+                end
+                book[items].current = value
             end
+            label:SetText(string.format("%u/%u", value, #pages))
+        end)
+        if slider:GetValue() ~= book[items].current then
+            slider:SetValue(book[items].current)
+        else
+            slider:GetScript("OnValueChanged")(slider, book[items].current) 
         end
+        slider:SetScript("OnShow", function(self)
+            self:GetScript("OnValueChanged")(self, book[items].current)
+        end)
     end
 end
 
