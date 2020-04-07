@@ -1,0 +1,205 @@
+import mysql.connector
+from slpp import slpp as lua
+from collections import namedtuple, OrderedDict, Iterable
+from pprint import pprint
+
+
+db = mysql.connector.connect(
+  host="localhost",
+  user="root",
+  passwd="root",
+  database="world"
+)
+
+cursor = db.cursor()
+
+
+
+models_query = """SELECT displayid, entry, name FROM item_template
+    WHERE
+        quality > %s AND quality < %s
+        AND inventorytype = %s
+        AND class = %s AND subclass = %s
+    ORDER BY
+        requiredlevel; """
+
+result = {}
+
+# {
+#     Armor: {...},
+#     Main Hand: {...},
+#     Off hand: {...},
+#     Ranged: {...},
+# }
+
+
+# ---------------- ARMOR ----------------
+# {
+#   Slot1: {
+#       Subclass1: [
+#           [entry1, entry2, ..., entryN], [name1, name2, ..., nameN]],
+#           [entry1, entry2, ..., entryN], [name1, name2, ..., nameN]],
+#           ...
+#       ]
+# },
+# {
+#   Slot2: {
+#       ...
+# },
+# ...
+
+armor_subclasses = {"Miscellaneous": 0, "Cloth": 1, "Leather": 2, "Mail": 3, "Plate": 4}
+
+armor_slots = OrderedDict([
+    ("Head",     {"inventorytype": 1,    "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 6}),
+    ("Shoulder", {"inventorytype": 3,    "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 6}),
+    ("Back",     {"inventorytype": 16,   "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 6}),
+    ("Chest",    {"inventorytype": 5,    "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 6}),
+    ("Shirt",    {"inventorytype": 4,    "class": 4, "subclasses": armor_subclasses, "minquality": 0, "maxquality": 6}),
+    ("Tabard",   {"inventorytype": 19,   "class": 4, "subclasses": armor_subclasses, "minquality": 0, "maxquality": 6}),
+    ("Wrist",    {"inventorytype": 9,    "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 6}),
+    ("Gloves",   {"inventorytype": 10,   "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 6}),
+    ("Waist",    {"inventorytype": 6,    "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 6}),
+    ("Legs",     {"inventorytype": 7,    "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 6}),
+    ("Feet",     {"inventorytype": 8,    "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 6}),
+])
+
+armor_result = OrderedDict()
+
+for slot, columns in armor_slots.items():
+    armor_result[slot] = {}
+    for subclass in columns["subclasses"]:
+        grouped_by_display_id = OrderedDict()
+        cursor.execute(models_query, (columns["minquality"], columns["maxquality"], columns["inventorytype"], columns["class"], columns["subclasses"][subclass]))
+        for display_id, entry, name in cursor:
+            if display_id not in grouped_by_display_id:
+                grouped_by_display_id[display_id] = [[entry], [name]]
+            else:
+                grouped_by_display_id[display_id][0].append(entry)
+                grouped_by_display_id[display_id][1].append(name)
+        if grouped_by_display_id:
+            armor_result[slot][subclass] = []
+            for display_id in grouped_by_display_id:
+                armor_result[slot][subclass].append(grouped_by_display_id[display_id])
+        
+result.update({"Armor": armor_result})
+
+
+# ---------------- WEAPON AND SHIELD ----------------
+#
+# {
+#   Main Hand: {
+#       Subclass1: [
+#           [entry1, entry2, ..., entryN], [name1, name2, ..., nameN]],
+#       ],
+#       Subclass2: [
+#           [entry1, entry2, ..., entryN], [name1, name2, ..., nameN]],
+#       ],
+#       ...
+#       SubclassN: [
+#           [entry1, entry2, ..., entryN], [name1, name2, ..., nameN]],
+#       ],
+#   },
+#   Off hand: {
+#       ...
+#   },
+#   Ranged: {
+#        ...
+#   },
+# }
+
+min_quality = 2
+max_quality = 6
+
+main_hand_weapon = OrderedDict([
+    ("2H Axe",       {"inventorytype": 17, "class": 2, "subclass": 1}),
+    ("2H Mace",      {"inventorytype": 17, "class": 2, "subclass": 5}),
+    ("2H Sword",     {"inventorytype": 17, "class": 2, "subclass": 7}),
+    ("Polearm",      {"inventorytype": 17, "class": 2, "subclass": 6}),
+    ("Staff",        {"inventorytype": 17, "class": 2, "subclass": 10}),
+
+    ("1H Axe",       {"inventorytype": 13, "class": 2, "subclass": 0}),
+    ("1H Mace",      {"inventorytype": 13, "class": 2, "subclass": 4}),
+    ("1H Sword",     {"inventorytype": 13, "class": 2, "subclass": 7}),
+    ("1H Dagger",    {"inventorytype": 13, "class": 2, "subclass": 15}),
+    ("1H Fist",      {"inventorytype": 13, "class": 2, "subclass": 13}),
+
+    ("MH Axe",       {"inventorytype": 21, "class": 2, "subclass": 0}),
+    ("MH Mace",      {"inventorytype": 21, "class": 2, "subclass": 4}),
+    ("MH Sword",     {"inventorytype": 21, "class": 2, "subclass": 7}),
+    ("MH Dagger",    {"inventorytype": 21, "class": 2, "subclass": 15}),
+    ("MH Fist",      {"inventorytype": 21, "class": 2, "subclass": 13}),
+])
+
+off_hand_weapon = OrderedDict([
+    ("1H Axe",       {"inventorytype": 13, "class": 2, "subclass": 0}),
+    ("1H Mace",      {"inventorytype": 13, "class": 2, "subclass": 4}),
+    ("1H Sword",     {"inventorytype": 13, "class": 2, "subclass": 7}),
+    ("1H Dagger",    {"inventorytype": 13, "class": 2, "subclass": 15}),
+    ("1H Fist",      {"inventorytype": 13, "class": 2, "subclass": 13}),
+
+    ("OH Axe",       {"inventorytype": 22, "class": 2, "subclass": 0}),
+    ("OH Mace",      {"inventorytype": 22, "class": 2, "subclass": 4}),
+    ("OH Sword",     {"inventorytype": 22, "class": 2, "subclass": 7}),
+    ("OH Dagger",    {"inventorytype": 22, "class": 2, "subclass": 15}),
+    ("OH Fist",      {"inventorytype": 22, "class": 2, "subclass": 13}),
+
+    ("Shield",      {"inventorytype": 14, "class": 4, "subclass": 6}),
+    ("Held in Off-hand",      {"inventorytype": 23, "class": 4, "subclass": 0}),
+])
+
+ranged_weapon = OrderedDict([
+    ("Bow",         {"inventorytype": 15, "class": 2, "subclass": 2}),
+    ("Crossbow",    {"inventorytype": 26, "class": 2, "subclass": 18}),
+    ("Gun",         {"inventorytype": 26, "class": 2, "subclass": 3}),
+    ("Throw",       {"inventorytype": 25, "class": 2, "subclass": 16}),
+    ("Wand",        {"inventorytype": 26, "class": 2, "subclass": 19}),
+])
+
+
+def get_data(items):
+    result = OrderedDict()
+    for weapon, columns in items:
+        cursor.execute(models_query, (min_quality, max_quality, columns["inventorytype"], columns["class"], columns["subclass"]))
+        grouped_by_display_id = OrderedDict()
+        for display_id, entry, name in cursor:
+            if display_id not in grouped_by_display_id:
+                grouped_by_display_id[display_id] = [[entry], [name]]
+            else:
+                grouped_by_display_id[display_id][0].append(entry)
+                grouped_by_display_id[display_id][1].append(name)
+        if grouped_by_display_id:
+            result[weapon] = []
+            for display_id in grouped_by_display_id:
+                result[weapon].append(grouped_by_display_id[display_id])
+    return result
+
+
+result.update({"Main Hand": get_data(main_hand_weapon.items())})
+result.update({"Off-hand": get_data(off_hand_weapon.items())})
+result.update({"Ranged": get_data(ranged_weapon.items())})
+
+
+def to_lua(data, indent = "    ", level = 0):
+    if isinstance(data, (int, float)):
+        return str(data)
+    elif isinstance(data, str):
+        return "\"" + data.replace("\"", "\\\"").replace("\'", "\\\'") + "\""
+    elif isinstance(data, (list, tuple)):
+        s = "{\n"
+        for v in data:
+            s += indent * (level + 1) + to_lua(v, indent, level + 1) + ",\n"
+        s += indent * level + "}"
+        return s
+    elif isinstance(data, (dict, OrderedDict)):
+        s = "{\n"
+        for k, v in data.items():
+            s += "{0}[\"{1}\"] = {2},\n".format(indent * (level + 1), k, to_lua(v, indent, level + 1))
+        s += indent * level + "}"
+        return s
+    else:
+        raise KeyError("Cannot conver a non-buil-in python type to a lua table!")
+
+with open("db\\Items.lua", "w+") as file:
+    file.write("local addon, ns = ...\n\nlocal data = " + to_lua(result) + "\n\nfunction ns:GetItemsData()\n    return data\nend\n")
+db.close()

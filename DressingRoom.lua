@@ -1,0 +1,221 @@
+
+local addon, ns = ...
+
+local fixedWidth = 350
+local fixedHeight = 430
+
+local xStep = 0.2 -- per pixel
+local zStep = 0.003 -- per pixel
+local facingStep = math.rad(0.75) -- per pixel
+
+local sex = {male = 2, female = 3}
+sex[sex.male] = "male"
+sex[sex.female] = "female"
+local male, female = 2, 3
+
+local modelX = { -- male = 2, female = 3
+    min = {
+        -- The Alliance
+        Dwarf =     {male = 0.0, female = 0.0},
+        Draenei =   {male = 0.0, female = 0.0},
+        Gnome =     {male = 0.0, female = 0.0},
+        Human =     {male = 0.0, female = 0.0},
+        NightElf =  {male = 0.0, female = 0.0},
+        -- The Horde
+        BloodElf =  {male = 0.0, female = 0.0},
+        Orc =       {male = 0.0, female = 0.0},
+        Scourge =   {male = 0.0, female = 0.0},
+        Tauren =    {male = 0.0, female = 0.0},
+        Troll =     {male = 0.0, female = 0.0},
+    },
+    max = {
+        -- The Alliance
+        Dwarf =     {male = 2.6, female = 1.55},
+        Draenei =   {male = 3.2, female = 3.0},
+        Gnome =     {male = 1.44, female = 1.1},
+        Human =     {male = 2.10, female = 1.9},
+        NightElf =  {male = 3.3, female = 3.2},
+        -- The Horde
+        BloodElf =  {male = 2.9, female = 2.2},
+        Orc =       {male = 2.2, female = 2.35},
+        Scourge =   {male = 2.0, female = 3.0},
+        Tauren =    {male = 2.90, female = 2.4},
+        Troll =     {male = 3.0, female = 3.0},
+    },
+}
+
+local modelZ = {
+    min = {
+        -- The Alliance
+        Dwarf =     {male = -0.80, female = -0.60},
+        Draenei =   {male = -1.15, female = -0.97},
+        Gnome =     {male = -0.30, female = -0.32},
+        Human =     {male = -1.05, female = -1.76},
+        NightElf =  {male = -1.05, female = -0.87},
+        -- The Horde
+        BloodElf =  {male = -1.00, female = -0.75},
+        Orc =       {male = -0.75, female = -0.75},
+        Scourge =   {male = -0.80, female = -0.67},
+        Tauren =    {male = -0.80, female = -0.50},
+        Troll =     {male = -0.75, female = -0.75},
+    },
+    max = {
+        -- The Alliance
+        Dwarf =     {male = 0.52, female = 0.75},
+        Draenei =   {male = 1.15, female = 0.92},
+        Gnome =     {male = 0.48, female = 0.47},
+        Human =     {male = 0.78, female = 0.77},
+        NightElf =  {male = 0.96, female = 0.96},
+        -- The Horde
+        BloodElf =  {male = 0.75, female = 0.80},
+        Orc =       {male = 0.95, female = 0.9},
+        Scourge =   {male = 0.75, female = 0.85},
+        Tauren =    {male = 0.90, female = 1.35},
+        Troll =     {male = 1.25, female = 1.25},
+    },
+}
+
+
+function ns:CreateDressingRoom(parent)
+    --assert(type(useBackgroundModel) == "boolean", "'useBackgroundModel' must be a boolean value")
+    local frame = CreateFrame("Frame", nil, parent)
+    frame:EnableMouseWheel(true)
+    frame:SetSize(fixedWidth, fixedHeight)
+    frame:SetMinResize(fixedWidth, fixedHeight)
+    frame:SetMaxResize(fixedWidth, fixedHeight)
+    --frame:SetFrameStrata("FULLSCREEN_DIALOG")
+
+--[[     local bgModel = nil
+    if useBackgroundModel then
+        bgModel = CreateFrame("Model", nil, frame)
+        bgModel:SetAllPoints()
+        bgModel:ClearModel()
+    
+        local class, classFileName = UnitClass("player") 
+        if classFileName == "DEATHKNIGHT" then
+            bgModel:SetModel("interface\\glues\\models\\ui_deathknight\\ui_deathknight.m2")
+        else
+            local race, raceFileName = UnitRace("player")
+            bgModel:SetModel(string.format("interface\\glues\\models\\ui_%s\\ui_%s.m2", raceFileName, raceFileName))
+        end
+    end ]]
+
+    local model = CreateFrame("DressUpModel", nil, frame)
+    model:SetAllPoints()
+    model:SetUnit("player")
+
+--[[     if bgModel then
+        bgModel:SetPoint("TOPLEFT", model, "TOPLEFT")
+        bgModel:SetPoint("BOTTOMRIGHT", model, "BOTTOMRIGHT")
+    end ]]
+
+    local dragDummy = CreateFrame("Frame", nil, frame)
+    dragDummy:SetPoint("TOPLEFT", 24, -24)
+    dragDummy:SetPoint("BOTTOMRIGHT", -24, 24)
+    dragDummy:EnableMouse(true)
+    dragDummy:RegisterForDrag("LeftButton", "RightButton")
+    dragDummy:SetMovable(true)
+
+    dragDummy:SetScript("OnDragStart", function(self, button)
+        self:StartMoving()
+        local cursorX, cursorY = GetCursorPosition()
+        if button == "LeftButton" then
+            dragDummy:RegisterForDrag("LeftButton")
+            self:SetScript("OnUpdate", function(self, elapsed)
+                local newX, newY = GetCursorPosition()
+                local deltaX = newX - cursorX
+                model:SetFacing(model:GetFacing() + deltaX * facingStep)
+                cursorX, cursorY = newX, newY
+            end)
+        elseif button == "RightButton" then
+            dragDummy:RegisterForDrag("RightButton")
+            self:SetScript("OnUpdate", function(self, elapsed)
+                local newX, newY = GetCursorPosition()
+                local deltaY = newY - cursorY
+                local x, y, z = model:GetPosition()
+                local zOffset = zStep * deltaY
+                z = z + zOffset
+                local race, raceFileName = UnitRace("player")
+                local max, min = modelZ.max[raceFileName][sex[UnitSex("player")]], modelZ.min[raceFileName][sex[UnitSex("player")]]
+                z = z > max and max or z
+                z = z < min and min or z
+                model:SetPosition(x, y, z)
+                cursorX, cursorY = newX, newY
+            end)
+        end
+        self:SetScript("OnReceiveDrag", function(self) 
+            self:StopMovingOrSizing()
+            self:SetScript("OnUpdate", nil)
+            self:ClearAllPoints()
+            self:SetPoint("TOPLEFT", frame, "TOPLEFT", 24, -24)
+            self:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -24, 24)
+            self:RegisterForDrag("LeftButton", "RightButton")
+        end)
+    end)
+
+    local dbgFrame = CreateFrame("Frame", nil, model)
+    dbgFrame:Hide()
+    dbgFrame:EnableMouse(false)
+    dbgFrame:EnableMouseWheel(false)
+    dbgFrame:SetAllPoints()
+    local dbgInfo = dbgFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    dbgInfo:SetAllPoints()
+    dbgInfo:SetJustifyH("LEFT")
+    dbgInfo:SetJustifyV("TOP")
+
+    function frame:ShowDebugInfo()
+        dbgFrame:Show()
+        dbgFrame:SetScript("OnUpdate", function(self, elapsed)
+            local facing = model:GetFacing()
+            local x, y, z = model:GetPosition()
+            dbgInfo:SetFormattedText("Facing = %f\nX = %f\nZ = %f", facing, x, z)
+        end)
+    end
+
+    function frame:HideDebugInfo() dbgFrame:Hide() end
+    function frame:IsDebugInfoShown() return dbgFrame:IsShown() end
+
+    function frame:Reset()
+        local x, y, z = model:GetPosition()
+        local facing = model:GetFacing()
+        model:SetPosition(0, 0, 0)
+        model:SetFacing(0)
+        model:ClearModel()
+        model:SetUnit("player")
+        model:SetPosition(x, y, z)
+        model:SetFacing(facing)
+    end
+
+    function frame:TryOn(...) model:TryOn(...) end
+    function frame:Undress() model:Undress() end
+    function frame:SetPosition(...) model:SetPosition(...) end
+    function frame:SetFacing(...) model:SetFacing(...) end
+    function frame:SetSequence(...) model:SetSequence(...) end
+    function frame:OnUpdateModel(...) model:SetScript("OnUpdateModel", ...) end
+    function frame:EnableDragRotation(enable) 
+        if enable then dragDummy:Show() else dragDummy:Hide() end
+    end
+
+    local oldSetBackdrop = frame.SetBackdrop
+    function frame:SetBackdrop(backdrop)
+        oldSetBackdrop(frame, backdrop)
+        model:SetPoint("TOPLEFT", backdrop.insets.left * 2, -backdrop.insets.top * 2)
+        model:SetPoint("BOTTOMRIGHT", -backdrop.insets.right * 2, backdrop.insets.bottom * 2)
+    end
+
+    frame:SetScript("OnMouseWheel", function (self, delta)
+        local x, y, z = model:GetPosition()
+        x = x + delta * xStep
+        local race, raceFileName = UnitRace("player")
+        local max, min = modelX.max[raceFileName][sex[UnitSex("player")]], modelX.min[raceFileName][sex[UnitSex("player")]]
+        x = x > max and max or x
+        x = x < min and min or x
+        model:SetPosition(x, y ,z)
+    end)
+
+    for _, child in pairs({frame:GetChildren()}) do
+        child:SetFrameLevel(frame:GetFrameLevel())
+    end
+
+    return frame
+end
