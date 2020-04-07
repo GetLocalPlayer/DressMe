@@ -145,6 +145,27 @@ do
         parent:SetValue(parent:GetValue() + 1)
     end)
 
+    local book = {}
+    --[[ 
+        book[items] = {
+            ["pages"] = {{items}, {items}, {items}...},
+            ["current"], -- current page
+            ["selected"] = {page = int, index = int},
+        }
+    ]]
+
+    local function subrange(t, first, last)
+        local result = {}
+        for i = first, last do
+            if t[i] then
+                table.insert(result, t[i])
+            else
+                break
+            end
+        end
+        return result
+    end
+
     function previewListFrame:Update(cameraPreset, items)
         local width, height = cameraPreset.width, cameraPreset.height
         local x, y, z = cameraPreset.x, cameraPreset.y, cameraPreset.z
@@ -190,11 +211,37 @@ do
         end
 
         -- Items
-        print(#items)
+        if not book[items] then
+            local pages = {}
+            for i = 1, #items, perPage do
+                table.insert(pages, subrange(items, i, i + perPage - 1))
+            end
+            if #pages * perPage < #items then
+                table.insert(pages, subrange(items, #pages * perPage, #items))
+            end
+            book[items] = {}
+            book[items].pages = pages
+            book[items].current = 1
+            book[items].selected = nil
+        end
+        local pages = book[items].pages
+        local current = pages[book[items].current]
+        for i = 1, #previewList do
+            local preview = previewList[i]
+            local data = current[i]
+            if data then
+                preview:Show()
+                preview:Undress()
+                preview:TryOn(data[1][1])
+            else
+                preview:Hide()
+            end
+        end
     end
 end
 
 ---------------- SLOTS ----------------
+
 local slots = {["Selected"] = nil}
 
 local slotTextures = {

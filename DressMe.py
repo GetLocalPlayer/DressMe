@@ -114,7 +114,7 @@ max_quality = 6
 main_hand_weapon = OrderedDict([
     ("2H Axe",       {"inventorytype": 17, "class": 2, "subclass": 1}),
     ("2H Mace",      {"inventorytype": 17, "class": 2, "subclass": 5}),
-    ("2H Sword",     {"inventorytype": 17, "class": 2, "subclass": 7}),
+    ("2H Sword",     {"inventorytype": 17, "class": 2, "subclass": 8}),
     ("Polearm",      {"inventorytype": 17, "class": 2, "subclass": 6}),
     ("Staff",        {"inventorytype": 17, "class": 2, "subclass": 10}),
 
