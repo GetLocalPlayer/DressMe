@@ -35,6 +35,17 @@ local previewBackdrop = { -- small "DressingRoom"s
     insets = { left = 3, right = 3, top = 3, bottom = 3 }
 }
 local previewBackdropColor = {["r"] = 0.25, ["g"] = 0.25, ["b"] = 0.25, ["a"] = 1}
+local previewBorderColor = {["r"] = 1, ["g"] = 1, ["b"] = 1, ["a"] = 1}
+local previewBorderColorSelected = {["r"] = 0.75, ["g"] = 0.75, ["b"] = 1, ["a"] = 1}
+local previewHighlightTexture = "Interface\\Buttons\\ButtonHilight-Square"
+
+local tooltipBackdrop = { -- small "DressingRoom"s
+    bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    tile = true, tileSize = 16, edgeSize = 16,
+    insets = { left = 3, right = 3, top = 3, bottom = 3 }
+}
+local tooltipBackdropColor = {["r"] = 0.1, ["g"] = 0.1, ["b"] = 0.1, ["a"] = 75}
 
 local mainFrame = CreateFrame("Frame", nil, UIParent)
 mainFrame:SetPoint("CENTER")
@@ -109,7 +120,13 @@ local btnUndress = CreateFrame("Button", "DressMeButtonUndress", mainFrame, "UIP
 btnUndress:SetSize(120, 20)
 btnUndress:SetPoint("RIGHT", dressingRoom, "BOTTOMRIGHT", -20, -20)
 btnUndress:SetText("Undress")
-btnUndress:SetScript("OnClick", function() dressingRoom:Undress() end)
+btnUndress:SetScript("OnClick", function()
+    dressingRoom:Undress()
+    local slotID = GetInventorySlotInfo("SHOULDERSLOT")
+    local itemLink = GetInventoryItemLink("player", slotID)
+    local _, link = GetItemInfo(itemLink)
+    dressingRoom:TryOn(link)
+end)
 
 local btnReset = CreateFrame("Button", "DressMeButtonReset", mainFrame, "UIPanelButtonTemplate2")
 btnReset:SetSize(120, 20)
@@ -149,7 +166,7 @@ do
     end)
 
     local book = {}
-    --[[ 
+    --[[ example:
         book[items] = {
             ["pages"] = {{items}, {items}, {items}...},
             ["current"], -- current page
@@ -169,6 +186,21 @@ do
         return result
     end
 
+    local function preview_OnEnter(self)
+        if self.ready then
+            local data = self.data
+            self.highlight:Show()
+            GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+            GameTooltip:AddLine("asdfsdfsdf", 1, 1, 1)
+            GameTooltip:Show()
+        end
+    end
+
+    local function preview_OnLeave(self)
+        self.highlight:Hide()
+        GameTooltip:Hide()
+    end
+
     function previewListFrame:Update(cameraPreset, items)
         local width, height = cameraPreset.width, cameraPreset.height
         local x, y, z = cameraPreset.x, cameraPreset.y, cameraPreset.z
@@ -181,6 +213,8 @@ do
                 local preview = table.remove(previewList)
                 preview:OnUpdateModel(nil)
                 preview:Hide()
+                preview:SetScript("OnUpdate", nil)
+                preview:HideQueryText()
                 table.insert(previewRecycler, preview)
             end
         else
@@ -190,7 +224,27 @@ do
                     preview = ns:CreateDressingRoom(previewListFrame)
                     preview:SetBackdrop(previewBackdrop)
                     preview:SetBackdropColor(previewBackdropColor.r, previewBackdropColor.g, previewBackdropColor.b, previewBackdropColor.a)
+                    preview:SetBackdropBorderColor(previewBorderColor.r, previewBorderColor.g, previewBorderColor.b, previewBorderColor.a)
                     preview:EnableDragRotation(false)
+                    preview:EnableMouseWheel(false)
+                    preview.highlight = preview:CreateTexture(nil, "OVERLAY")
+                    preview.highlight:SetTexture(previewHighlightTexture)
+                    preview.highlight:SetBlendMode("ADD")
+                    preview.highlight:SetAllPoints()
+                    preview.highlight:Hide()
+                    preview:EnableMouse(true)
+                    preview:SetScript("OnEnter", preview_OnEnter)
+                    preview:SetScript("OnLeave", preview_OnLeave)
+                    preview.ready = false
+                    local queryText = preview:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+                    queryText:SetPoint("LEFT")
+                    queryText:SetPoint("RIGHT")
+                    queryText:SetJustifyH("CENTER")
+                    queryText:SetHeight(15)
+                    queryText:SetText("querying...")
+                    queryText:Hide()
+                    function preview:ShowQueryText() queryText:Show() end
+                    function preview:HideQueryText() queryText:Hide() end
                 else
                     preview:Show()
                 end
@@ -203,6 +257,8 @@ do
             preview:SetPosition(x, y, z)
             preview:SetFacing(facing)
             preview:OnUpdateModel(function(self) self:SetSequence(sequence) end)
+            preview:SetScript("OnUpdate", nil)
+            preview:HideQueryText()
         end
         for h = 1, countH do
             for w = 1, countW do
@@ -232,12 +288,33 @@ do
             for i = 1, #previewList do
                 local current = pages[value]
                 local preview = previewList[i]
+                preview:HideQueryText()
+                preview:SetScript("OnUpdate", nil)
+                preview.ready = false
                 local data = current[i]
                 if data then
                     preview:Show()
                     preview:Reset()
                     preview:Undress()
-                    preview:TryOn(data[1][1])
+                    local itemId = data[1][1]
+                    local itemName = GetItemInfo(itemId)
+                    if itemName ~= nil then
+                        preview:TryOn(data[1][1])
+                        preview.ready = true
+                    else
+                        preview:ShowQueryText()
+                        preview:SetScript("OnUpdate", function(self)
+                            preview:Undress()
+                            preview:TryOn(itemId)
+                            local itemName = GetItemInfo(itemId)
+                            if itemName then
+                                preview:SetScript("OnUpdate", nil)
+                                preview:HideQueryText()
+                                preview.data = data
+                                preview.ready = true
+                            end
+                        end)
+                    end
                 else
                     preview:Hide()
                 end
@@ -517,7 +594,7 @@ end
 
 do
     local subclassOrder = {
-        "1H Axe", "1H Mace", "1H Sword", "1H Dagger", "1H Fist",
+        -- "1H Axe", "1H Mace", "1H Sword", "1H Dagger", "1H Fist",
         "OH Axe", "OH Mace", "OH Sword", "OH Dagger", "OH Fist",
         "Shield", "Held in Off-hand"
     }
