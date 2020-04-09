@@ -32,13 +32,11 @@ end
 
 
 local function preview_OnEnter(self)
-    if self.ready then
-        local data = self.data
-        self.highlight:Show()
-        GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
-        GameTooltip:AddLine("asdfsdfsdf", 1, 1, 1)
-        GameTooltip:Show()
-    end
+    local data = self.data
+    self.highlight:Show()
+    GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+    GameTooltip:AddLine("asdfsdfsdf", 1, 1, 1)
+    GameTooltip:Show()
 end
 
 
