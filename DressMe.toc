@@ -2,7 +2,9 @@
 ## Notes: This is mah shit
 
 db\Items.lua
-db\CameraPresets.lua
+db\PreviewSetup.lua
 DressingRoom.lua
+PreviewList.lua
+Tree.lua
 DressMe.lua
 Test.lua

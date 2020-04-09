@@ -1,7 +1,7 @@
 local addon, ns = ...
-local presets = {}
+local previewSetup = {}
 
-presets.classic = {
+previewSetup.classic = {
 	["Draenei"] = {
 		[2] = {
 			["Armor"] = {
@@ -6164,7 +6164,7 @@ presets.classic = {
 	},
 }
 
-presets.modern = {
+previewSetup.modern = {
 	["Draenei"] = {
 		[2] = {
 			["Armor"] = {
@@ -12327,6 +12327,6 @@ presets.modern = {
 	},
 }
 
-function ns:GetCameraPresets()
-	return presets
+function ns:GetPreviewSetup()
+	return previewSetup
 end
