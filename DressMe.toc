@@ -5,6 +5,6 @@ db\Items.lua
 db\PreviewSetup.lua
 DressingRoom.lua
 PreviewList.lua
-Tree.lua
+ListFrame.lua
 DressMe.lua
 Test.lua

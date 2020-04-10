@@ -28,7 +28,7 @@ local subclassListBackdrop = {
 local subclassListBackdropColor = {["r"] = 0, ["g"] = 0, ["b"] = 0, ["a"] = 0.8}
 local subclassListBorderColor = {["r"] = 1, ["g"] = 1, ["b"] = 1, ["a"] = 1}
 
-local mainFrame = CreateFrame("Frame", nil, UIParent)
+local mainFrame = CreateFrame("Frame", addon, UIParent)
 mainFrame:SetPoint("CENTER")
 mainFrame:SetSize(1182, 502)
 mainFrame:SetMovable(true)
@@ -41,7 +41,7 @@ mainFrame:SetScript("OnDragStart", mainFrame.StartMoving)
 mainFrame:SetScript("OnDragStop", mainFrame.StopMovingOrSizing)
 mainFrame:Hide()
 
-local btnClose = CreateFrame("Button", "DressMeButtonClose", mainFrame, "UIPanelButtonTemplate2")
+local btnClose = CreateFrame("Button", "$parentButtonClose", mainFrame, "UIPanelButtonTemplate2")
 btnClose:SetSize(120, 20)
 btnClose:SetPoint("BOTTOMRIGHT", -16, 16)
 btnClose:SetText(CLOSE)
@@ -76,7 +76,7 @@ titleBgRight:SetHeight(40)
 
 local titleText = titleFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 titleText:SetPoint("TOP", titleBg, "TOP", 0, -14)
-titleText:SetText("DressMe")
+titleText:SetText("$parent")
 
 titleFrame:SetPoint("BOTTOMLEFT", titleBgLeft, "BOTTOMLEFT")
 titleFrame:SetPoint("TOPRIGHT", titleBgRight, "TOPRIGHT")
@@ -97,7 +97,7 @@ dressingRoomBorder:SetAllPoints()
 dressingRoomBorder:SetBackdrop(dressingRoomBorderBackdrop)
 dressingRoomBorder:SetBackdropColor(0, 0, 0, 0)
 
-local btnUndress = CreateFrame("Button", "DressMeButtonUndress", mainFrame, "UIPanelButtonTemplate2")
+local btnUndress = CreateFrame("Button", "$parentButtonUndress", mainFrame, "UIPanelButtonTemplate2")
 btnUndress:SetSize(120, 20)
 btnUndress:SetPoint("RIGHT", dressingRoom, "BOTTOMRIGHT", -20, -20)
 btnUndress:SetText("Undress")
@@ -109,7 +109,7 @@ btnUndress:SetScript("OnClick", function()
     dressingRoom:TryOn(link)
 end)
 
-local btnReset = CreateFrame("Button", "DressMeButtonReset", mainFrame, "UIPanelButtonTemplate2")
+local btnReset = CreateFrame("Button", "$parentButtonReset", mainFrame, "UIPanelButtonTemplate2")
 btnReset:SetSize(120, 20)
 btnReset:SetPoint("LEFT", dressingRoom, "BOTTOMLEFT", 20, -20)
 btnReset:SetText("Reset")
@@ -126,11 +126,18 @@ previewListLabel:SetPoint("TOP", previewList, "BOTTOM")
 previewListLabel:SetJustifyH("CENTER")
 previewListLabel:SetHeight(15)
 
-local previewSlider = CreateFrame("Slider", "DressMePageSlider", previewList, "UIPanelScrollBarTemplateLightBorder")
+local previewSlider = CreateFrame("Slider", "$parentPageSlider", previewList, "UIPanelScrollBarTemplateLightBorder")
 previewSlider:SetPoint("LEFT", previewList, "RIGHT", 4, 0)
 previewSlider:SetHeight(previewList:GetHeight() - 48)
-previewSlider:SetScript("OnValueChanged", nil)
-previewSlider:SetMinMaxValues(1, 10)
+previewSlider:SetScript("OnValueChanged", function(self, value)
+    previewList:SetPage(value)
+    local _, max = self:GetMinMaxValues()
+    previewListLabel:SetText(("%s/%s"):format(value, max))
+end)
+previewSlider:SetScript("OnMinMaxChanged", function(self, min, max)
+    previewListLabel:SetText(("%s/%s"):format(self:GetValue(), max))
+end)
+previewSlider:SetMinMaxValues(0, 0)
 previewSlider:SetValueStep(1)
 previewSlider:SetValue(1)
 _G[previewSlider:GetName() .. "ScrollUpButton"]:SetScript("OnClick", function(self)
@@ -144,7 +151,8 @@ end)
 
 ---------------- SLOTS ----------------
 
-local slots = {["Selected"] = nil}
+local slots = {}
+local selectedSlot = nil
 
 local slotTextures = {
     ["Head"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-head",
@@ -163,36 +171,43 @@ local slotTextures = {
     ["Ranged"] =    "Interface\\Paperdoll\\ui-paperdoll-slot-ranged",
 }
 
-function string:startswith(...)
-    local array = {...}
-    for i = 1, #array do
-        assert(type(array[i]) == "string", "string:startswith argument type error - a list of strings is required")
-        if self:sub(1, array[i]:len()) == array[i] then
-            return true
-        end
+local function slot_OnClick(self)
+    if selectedSlot ~= nil then
+        selectedSlot:UnlockHighlight()
+        selectedSlot.subclassList:Hide()
+        selectedSlot.selectedPage[selectedSlot.selectedSubclass] = previewSlider:GetValue()
     end
-    return  false
+    selectedSlot = self
+    self:LockHighlight()
+    self.subclassList:Show()
+    self.subclassList.buttons[self.selectedSubclass]:Click("LeftButton")
 end
 
-local function slot_OnClick(self)
-    if slots["Selected"] then
-        slots["Selected"]:UnlockHighlight()
-        slots["Selected"].subclassFrame:Hide()
-    end
-    slots["Selected"] = self
-    slots["Selected"]:LockHighlight()
-    self.subclassFrame:Show()
-    self.subclassFrame.buttons["Selected"]:Click("LeftButton")
+local function slot_OnEnter(self)
+    GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+    GameTooltip:SetText(self.slotName)
+    GameTooltip:Show()
+end
+
+local function slot_OnLeave(self)
+    GameTooltip:Hide()
 end
 
 for slotName, texturePath in pairs(slotTextures) do
-   slots[slotName] = CreateFrame("Button", nil, mainFrame, "ItemButtonTemplate")
-   slots[slotName]:SetFrameLevel(dressingRoom:GetFrameLevel() + 1)
-   slots[slotName]:SetScript("OnClick", slot_OnClick)
-   slots[slotName].slot = slotName
-   local texture = slots[slotName]:CreateTexture(nil, "ARTWORK")
-   texture:SetTexture(texturePath)
-   texture:SetAllPoints()
+    local slot = CreateFrame("Button", nil, mainFrame, "ItemButtonTemplate")
+    slot:SetFrameLevel(dressingRoom:GetFrameLevel() + 1)
+    slot:SetScript("OnClick", slot_OnClick)
+    slot:SetScript("OnEnter", slot_OnEnter)
+    slot:SetScript("OnLeave", slot_OnLeave)
+    slot.slotName = slotName
+    slot.selectedSubclass = nil -- init later in subclass
+    slot.selectedPage = {} -- per subclass, filled later in subclass
+    slot.selectedPreview = 0
+    slot.subclassList = nil -- init later in subclss
+    slots[slotName] = slot
+    local texture = slots[slotName]:CreateTexture(nil, "ARTWORK")
+    texture:SetTexture(texturePath)
+    texture:SetAllPoints()
 end
 
 -- At first time it's shown.
@@ -225,82 +240,46 @@ local rangedSlot = "Ranged"
 
 ---------------- SBUCLASS FRAMES ----------------
 
-do
-    local subclassBackgroudFrame = CreateFrame("Frame", nil, mainFrame)
-    subclassBackgroudFrame:SetPoint("TOPLEFT", previewList, "TOPRIGHT")
-    subclassBackgroudFrame:SetPoint("Right", -16, 0)
-    subclassBackgroudFrame:SetHeight(400)
-    subclassBackgroudFrame:SetBackdrop(subclassListBackdrop)
-    subclassBackgroudFrame:SetBackdropColor(subclassListBackdropColor.r, subclassListBackdropColor.g, subclassListBackdropColor.b, subclassListBackdropColor.a)
-    subclassBackgroudFrame:SetBackdropBorderColor(subclassListBorderColor.r, subclassListBorderColor.g, subclassListBorderColor.b, subclassListBorderColor.a)
-
-    local armorSubclassFrame = CreateFrame("Frame", nil, subclassBackgroudFrame)
-    armorSubclassFrame:SetPoint("TOPLEFT", subclassListBackdrop.edgeSize, -subclassListBackdrop.edgeSize)
-    armorSubclassFrame:SetPoint("BOTTOMRIGHT", -subclassListBackdrop.edgeSize, subclassListBackdrop.edgeSize)
-    armorSubclassFrame:Hide()
-    for _, v in pairs(armorSlots) do
-        slots[v].subclassFrame = armorSubclassFrame
+function string:startswith(...)
+    local array = {...}
+    for i = 1, #array do
+        assert(type(array[i]) == "string", "string:startswith(\"...\") - argument type error, string is required")
+        if self:sub(1, array[i]:len()) == array[i] then
+            return true
+        end
     end
-    armorSubclassFrame:Hide()
-
-    slots[backSlot].subclassFrame =  CreateFrame("Frame", nil, subclassBackgroudFrame)
-    slots[backSlot].subclassFrame:SetAllPoints(armorSubclassFrame)
-    slots[backSlot].subclassFrame:Hide()
-
-    local miscelleneosSubclassFrame = CreateFrame("Frame", nil, subclassBackgroudFrame)
-    miscelleneosSubclassFrame:SetAllPoints(armorSubclassFrame)
-    miscelleneosSubclassFrame:Hide()
-    for _, v in pairs(miscellaneousSlots) do
-        slots[v].subclassFrame = miscelleneosSubclassFrame
-    end
-    miscelleneosSubclassFrame:Hide()
-
-    slots[mhSlot].subclassFrame =  CreateFrame("Frame", nil, subclassBackgroudFrame)
-    slots[mhSlot].subclassFrame:SetAllPoints(armorSubclassFrame)
-    slots[mhSlot].subclassFrame:Hide()
-
-    slots[ohSlot].subclassFrame =  CreateFrame("Frame", nil, subclassBackgroudFrame)
-    slots[ohSlot].subclassFrame:SetAllPoints(armorSubclassFrame)
-    slots[ohSlot].subclassFrame:Hide()
-
-    slots[rangedSlot].subclassFrame = CreateFrame("Frame", nil, subclassBackgroudFrame)
-    slots[rangedSlot].subclassFrame:SetAllPoints(armorSubclassFrame)
-    slots[rangedSlot].subclassFrame:Hide()
+    return  false
 end
 
----------------- ARMOR SUBCLASS LIST ----------------
+local function subclass_OnClick(self)
+    local name = selectedSlot.slotName
+    local subclass = self:GetListName()
+    local page = selectedSlot.selectedPage[subclass]
+    if previewSetup["Armor"][name] then
+        previewList:Update(previewSetup["Armor"][name], itemsData["Armor"][name][subclass], page)
+    else
+        local previewSubclass = subclass:startswith("OH", "MH", "1H") and subclass:sub(4) or subclass
+        previewList:Update(previewSetup[name][previewSubclass], itemsData[name][subclass], page)
+    end
+    selectedSlot.selectedPage[selectedSlot.selectedSubclass] = previewSlider:GetValue()
+    selectedSlot.selectedSubclass = subclass
+    previewSlider:SetMinMaxValues(1, previewList:GetPageCount())
+    previewSlider:SetValue(page)
+    print(subclass, page)
+end
+
+---------------- ARMOR ----------------
+
 do
-    local subclassOrder = {"Cloth", "Leather", "Mail", "Plate"}
-    local subclassFrame = slots[armorSlots[1]].subclassFrame
-    subclassFrame.buttons = {}
+    local subclasses = {"Cloth", "Leather", "Mail", "Plate"}
+    local list = ns:CreateListFrame("TestList", subclasses, mainFrame)
+    list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
+    list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
+    list:Hide()
 
-    local function btn_OnClick(self)
-        local selectedButton = self:GetParent().buttons["Selected"]
-        if selectedButton then
-            selectedButton:UnlockHighlight()
-        end
-        self:LockHighlight()
-        self:GetParent().buttons["Selected"] = self
-        previewList:Update(previewSetup["Armor"][slots["Selected"].slot], itemsData["Armor"][slots["Selected"].slot][self.subclass])
+    for name, btn in pairs(list.buttons) do
+        btn:HookScript("OnClick", subclass_OnClick)
     end
-
-    for _, subclass in pairs(subclassOrder) do
-        local btn = CreateFrame("Button", ("DressMeButtonSubclass%s"):format(subclass), subclassFrame, "OptionsListButtonTemplate")
-        btn:SetText("|cffffffff" .. subclass .. FONT_COLOR_CODE_CLOSE)
-        btn:SetScript("OnClick",btn_OnClick)
-        btn:GetParent().buttons[subclass] = btn
-        btn.subclass = subclass
-    end
-    
-    subclassFrame.buttons[subclassOrder[1]]:SetPoint("TOPLEFT")
-    subclassFrame.buttons[subclassOrder[1]]:SetPoint("TOPRIGHT")
-    for i = 2, #subclassOrder do
-        local current = subclassFrame.buttons[subclassOrder[i]]
-        local previous = subclassFrame.buttons[subclassOrder[i - 1]]
-        current:SetPoint("TOPLEFT", previous, "BOTTOMLEFT")
-        current:SetPoint("TOPRIGHT", previous, "BOTTOMRIGHT")
-    end
-
     -- Classes and what they wear to select it by default.
     local subclassPerPlayerClass = {
         MAGE = "Cloth",
@@ -315,168 +294,108 @@ do
         DEATHKNIGHT = "Plate"
     }
     local className, classFileName = UnitClass("player")
-    subclassFrame.buttons["Selected"] = subclassFrame.buttons[subclassPerPlayerClass[classFileName]]
+
+    for _, name in pairs(armorSlots) do
+        slots[name].subclassList = list
+        slots[name].selectedSubclass = subclassPerPlayerClass[classFileName]
+        for _, subclass in pairs(subclasses) do
+            slots[name].selectedPage[subclass] = 1
+        end
+    end
 end
 
----------------- ARMOR BACK SUBCLASS LIST ----------------
-
+---------------- BACK ----------------
 do
-    local subclassFrame = slots[backSlot].subclassFrame
     local subclass = "Cloth"
-  
-    local btn = CreateFrame("Button", ("DressMeButtonSlot%sSubclass%s"):format(backSlot, subclass), subclassFrame, "OptionsListButtonTemplate")
-    btn:SetPoint("TOPLEFT")
-    btn:SetPoint("TOPRIGHT")
-    btn:SetText("|cffffffff" .. subclass .. FONT_COLOR_CODE_CLOSE)
-    btn:SetScript("OnClick", function(self)
-        previewList:Update(previewSetup["Armor"][slots["Selected"].slot], itemsData["Armor"][slots["Selected"].slot][self.subclass])
-    end)
-    btn:LockHighlight()
-    btn.subclass = subclass
-    subclassFrame.buttons = {}
-    subclassFrame.buttons[subclass] = btn
-    subclassFrame.buttons["Selected"] = btn
+    local list = ns:CreateListFrame("TestList", {subclass}, mainFrame)
+    list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
+    list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
+    list:Hide()
+    list.buttons[subclass]:HookScript("OnClick", subclass_OnClick)
+    slots[backSlot].subclassList = list
+    slots[backSlot].selectedSubclass = subclass
+    slots[backSlot].selectedPage[subclass] = 1
 end
 
----------------- ARMOR TABARD/SHIRT LIST ----------------
-do
-    local subclassFrame = slots[miscellaneousSlots[1]].subclassFrame
-    local subclass = "Miscellaneous"    
+---------------- SHIRT / TABARD ----------------
 
-    local btn = CreateFrame("Button", ("DressMeButtonSlotTabardShirtSubclass%s"):format(subclass), subclassFrame, "OptionsListButtonTemplate")
-    btn:SetPoint("TOPLEFT")
-    btn:SetPoint("TOPRIGHT")
-    btn:SetText("|cffffffff" .. subclass .. FONT_COLOR_CODE_CLOSE)
-    btn:SetScript("OnClick", function(self)
-        previewList:Update(previewSetup["Armor"][slots["Selected"].slot], itemsData["Armor"][slots["Selected"].slot][self.subclass])
-    end)
-    btn:LockHighlight()
-    btn.subclass = subclass
-    subclassFrame.buttons = {}
-    subclassFrame.buttons[subclass] = btn
-    subclassFrame.buttons["Selected"] = btn
+do
+    local subclass = "Miscellaneous"
+    local list = ns:CreateListFrame("TestList", {subclass}, mainFrame)
+    list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
+    list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
+    list:Hide()
+    list.buttons[subclass]:HookScript("OnClick", subclass_OnClick)
+    for _, name in pairs(miscellaneousSlots) do
+        slots[name].subclassList = list
+        slots[name].selectedSubclass = subclass
+        slots[name].selectedPage[subclass] = 1
+    end
 end
 
----------------- MAIN HAND SUBCLASS LIST ----------------
+---------------- MAIN HAND ----------------
 
 do
-    local subclassOrder = {
+    local subclasses = {
         "1H Axe", "1H Mace", "1H Sword", "1H Dagger", "1H Fist",
         "MH Axe", "MH Mace", "MH Sword", "MH Dagger", "MH Fist",
         "2H Axe", "2H Mace", "2H Sword", "Polearm", "Staff"
     }
-    local subclassFrame = slots[mhSlot].subclassFrame
-    subclassFrame.buttons = {}
+    local list = ns:CreateListFrame("TestList", subclasses, mainFrame)
+    list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
+    list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
+    list:Hide()
 
-    local function btn_OnClick(self)
-        local selectedButton = self:GetParent().buttons["Selected"]
-        if selectedButton then
-            selectedButton:UnlockHighlight()
-        end
-        self:LockHighlight()
-        self:GetParent().buttons["Selected"] = self
-        local presetSubcategory = self.subclass:startswith("MH", "1H") and self.subclass:sub(4) or self.subclass
-        previewList:Update(previewSetup[slots["Selected"].slot][presetSubcategory], itemsData[slots["Selected"].slot][self.subclass])
+    for name, btn in pairs(list.buttons) do
+        btn:HookScript("OnClick", subclass_OnClick)
     end
-
-    for _, subclass in pairs(subclassOrder) do
-        local btn = CreateFrame("Button", ("DressMeButtonSubclass%s"):format(subclass), subclassFrame, "OptionsListButtonTemplate")
-        btn:SetText("|cffffffff" .. subclass .. FONT_COLOR_CODE_CLOSE)
-        btn:SetScript("OnClick",btn_OnClick)
-        btn:GetParent().buttons[subclass] = btn
-        btn.subclass = subclass
+    slots[mhSlot].subclassList = list
+    slots[mhSlot].selectedSubclass = subclasses[1]
+    for _, subclass in pairs(subclasses) do
+        slots[mhSlot].selectedPage[subclass] = 1
     end
-    
-    subclassFrame.buttons[subclassOrder[1]]:SetPoint("TOPLEFT")
-    subclassFrame.buttons[subclassOrder[1]]:SetPoint("TOPRIGHT")
-    for i = 2, #subclassOrder do
-        local current = subclassFrame.buttons[subclassOrder[i]]
-        local previous = subclassFrame.buttons[subclassOrder[i - 1]]
-        current:SetPoint("TOPLEFT", previous, "BOTTOMLEFT")
-        current:SetPoint("TOPRIGHT", previous, "BOTTOMRIGHT")
-    end
-
-    subclassFrame.buttons["Selected"] = subclassFrame.buttons[subclassOrder[1]]
 end
 
----------------- OFF HAND SUBCLASS LIST ----------------
+---------------- OFF-HAND ----------------
 
 do
-    local subclassOrder = {
+    local subclasses = {
         -- "1H Axe", "1H Mace", "1H Sword", "1H Dagger", "1H Fist",
         "OH Axe", "OH Mace", "OH Sword", "OH Dagger", "OH Fist",
         "Shield", "Held in Off-hand"
     }
-    local subclassFrame = slots[ohSlot].subclassFrame
-    subclassFrame.buttons = {}
+    local list = ns:CreateListFrame("TestList", subclasses, mainFrame)
+    list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
+    list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
+    list:Hide()
 
-    local function btn_OnClick(self)
-        local selectedButton = self:GetParent().buttons["Selected"]
-        if selectedButton then
-            selectedButton:UnlockHighlight()
-        end
-        self:LockHighlight()
-        self:GetParent().buttons["Selected"] = self
-        local presetSubcategory = self.subclass:startswith("OH", "1H") and self.subclass:sub(4) or self.subclass
-        previewList:Update(previewSetup[slots["Selected"].slot][presetSubcategory], itemsData[slots["Selected"].slot][self.subclass])
+    for name, btn in pairs(list.buttons) do
+        btn:HookScript("OnClick", subclass_OnClick)
     end
-
-    for _, subclass in pairs(subclassOrder) do
-        local btn = CreateFrame("Button", ("DressMeButtonSubclass%s"):format(subclass), subclassFrame, "OptionsListButtonTemplate")
-        btn:SetText("|cffffffff" .. subclass .. FONT_COLOR_CODE_CLOSE)
-        btn:SetScript("OnClick",btn_OnClick)
-        btn:GetParent().buttons[subclass] = btn
-        btn.subclass = subclass
+    slots[ohSlot].subclassList = list
+    slots[ohSlot].selectedSubclass = subclasses[1]
+    for _, subclass in pairs(subclasses) do
+        slots[ohSlot].selectedPage[subclass] = 1
     end
-    
-    subclassFrame.buttons[subclassOrder[1]]:SetPoint("TOPLEFT")
-    subclassFrame.buttons[subclassOrder[1]]:SetPoint("TOPRIGHT")
-    for i = 2, #subclassOrder do
-        local current = subclassFrame.buttons[subclassOrder[i]]
-        local previous = subclassFrame.buttons[subclassOrder[i - 1]]
-        current:SetPoint("TOPLEFT", previous, "BOTTOMLEFT")
-        current:SetPoint("TOPRIGHT", previous, "BOTTOMRIGHT")
-    end
-
-    subclassFrame.buttons["Selected"] = subclassFrame.buttons[subclassOrder[1]]
 end
 
----------------- RANGED SUBCLASS LIST ----------------
+---------------- RANGED ----------------
 
 do
-    local subclassOrder = {"Bow", "Crossbow", "Gun", "Wand", "Thrown"}
-    local subclassFrame = slots[rangedSlot].subclassFrame
-    subclassFrame.buttons = {}
+    local subclasses = {"Bow", "Crossbow", "Gun", "Wand", "Thrown"}
+    local list = ns:CreateListFrame("TestList", subclasses, mainFrame)
+    list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
+    list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
+    list:Hide()
 
-    local function btn_OnClick(self)
-        local selectedButton = self:GetParent().buttons["Selected"]
-        if selectedButton then
-            selectedButton:UnlockHighlight()
-        end
-        self:LockHighlight()
-        self:GetParent().buttons["Selected"] = self
-        local presetSubcategory = self.subclass
-        previewList:Update(previewSetup[slots["Selected"].slot][presetSubcategory], itemsData[slots["Selected"].slot][self.subclass])
+    for name, btn in pairs(list.buttons) do
+        btn:HookScript("OnClick", subclass_OnClick)
     end
-
-    for _, subclass in pairs(subclassOrder) do
-        local btn = CreateFrame("Button", ("DressMeButtonSubclass%s"):format(subclass), subclassFrame, "OptionsListButtonTemplate")
-        btn:SetText("|cffffffff" .. subclass .. FONT_COLOR_CODE_CLOSE)
-        btn:SetScript("OnClick",btn_OnClick)
-        btn:GetParent().buttons[subclass] = btn
-        btn.subclass = subclass
+    slots[rangedSlot].subclassList = list
+    slots[rangedSlot].selectedSubclass = subclasses[1]
+    for _, subclass in pairs(subclasses) do
+        slots[rangedSlot].selectedPage[subclass] = 1
     end
-    
-    subclassFrame.buttons[subclassOrder[1]]:SetPoint("TOPLEFT")
-    subclassFrame.buttons[subclassOrder[1]]:SetPoint("TOPRIGHT")
-    for i = 2, #subclassOrder do
-        local current = subclassFrame.buttons[subclassOrder[i]]
-        local previous = subclassFrame.buttons[subclassOrder[i - 1]]
-        current:SetPoint("TOPLEFT", previous, "BOTTOMLEFT")
-        current:SetPoint("TOPRIGHT", previous, "BOTTOMRIGHT")
-    end
-
-    subclassFrame.buttons["Selected"] = subclassFrame.buttons[subclassOrder[1]]
 end
 
 SLASH_DRESSME1 = "/dressme"
