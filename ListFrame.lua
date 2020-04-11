@@ -10,16 +10,18 @@ function ns:CreateListFrame(name, list, parent)
         local btn = CreateFrame("Button", ("$parent%s"):format(name), frame, "OptionsListButtonTemplate")
         btn:SetText(name)
         btn:SetScript("OnClick", function(self)
-            if selected then
-                selected:UnlockHighlight()
-            end
-            self:LockHighlight()
-            selected = self
+            frame:Select(name)
         end)
-        function btn:GetListName()
-            return name
-        end
+
         frame.buttons[name] = btn
+    end
+
+    function frame:GetButtonName(button)
+        for name, btn in pairs(frame.buttons) do
+            if button == btn then
+                return name
+            end
+        end
     end
 
     function frame:GetListHeight()
@@ -32,6 +34,15 @@ function ns:CreateListFrame(name, list, parent)
 
     function frame:GetSelected()
         return selected
+    end
+
+    -- without click event
+    function frame:Select(name)
+        if selected then
+            selected:UnlockHighlight()
+        end
+        frame.buttons[name]:LockHighlight()
+        selected = frame.buttons[name]
     end
 
     frame:SetHeight(frame:GetListHeight())

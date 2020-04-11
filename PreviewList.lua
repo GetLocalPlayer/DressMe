@@ -30,17 +30,18 @@ local function subrange(t, first, last)
 end
 
 
+local tooltip = CreateFrame("GameTooltip", nil, UIParent)
 local function queryItem(itemId)
-    GameTooltip:SetHyperlink("item:".. tostring(itemId) ..":0:0:0:0:0:0:0")
+    tooltip:SetHyperlink("item:".. tostring(itemId) ..":0:0:0:0:0:0:0")
 end
 
 
 local function btn_OnEnter(self)
     local data = self:GetParent().appereanceData
+    self:EnableKeyboard(true)
     self.highlight:Show()
     self.focused = true
-    self.asdfasdf = "asdfasdf"
-    self.selectedName = 1
+    self.selectedItem = 1
     GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
     GameTooltip:AddLine("Next items provide this appearance:", 1, 1, 1)
     local names = self:GetParent().appereanceData[2]
@@ -51,8 +52,8 @@ local function btn_OnEnter(self)
     GameTooltip:Show()
 end
 
-
 local function btn_OnLeave(self)
+    self:EnableKeyboard(false)
     self.highlight:Hide()
     self.focused = false
     GameTooltip:Hide()
@@ -62,14 +63,14 @@ local function btn_OnKeyDown(self, key)
     if self.focused and key == "TAB" then
         local data = self:GetParent().appereanceData
         local names = data[2]
-        self.selectedName = self.selectedName + 1
-        if self.selectedName > #names then
-            self.selectedName = 1
+        self.selectedItem = self.selectedItem + 1
+        if self.selectedItem > #names then
+            self.selectedItem = 1
         end
         GameTooltip:ClearLines()
         GameTooltip:AddLine("Next items provide this appearance:", 1, 1, 1)
         for i = 1, #names do
-            local prefix = self.selectedName == i and " > " or "- "
+            local prefix = self.selectedItem == i and " > " or "- "
             GameTooltip:AddLine(prefix .. names[i])
         end
     end
@@ -83,7 +84,7 @@ function ns:CreatePreviewList(parent)
     local perPage = 0
     local pageCount = 0
     local currentPage = 0
-    local onClickCb = nil
+    local onClickScript
 
     function frame:Update(previewSetup, items, page)
         local width, height = previewSetup.width, previewSetup.height
@@ -108,7 +109,8 @@ function ns:CreatePreviewList(parent)
                     preview:SetBackdropColor(previewBackdropColor.r, previewBackdropColor.g, previewBackdropColor.b, previewBackdropColor.a)
                     preview:EnableDragRotation(false)
                     preview:EnableMouseWheel(false)
-                    local btn = CreateFrame("Button", nil, preview)                    
+                    preview.button = CreateFrame("Button", nil, preview)
+                    local btn = preview.button
                     btn:SetAllPoints()
                     btn.highlight = preview:CreateTexture(nil, "OVERLAY")
                     btn.highlight:SetTexture(previewHighlightTexture)
@@ -120,9 +122,15 @@ function ns:CreatePreviewList(parent)
                     btn:SetScript("OnEnter", btn_OnEnter)
                     btn:SetScript("OnLeave", btn_OnLeave)
                     btn:SetScript("OnClick", function(self)
-                        --if onClickCb then onClickCb(frame, )
+                        if onClickScript ~= nil then
+                            local ids, names = {}, {}
+                            for i = 1, #preview.appereanceData[1] do
+                                table.insert(ids, preview.appereanceData[1][i])
+                                table.insert(names, preview.appereanceData[2][i])
+                            end
+                            onClickScript(frame, ids, names, btn.selectedItem)
+                        end
                     end)
-                    btn:EnableKeyboard(true)
                     btn:SetScript("OnKeyDown", btn_OnKeyDown)
                 else
                     preview:Show()
@@ -186,9 +194,9 @@ function ns:CreatePreviewList(parent)
         end
     end
 
-    function frame:OnClick(cb)
-        assert(type(cb) == "function", "Usage: <Unnamed>:OnClick(function)")
-        onClickCb = cb
+    function frame:OnClick(script)
+        assert(type(script) == "function", "Usage: <Unnamed>:OnClick(function)")
+        onClickScript = script
     end
 
     frame:SetScript("OnShow", function(self)

@@ -76,7 +76,7 @@ titleBgRight:SetHeight(40)
 
 local titleText = titleFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 titleText:SetPoint("TOP", titleBg, "TOP", 0, -14)
-titleText:SetText("$parent")
+titleText:SetText(addon)
 
 titleFrame:SetPoint("BOTTOMLEFT", titleBgLeft, "BOTTOMLEFT")
 titleFrame:SetPoint("TOPRIGHT", titleBgRight, "TOPRIGHT")
@@ -103,17 +103,15 @@ btnUndress:SetPoint("RIGHT", dressingRoom, "BOTTOMRIGHT", -20, -20)
 btnUndress:SetText("Undress")
 btnUndress:SetScript("OnClick", function()
     dressingRoom:Undress()
-    local slotID = GetInventorySlotInfo("SHOULDERSLOT")
-    local itemLink = GetInventoryItemLink("player", slotID)
-    local _, link = GetItemInfo(itemLink)
-    dressingRoom:TryOn(link)
 end)
 
 local btnReset = CreateFrame("Button", "$parentButtonReset", mainFrame, "UIPanelButtonTemplate2")
 btnReset:SetSize(120, 20)
 btnReset:SetPoint("LEFT", dressingRoom, "BOTTOMLEFT", 20, -20)
 btnReset:SetText("Reset")
-btnReset:SetScript("OnClick", function() dressingRoom:Reset() end)
+btnReset:SetScript("OnClick", function()
+    dressingRoom:Reset()
+end)
 
 ---------------- PREVIEW LIST ----------------
 
@@ -180,7 +178,22 @@ local function slot_OnClick(self)
     selectedSlot = self
     self:LockHighlight()
     self.subclassList:Show()
-    self.subclassList.buttons[self.selectedSubclass]:Click("LeftButton")
+    self.subclassList:Select(self.selectedSubclass)
+    local slotName = self.slotName
+    local subclass = self.selectedSubclass
+    local page = self.selectedPage[subclass]
+    if previewSetup[slotName] == nil then
+        previewList:Update(previewSetup["Armor"][slotName], itemsData["Armor"][slotName][subclass])
+    else
+        local previewSubclass = subclass:startswith("OH", "MH", "1H") and subclass:sub(4) or subclass
+        previewList:Update(previewSetup[slotName][previewSubclass], itemsData[slotName][subclass])
+    end
+    previewSlider:SetMinMaxValues(1, previewList:GetPageCount())
+    if previewSlider:GetValue() ~= page then
+        previewSlider:SetValue(page)
+    else
+        previewSlider:GetScript("OnValueChanged")(previewSlider, page)
+    end
 end
 
 local function slot_OnEnter(self)
@@ -202,12 +215,15 @@ for slotName, texturePath in pairs(slotTextures) do
     slot.slotName = slotName
     slot.selectedSubclass = nil -- init later in subclass
     slot.selectedPage = {} -- per subclass, filled later in subclass
-    slot.selectedPreview = 0
     slot.subclassList = nil -- init later in subclss
     slots[slotName] = slot
-    local texture = slots[slotName]:CreateTexture(nil, "ARTWORK")
-    texture:SetTexture(texturePath)
-    texture:SetAllPoints()
+    slot.textures = {}
+    slot.textures.empty = slot:CreateTexture(nil, "ARTWORK")
+    slot.textures.empty:SetTexture(texturePath)
+    slot.textures.empty:SetAllPoints()
+    slot.textures.item = slot:CreateTexture(nil, "ARTWORK")
+    slot.textures.item:SetAllPoints()
+    slot.textures.item:Hide()
 end
 
 -- At first time it's shown.
@@ -238,6 +254,30 @@ local mhSlot = "Main Hand"
 local ohSlot = "Off-hand"
 local rangedSlot = "Ranged"
 
+do
+    local tooltip = CreateFrame("GameTooltip", nil, UIParent)
+    tooltip:Hide()
+
+    local colors = {} -- per quality
+    colors[2] = "ff1eff00"
+    colors[3] = "ff0070dd"
+    colors[4] = "ffa335ee"
+    colors[5] = "ffff8000"
+    colors[6] = "ffe6cc80"
+
+    previewList:OnClick(function(self, ids, names, selected)
+        local _, _, quality, _, _, _, _, _, _, texture = GetItemInfo(ids[1])
+        if not IsShiftKeyDown() then
+            selectedSlot.textures.empty:Hide()
+            selectedSlot.textures.item:SetTexture(texture)
+            selectedSlot.textures.item:Show()
+            dressingRoom:TryOn(ids[1])
+        else
+            ChatEdit_InsertLink("|c" .. colors[quality] .. "|Hitem:" .. ids[1] .. ":::::::|h[" .. names[1] .. "]|h|r")
+        end
+    end)
+end
+
 ---------------- SBUCLASS FRAMES ----------------
 
 function string:startswith(...)
@@ -252,20 +292,24 @@ function string:startswith(...)
 end
 
 local function subclass_OnClick(self)
-    local name = selectedSlot.slotName
-    local subclass = self:GetListName()
+    selectedSlot.selectedPage[selectedSlot.selectedSubclass] = previewSlider:GetValue()
+
+    local slotName = selectedSlot.slotName
+    local subclass = selectedSlot.subclassList:GetButtonName(self)
     local page = selectedSlot.selectedPage[subclass]
-    if previewSetup["Armor"][name] then
-        previewList:Update(previewSetup["Armor"][name], itemsData["Armor"][name][subclass], page)
+    if previewSetup["Armor"][slotName] then
+        previewList:Update(previewSetup["Armor"][slotName], itemsData["Armor"][slotName][subclass], page)
     else
         local previewSubclass = subclass:startswith("OH", "MH", "1H") and subclass:sub(4) or subclass
-        previewList:Update(previewSetup[name][previewSubclass], itemsData[name][subclass], page)
+        previewList:Update(previewSetup[slotName][previewSubclass], itemsData[slotName][subclass], page)
     end
-    selectedSlot.selectedPage[selectedSlot.selectedSubclass] = previewSlider:GetValue()
     selectedSlot.selectedSubclass = subclass
     previewSlider:SetMinMaxValues(1, previewList:GetPageCount())
-    previewSlider:SetValue(page)
-    print(subclass, page)
+    if previewSlider:GetValue() ~= page then
+        previewSlider:SetValue(page)
+    else
+        previewSlider:GetScript("OnValueChanged")(previewSlider, page)
+    end
 end
 
 ---------------- ARMOR ----------------
