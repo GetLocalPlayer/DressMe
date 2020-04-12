@@ -95,7 +95,7 @@ previewSetup.classic = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -402,7 +402,7 @@ previewSetup.classic = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -711,7 +711,7 @@ previewSetup.classic = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -1018,7 +1018,7 @@ previewSetup.classic = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -1327,7 +1327,7 @@ previewSetup.classic = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -1634,7 +1634,7 @@ previewSetup.classic = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -1943,7 +1943,7 @@ previewSetup.classic = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -2250,7 +2250,7 @@ previewSetup.classic = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -2559,7 +2559,7 @@ previewSetup.classic = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -2866,7 +2866,7 @@ previewSetup.classic = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -3175,7 +3175,7 @@ previewSetup.classic = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -3482,7 +3482,7 @@ previewSetup.classic = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -3791,7 +3791,7 @@ previewSetup.classic = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -4098,7 +4098,7 @@ previewSetup.classic = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -4407,7 +4407,7 @@ previewSetup.classic = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -4714,7 +4714,7 @@ previewSetup.classic = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -5023,7 +5023,7 @@ previewSetup.classic = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -5330,7 +5330,7 @@ previewSetup.classic = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -5639,7 +5639,7 @@ previewSetup.classic = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -5946,7 +5946,7 @@ previewSetup.classic = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -6258,7 +6258,7 @@ previewSetup.modern = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -6565,7 +6565,7 @@ previewSetup.modern = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -6874,7 +6874,7 @@ previewSetup.modern = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -7181,7 +7181,7 @@ previewSetup.modern = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -7490,7 +7490,7 @@ previewSetup.modern = {
 					["facing"] = 0.826587975025177,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = -0.2005333751440048,
 					["x"] = 2.000000238418579,
 					["sequence"] = 3,
@@ -7797,7 +7797,7 @@ previewSetup.modern = {
 					["facing"] = 0,
 					["width"] = 99.99992258564492,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = -0.1450672745704651,
 					["x"] = 2.999999284744263,
 					["sequence"] = 3,
@@ -8106,7 +8106,7 @@ previewSetup.modern = {
 					["facing"] = 0.3797842860221863,
 					["width"] = 99.99992258564492,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = -0.1408000737428665,
 					["x"] = 1.900000214576721,
 					["sequence"] = 3,
@@ -8413,7 +8413,7 @@ previewSetup.modern = {
 					["facing"] = -0.03351029381155968,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = -0.2816003859043121,
 					["x"] = 2.200000047683716,
 					["sequence"] = 3,
@@ -8722,7 +8722,7 @@ previewSetup.modern = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -9029,7 +9029,7 @@ previewSetup.modern = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -9338,7 +9338,7 @@ previewSetup.modern = {
 					["facing"] = 0.1340411752462387,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = -0.2133335620164871,
 					["x"] = 2.799999475479126,
 					["sequence"] = 3,
@@ -9645,7 +9645,7 @@ previewSetup.modern = {
 					["facing"] = 0.1898916810750961,
 					["width"] = 99.99992258564492,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = -0.1834667325019836,
 					["x"] = 2.799999475479126,
 					["sequence"] = 3,
@@ -9954,7 +9954,7 @@ previewSetup.modern = {
 					["facing"] = 0.1898916810750961,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = -0.2432001829147339,
 					["x"] = 2.799999475479126,
 					["sequence"] = 3,
@@ -10261,7 +10261,7 @@ previewSetup.modern = {
 					["facing"] = 0.3239342272281647,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = -0.2175998389720917,
 					["x"] = 2.000000238418579,
 					["sequence"] = 3,
@@ -10570,7 +10570,7 @@ previewSetup.modern = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -10877,7 +10877,7 @@ previewSetup.modern = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -11186,7 +11186,7 @@ previewSetup.modern = {
 					["facing"] = 0.692546010017395,
 					["width"] = 99.99992258564492,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = -0.1664000600576401,
 					["x"] = 2.699999570846558,
 					["sequence"] = 12,
@@ -11493,7 +11493,7 @@ previewSetup.modern = {
 					["facing"] = 0,
 					["width"] = 99.99992258564492,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = -0.06399980932474136,
 					["x"] = 2.200000047683716,
 					["sequence"] = 15,
@@ -11802,7 +11802,7 @@ previewSetup.modern = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,
@@ -12109,7 +12109,7 @@ previewSetup.modern = {
 					["facing"] = 0,
 					["width"] = 100,
 				},
-				["Gloves"] = {
+				["Hands"] = {
 					["y"] = 0,
 					["x"] = 0,
 					["sequence"] = 3,

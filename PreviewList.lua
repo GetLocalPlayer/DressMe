@@ -39,22 +39,29 @@ end
 local function btn_OnEnter(self)
     local data = self:GetParent().appereanceData
     self:EnableKeyboard(true)
-    self.highlight:Show()
     self.focused = true
     self.selectedItem = 1
-    GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
-    GameTooltip:AddLine("Next items provide this appearance:", 1, 1, 1)
     local names = self:GetParent().appereanceData[2]
+    GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+    GameTooltip:ClearLines()
+    GameTooltip:AddLine("This appearance's provided by:", 1, 1, 1)
+    GameTooltip:AddLine(" ")
     GameTooltip:AddLine(" > " .. names[1])
     for i = 2, #names do
         GameTooltip:AddLine("- " .. names[i])
+    end
+    GameTooltip:AddLine("|n|cff00ff00Left Click|r - put on the appearance.")
+    if #names > 1 then
+        GameTooltip:AddLine("|cff00ff00Tab|r - choose an item in the list.")
+        GameTooltip:AddLine("|cff00ff00Shift + Left Click|r - create a hyperlink for the chosen item.")
+    else
+        GameTooltip:AddLine("|cff00ff00Shift + Left Click|r - create a hyperlink for the item.")
     end
     GameTooltip:Show()
 end
 
 local function btn_OnLeave(self)
     self:EnableKeyboard(false)
-    self.highlight:Hide()
     self.focused = false
     GameTooltip:Hide()
 end
@@ -68,10 +75,18 @@ local function btn_OnKeyDown(self, key)
             self.selectedItem = 1
         end
         GameTooltip:ClearLines()
-        GameTooltip:AddLine("Next items provide this appearance:", 1, 1, 1)
+        GameTooltip:AddLine("This appearance's provided by:", 1, 1, 1)
+        GameTooltip:AddLine(" ")
         for i = 1, #names do
             local prefix = self.selectedItem == i and " > " or "- "
             GameTooltip:AddLine(prefix .. names[i])
+        end
+        GameTooltip:AddLine("|n|cff00ff00Left Click|r - put on the appearance.")
+        if #names > 1 then
+            GameTooltip:AddLine("|cff00ff00Tab|r - choose an item in the list.")
+            GameTooltip:AddLine("|cff00ff00Shift + Left Click|r - create a hyperlink for the chosen item.")
+        else
+            GameTooltip:AddLine("|cff00ff00Shift + Left Click|r - create a hyperlink for the item.")
         end
     end
 end
@@ -112,11 +127,7 @@ function ns:CreatePreviewList(parent)
                     preview.button = CreateFrame("Button", nil, preview)
                     local btn = preview.button
                     btn:SetAllPoints()
-                    btn.highlight = preview:CreateTexture(nil, "OVERLAY")
-                    btn.highlight:SetTexture(previewHighlightTexture)
-                    btn.highlight:SetBlendMode("ADD")
-                    btn.highlight:SetAllPoints()
-                    btn.highlight:Hide()
+                    btn:SetHighlightTexture(previewHighlightTexture)
                     btn:EnableMouse(true)
                     btn:RegisterForClicks("LeftButtonUp")
                     btn:SetScript("OnEnter", btn_OnEnter)

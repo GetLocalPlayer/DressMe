@@ -86,11 +86,11 @@ dressingRoom:SetPoint("TOPLEFT", 16, -56)
 dressingRoom:SetSize(400, 400)
 dressingRoom:SetBackdrop(backdrop)
 dressingRoom:SetBackdropColor(0, 0, 0, 1)
-dressingRoom:SetScript("OnShow", function(self)
+--[[ dressingRoom:SetScript("OnShow", function(self)
     -- Need to reset the model at least once or it will be either not shown or shown wrong.
     self:Reset()
     self:SetScript("OnShow", nil)
-end)
+end) ]]
 
 local dressingRoomBorder = CreateFrame("Frame", nil, dressingRoom)
 dressingRoomBorder:SetAllPoints()
@@ -160,7 +160,7 @@ local slotTextures = {
     ["Shirt"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-shirt",
     ["Tabard"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-tabard",
     ["Wrist"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-wrists",
-    ["Gloves"] =    "Interface\\Paperdoll\\ui-paperdoll-slot-hands",
+    ["Hands"] =    "Interface\\Paperdoll\\ui-paperdoll-slot-hands",
     ["Waist"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-waist",
     ["Legs"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-legs",
     ["Feet"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-feet",
@@ -169,7 +169,62 @@ local slotTextures = {
     ["Ranged"] =    "Interface\\Paperdoll\\ui-paperdoll-slot-ranged",
 }
 
-local function slot_OnClick(self)
+local armorSlots = {"Head", "Shoulder", "Chest", "Wrist", "Hands", "Waist", "Legs", "Feet"}
+local backSlot = "Back"
+local miscellaneousSlots = {"Tabard", "Shirt"}
+local mhSlot = "Main Hand"
+local ohSlot = "Off-hand"
+local rangedSlot = "Ranged"
+
+
+local function hasValue(array, value)
+    for i = 1, #array do
+        if array[i] == value then
+            return i
+        end
+    end
+
+    return false
+end
+
+local function slot_Undress(self)
+    --[[ Undress only current slot. In lack of 
+    the game's API we undress the whole model
+    and dress it again but without the slot. ]]
+end
+
+local function slot_ShiftLeftCick(self)
+    local itemId = self.appearance.itemId
+    local itemName = self.appearance.itemName
+    if itemId ~= nil then
+        local slotName = self.slotName
+        local subclass = self.selectedSubclass
+        if itemsData[slotName] == nil then
+            for _, data in pairs(itemsData["Armor"][slotName][subclass]) do
+                local index = hasValue(data[1], itemId)                
+                if index then
+                    local color = itemName:sub(1, 10)
+                    local name = itemName:sub(11, -3)
+                    DEFAULT_CHAT_FRAME:AddMessage("[DressMe]: Your hyperlink - "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r")
+                    return
+                end
+            end
+        else
+            for _, data in pairs(itemsData[slotName][subclass]) do
+                local index = hasValue(data[1], itemId)                
+                if index then
+                    local color = data[2][index]:sub(1, 10)
+                    local name = data[2][index]:sub(11, -3)
+                    DEFAULT_CHAT_FRAME:AddMessage("[DressMe]: Your hyperlink - "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r")
+                    return
+                end
+            end
+        end
+    end
+end
+
+
+local function slot_LeftCick(self)
     if selectedSlot ~= nil then
         selectedSlot:UnlockHighlight()
         selectedSlot.subclassList:Hide()
@@ -194,11 +249,64 @@ local function slot_OnClick(self)
     else
         previewSlider:GetScript("OnValueChanged")(previewSlider, page)
     end
+    -- Need to reTryOn weapon for proper look.
+    if hasValue({mhSlot, ohSlot, rangedSlot}, self.slotName) then
+        if self.appearance.shownItemId ~= nil then
+            dressingRoom:TryOn(self.appearance.shownItemId)
+        elseif self.appearance.defaultItemId ~= nil then
+            dressingRoom:TryOn(self.appearance.defaultItemId)
+        end
+    end
+end
+
+local function slot_OnRightClick(self)
+    if self.appearance.itemId ~= nil then
+        self.appearance.itemId = nil
+        self.appearance.itemName = nil
+        self.appearance.shownItemId = nil
+        self.textures.empty:Show()
+        self.textures.item:Hide()
+        self:GetScript("OnEnter")(self)
+        -- We're undressning the whole model
+        -- and put on default (currentrly equiped)
+        -- items. A default item is 'nil' after
+        -- undress.
+        dressingRoom:Undress()
+        for _, slot in pairs(slots) do
+            if slot ~= self then
+                if slot.appearance.shownItemId ~= nil then
+                    dressingRoom:TryOn(slot.appearance.shownItemId)
+                elseif slot.appearance.defaultItemId ~= nil then
+                    dressingRoom:TryOn(slot.appearance.defaultItemId)
+                end
+            end
+        end
+        if self.appearance.defaultItemId ~= nil then
+            dressingRoom:TryOn(self.appearance.defaultItemId)
+        end
+    end
+end
+
+local function slot_OnClick(self, button)
+    if button == "LeftButton" then
+        if IsShiftKeyDown() then
+            slot_ShiftLeftCick(self)
+        else
+            slot_LeftCick(self)
+        end
+    elseif button == "RightButton" then
+        slot_OnRightClick(self)
+    end
 end
 
 local function slot_OnEnter(self)
     GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
-    GameTooltip:SetText(self.slotName)
+    GameTooltip:AddLine(self.slotName)
+    if self.appearance.itemName ~= nil then
+        GameTooltip:AddLine(self.appearance.itemName)
+        GameTooltip:AddLine("|n|cff00ff00Shift + Left Click|r - create a hyperlink for the item.")
+        GameTooltip:AddLine("|cff00ff00Right Click|r - clear the slot.")
+    end
     GameTooltip:Show()
 end
 
@@ -208,29 +316,34 @@ end
 
 for slotName, texturePath in pairs(slotTextures) do
     local slot = CreateFrame("Button", nil, mainFrame, "ItemButtonTemplate")
+    slot:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     slot:SetFrameLevel(dressingRoom:GetFrameLevel() + 1)
     slot:SetScript("OnClick", slot_OnClick)
     slot:SetScript("OnEnter", slot_OnEnter)
     slot:SetScript("OnLeave", slot_OnLeave)
     slot.slotName = slotName
     slot.selectedSubclass = nil -- init later in subclass
-    slot.selectedPage = {} -- per subclass, filled later in subclass
-    slot.subclassList = nil -- init later in subclss
+    slot.selectedPage = {}      -- per subclass, filled later in subclass
+    slot.subclassList = nil     -- init later in subclss
+    slot.appearance = {         -- assigned when a preview's clicked. Used to save in collection.
+        ["itemId"] = nil,
+        ["itemName"] = nil,
+        ["shownItemId"] = nil,      -- To avoid overquerying, we TryOn only the first
+                                    -- item from according preview.
+        ["defaultItemId"] = nil,    -- Used when we right-click to undress the slot.
+                                    -- The character's current equipement is assigned
+                                    -- on first "OnShow", on each "Reset", and on each.
+                                    -- "Undress". 'nil' on each "Undress"
+    } 
     slots[slotName] = slot
     slot.textures = {}
-    slot.textures.empty = slot:CreateTexture(nil, "ARTWORK")
+    slot.textures.empty = slot:CreateTexture(nil, "BACKGROUND")
     slot.textures.empty:SetTexture(texturePath)
     slot.textures.empty:SetAllPoints()
-    slot.textures.item = slot:CreateTexture(nil, "ARTWORK")
+    slot.textures.item = slot:CreateTexture(nil, "BACKGROUND")
     slot.textures.item:SetAllPoints()
     slot.textures.item:Hide()
 end
-
--- At first time it's shown.
-slots["Head"]:SetScript("OnShow", function(self)
-    self:Click("LeftButton")
-    self:SetScript("OnShow", nil)
-end)
 
 slots["Head"]:SetPoint("TOPLEFT", dressingRoom, "TOPLEFT", 16, -16)
 slots["Shoulder"]:SetPoint("TOP", slots["Head"], "BOTTOM", 0, -4)
@@ -239,41 +352,116 @@ slots["Chest"]:SetPoint("TOP", slots["Back"], "BOTTOM", 0, -4)
 slots["Shirt"]:SetPoint("TOP", slots["Chest"], "BOTTOM", 0, -36)
 slots["Tabard"]:SetPoint("TOP", slots["Shirt"], "BOTTOM", 0, -4)
 slots["Wrist"]:SetPoint("TOP", slots["Tabard"], "BOTTOM", 0, -36)
-slots["Gloves"]:SetPoint("TOPRIGHT", dressingRoom, "TOPRIGHT", -16, -16)
-slots["Waist"]:SetPoint("TOP", slots["Gloves"], "BOTTOM", 0, -4)
+slots["Hands"]:SetPoint("TOPRIGHT", dressingRoom, "TOPRIGHT", -16, -16)
+slots["Waist"]:SetPoint("TOP", slots["Hands"], "BOTTOM", 0, -4)
 slots["Legs"]:SetPoint("TOP", slots["Waist"], "BOTTOM", 0, -4)
 slots["Feet"]:SetPoint("TOP", slots["Legs"], "BOTTOM", 0, -4)
 slots["Off-hand"]:SetPoint("BOTTOM", dressingRoom, "BOTTOM", 0, 16)
 slots["Main Hand"]:SetPoint("RIGHT", slots["Off-hand"], "LEFT", -4, 0)
 slots["Ranged"]:SetPoint("LEFT", slots["Off-hand"], "RIGHT", 4, 0)
 
-local armorSlots = {"Head", "Shoulder", "Chest", "Wrist", "Gloves", "Waist", "Legs", "Feet"}
-local backSlot = "Back"
-local miscellaneousSlots = {"Tabard", "Shirt"}
-local mhSlot = "Main Hand"
-local ohSlot = "Off-hand"
-local rangedSlot = "Ranged"
+------- Tricks and hooks with slots and provided appearances. -------
+
+local function btnReset_Hook()
+    for _, slotName in pairs(armorSlots) do
+        local slotId = GetInventorySlotInfo(slotName.."Slot")
+        slots[slotName].appearance.defaultItemId = GetInventoryItemID("player", slotId)
+        slots[slotName].appearance.shownItemId = nil
+        slots[slotName].appearance.itemId = nil
+        slots[slotName].appearance.itemName = nil
+        slots[slotName].textures.empty:Show()
+        slots[slotName].textures.item:Hide()
+    end
+    for _, slotName, slot in pairs(miscellaneousSlots) do
+        local slotId = GetInventorySlotInfo(slotName.."Slot")
+        slots[slotName].appearance.defaultItemId = GetInventoryItemID("player", slotId)
+        slots[slotName].appearance.shownItemId = nil
+        slots[slotName].appearance.itemId = nil
+        slots[slotName].appearance.itemName = nil
+        slots[slotName].textures.empty:Show()
+        slots[slotName].textures.item:Hide()
+    end
+    local slotId = GetInventorySlotInfo("MainHandSlot")
+    slots[mhSlot].appearance.defaultItemId = GetInventoryItemID("player", slotId)
+    slots[mhSlot].appearance.shownItemId = nil
+    slots[mhSlot].appearance.itemId = nil
+    slots[mhSlot].appearance.itemName = nil
+    slots[mhSlot].textures.empty:Show()
+    slots[mhSlot].textures.item:Hide()
+    slotId = GetInventorySlotInfo("SecondaryHandSlot")
+    slots[ohSlot].appearance.defaultItemId = GetInventoryItemID("player", slotId)
+    slots[ohSlot].appearance.shownItemId = nil
+    slots[ohSlot].appearance.itemId = nil
+    slots[ohSlot].appearance.itemName = nil
+    slots[ohSlot].textures.empty:Show()
+    slots[ohSlot].textures.item:Hide()
+    slotId = GetInventorySlotInfo("RangedSlot")
+    slots[rangedSlot].appearance.defaultItemId = GetInventoryItemID("player", slotId)
+    slots[rangedSlot].appearance.shownItemId = nil
+    slots[rangedSlot].appearance.itemId = nil
+    slots[rangedSlot].appearance.itemName = nil
+    slots[rangedSlot].textures.empty:Show()
+    slots[rangedSlot].textures.item:Hide()
+end
+
+local function btnUndress_Hook()
+    for _, slot in pairs(slots) do
+        slot.appearance.itemId = nil
+        slot.appearance.itemName = nil
+        slot.appearance.shownItemId = nil
+        slot.appearance.defaultItemId = nil
+        slot.textures.empty:Show()
+        slot.textures.item:Hide()
+    end
+end
+
+--[[
+    Have to reTryOn selected appearances since
+    the model's reset each time it's shown.
+]]
+local function dressingRoom_OnShowHook(self)
+    self:Reset()
+    self:Undress()
+    for _, slot in pairs(slots) do
+        if slot.appearance.shownItemId ~= nil then
+            self:TryOn(slot.appearance.shownItemId)
+        elseif slot.appearance.defaultItemId ~= nil then
+            self:TryOn(slot.appearance.defaultItemId)
+        end
+    end
+end
+
+-- At first time it's shown.
+slots["Head"]:SetScript("OnShow", function(self)
+    self:Click("LeftButton")
+    self:SetScript("OnShow", nil)
+    dressingRoom:Reset()
+    btnReset_Hook()
+    btnReset:HookScript("OnClick", btnReset_Hook)
+    dressingRoom:HookScript("OnShow", dressingRoom_OnShowHook)
+    btnUndress:HookScript("OnClick", btnUndress_Hook)
+end)
+
+---------------- PREVIEW LIST SCRIPT ----------------
 
 do
     local tooltip = CreateFrame("GameTooltip", nil, UIParent)
     tooltip:Hide()
 
-    local colors = {} -- per quality
-    colors[2] = "ff1eff00"
-    colors[3] = "ff0070dd"
-    colors[4] = "ffa335ee"
-    colors[5] = "ffff8000"
-    colors[6] = "ffe6cc80"
-
     previewList:OnClick(function(self, ids, names, selected)
-        local _, _, quality, _, _, _, _, _, _, texture = GetItemInfo(ids[1])
+        local _, link, quality, _, _, _, _, _, _, texture = GetItemInfo(ids[1])
         if not IsShiftKeyDown() then
             selectedSlot.textures.empty:Hide()
             selectedSlot.textures.item:SetTexture(texture)
             selectedSlot.textures.item:Show()
+            selectedSlot.appearance.itemId = ids[selected]
+            selectedSlot.appearance.itemName = names[selected]
+            selectedSlot.appearance.shownItemId = ids[1]
             dressingRoom:TryOn(ids[1])
         else
-            ChatEdit_InsertLink("|c" .. colors[quality] .. "|Hitem:" .. ids[1] .. ":::::::|h[" .. names[1] .. "]|h|r")
+            local color = names[selected]:sub(1, 10)
+            local name = names[selected]:sub(11, -3)
+            DEFAULT_CHAT_FRAME:AddMessage("[DressMe]: Your hyperlink - "..color.."\124Hitem:"..ids[selected]..":::::::|h["..name.."]\124h\124r")
         end
     end)
 end
