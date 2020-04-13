@@ -1,8 +1,8 @@
 
 local addon, ns = ...
 
-local fixedWidth = 350
-local fixedHeight = 430
+local initWidth = 350
+local initHeight = 430
 
 local xStep = 0.2 -- per pixel
 local zStep = 0.003 -- per pixel
@@ -80,9 +80,9 @@ function ns:CreateDressingRoom(parent)
     --assert(type(useBackgroundModel) == "boolean", "'useBackgroundModel' must be a boolean value")
     local frame = CreateFrame("Frame", nil, parent)
     frame:EnableMouseWheel(true)
-    frame:SetSize(fixedWidth, fixedHeight)
-    frame:SetMinResize(fixedWidth, fixedHeight)
-    frame:SetMaxResize(fixedWidth, fixedHeight)
+    frame:SetSize(initWidth, initHeight)
+    frame:SetMinResize(initWidth, initHeight)
+    frame:SetMaxResize(initWidth, initHeight)
     --frame:SetFrameStrata("FULLSCREEN_DIALOG")
 
 --[[     local bgModel = nil

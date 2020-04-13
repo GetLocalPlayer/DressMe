@@ -50,12 +50,12 @@ local function btn_OnEnter(self)
     for i = 2, #names do
         GameTooltip:AddLine("- " .. names[i])
     end
-    GameTooltip:AddLine("|n|cff00ff00Left Click|r - put on the appearance.")
+    GameTooltip:AddLine("|n|cff00ff00Left Click:|r try on the appearance.")
     if #names > 1 then
         GameTooltip:AddLine("|cff00ff00Tab|r - choose an item in the list.")
-        GameTooltip:AddLine("|cff00ff00Shift + Left Click|r - create a hyperlink for the chosen item.")
+        GameTooltip:AddLine("|cff00ff00Shift + Left Click:|r create a hyperlink for the chosen item.")
     else
-        GameTooltip:AddLine("|cff00ff00Shift + Left Click|r - create a hyperlink for the item.")
+        GameTooltip:AddLine("|cff00ff00Shift + Left Click:|r create a hyperlink for the item.")
     end
     GameTooltip:Show()
 end
@@ -81,12 +81,12 @@ local function btn_OnKeyDown(self, key)
             local prefix = self.selectedItem == i and " > " or "- "
             GameTooltip:AddLine(prefix .. names[i])
         end
-        GameTooltip:AddLine("|n|cff00ff00Left Click|r - put on the appearance.")
+        GameTooltip:AddLine("|n|cff00ff00Left Click:|r try on the appearance.")
         if #names > 1 then
             GameTooltip:AddLine("|cff00ff00Tab|r - choose an item in the list.")
-            GameTooltip:AddLine("|cff00ff00Shift + Left Click|r - create a hyperlink for the chosen item.")
+            GameTooltip:AddLine("|cff00ff00Shift + Left Click:|r create a hyperlink for the chosen item.")
         else
-            GameTooltip:AddLine("|cff00ff00Shift + Left Click|r - create a hyperlink for the item.")
+            GameTooltip:AddLine("|cff00ff00Shift + Left Click:|r create a hyperlink for the item.")
         end
     end
 end

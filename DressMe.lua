@@ -5,6 +5,16 @@ local race, raceFileName = UnitRace("player")
 local itemsData = ns:GetItemsData()
 local previewSetup = ns:GetPreviewSetup().modern[raceFileName][sex]
 
+local colors = { -- per quality
+    [0] = "ff9d9d9d",
+    [1] = "ffffffff",
+    [2] = "ff1eff00",
+    [3] = "ff0070dd",
+    [4] = "ffa335ee",
+    [5] = "ffff8000",
+    [6] = "ffe6cc80",
+}
+
 local backdrop = {
     bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
 	edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
@@ -29,10 +39,12 @@ local subclassListBackdropColor = {["r"] = 0, ["g"] = 0, ["b"] = 0, ["a"] = 0.8}
 local subclassListBorderColor = {["r"] = 1, ["g"] = 1, ["b"] = 1, ["a"] = 1}
 
 local mainFrame = CreateFrame("Frame", addon, UIParent)
+-- Hurry up! You must hack the main frame!
+-- <hackerman noises>
 mainFrame:SetPoint("CENTER")
 mainFrame:SetSize(1182, 502)
 mainFrame:SetMovable(true)
-mainFrame:SetFrameStrata("FULLSCREEN_DIALOG")
+mainFrame:SetFrameStrata("HIGH")
 mainFrame:SetBackdrop(backdrop)
 mainFrame:SetBackdropColor(backdropColor.r, backdropColor.g, backdropColor.b, backdropColor.a)
 mainFrame:EnableMouse(true)
@@ -81,21 +93,24 @@ titleText:SetText(addon)
 titleFrame:SetPoint("BOTTOMLEFT", titleBgLeft, "BOTTOMLEFT")
 titleFrame:SetPoint("TOPRIGHT", titleBgRight, "TOPRIGHT")
 
-local dressingRoom = ns:CreateDressingRoom(mainFrame)
+local dressingRoom = ns:CreateDressingRoom(mainFrame, true)
 dressingRoom:SetPoint("TOPLEFT", 16, -56)
 dressingRoom:SetSize(400, 400)
 dressingRoom:SetBackdrop(backdrop)
-dressingRoom:SetBackdropColor(0, 0, 0, 1)
---[[ dressingRoom:SetScript("OnShow", function(self)
-    -- Need to reset the model at least once or it will be either not shown or shown wrong.
-    self:Reset()
-    self:SetScript("OnShow", nil)
-end) ]]
+dressingRoom:SetBackdropColor(0.055, 0.055, 0.055, 1)
 
-local dressingRoomBorder = CreateFrame("Frame", nil, dressingRoom)
-dressingRoomBorder:SetAllPoints()
-dressingRoomBorder:SetBackdrop(dressingRoomBorderBackdrop)
-dressingRoomBorder:SetBackdropColor(0, 0, 0, 0)
+do
+    local dressingRoomBorder = CreateFrame("Frame", nil, dressingRoom)
+    dressingRoomBorder:SetAllPoints()
+    dressingRoomBorder:SetBackdrop(dressingRoomBorderBackdrop)
+    dressingRoomBorder:SetBackdropColor(0, 0, 0, 0)
+
+    local tip = dressingRoom:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    tip:SetPoint("BOTTOM", dressingRoom, "TOP", 0, 8)
+    tip:SetJustifyH("CENTER")
+    tip:SetJustifyV("BOTTOM")
+    tip:SetText("\124cff00ff00Left Mouse:\124r rotate \124 \124cff00ff00Right Mouse:\124r pan\124n\124cff00ff00Wheel:\124r zoom")
+end
 
 local btnUndress = CreateFrame("Button", "$parentButtonUndress", mainFrame, "UIPanelButtonTemplate2")
 btnUndress:SetSize(120, 20)
@@ -113,10 +128,54 @@ btnReset:SetScript("OnClick", function()
     dressingRoom:Reset()
 end)
 
+---------------- TABS ----------------
+
+local tabFrame = CreateFrame("Frame", "$parentTabFrame", mainFrame)
+tabFrame:SetPoint("TOPLEFT", dressingRoom, "TOPRIGHT")
+tabFrame:SetPoint("BOTTOMRIGHT", -16, -16)
+tabFrame.content = {}
+
+do
+    local function tab_OnClick(self)
+        local selectedTab = PanelTemplates_GetSelectedTab(self:GetParent())
+        local content = self:GetParent().content[selectedTab]
+        if content ~= nil then
+            content:Hide()
+        end
+        PanelTemplates_SetTab(self:GetParent(), self:GetID())
+        self:GetParent().content[self:GetID()]:Show()
+    end
+
+    local tabNames = {"Items Preview", "Saved Looks"}
+
+    for i = 1, #tabNames do
+        local tab = CreateFrame("Button", "$parentTab"..i, tabFrame, "OptionsFrameTabButtonTemplate")
+        tab:SetText(tabNames[i])
+        tab:SetID(i)
+        if i == 1 then
+            tab:SetPoint("BOTTOMLEFT", tab:GetParent(), "TOPLEFT")
+        else
+            tab:SetPoint("LEFT", _G[tabFrame:GetName().."Tab"..(i - 1)], "RIGHT")
+        end
+        tab:SetScript("OnClick", tab_OnClick)
+
+        local tabContent = CreateFrame("Frame", "$parentTab"..i.."Content", tabFrame)
+        tabContent:SetAllPoints()
+        tabContent:Hide()
+        table.insert(tabFrame.content, tabContent)
+    end
+    
+    PanelTemplates_SetNumTabs(tabFrame, #tabNames)
+    tab_OnClick(_G[tabFrame:GetName().."Tab1"])
+end
+
+local previewTabContent = tabFrame.content[1]
+local savedLooksTabContent = tabFrame.content[2]
+
 ---------------- PREVIEW LIST ----------------
 
-local previewList = ns:CreatePreviewList(mainFrame)
-previewList:SetPoint("TOPLEFT", dressingRoom, "TOPRIGHT")
+local previewList = ns:CreatePreviewList(previewTabContent)
+previewList:SetPoint("TOPLEFT")
 previewList:SetSize(601, 401)
 
 local previewListLabel = previewList:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -124,7 +183,7 @@ previewListLabel:SetPoint("TOP", previewList, "BOTTOM")
 previewListLabel:SetJustifyH("CENTER")
 previewListLabel:SetHeight(15)
 
-local previewSlider = CreateFrame("Slider", "$parentPageSlider", previewList, "UIPanelScrollBarTemplateLightBorder")
+local previewSlider = CreateFrame("Slider", "$parentPageSlider", previewTabContent, "UIPanelScrollBarTemplateLightBorder")
 previewSlider:SetPoint("LEFT", previewList, "RIGHT", 4, 0)
 previewSlider:SetHeight(previewList:GetHeight() - 48)
 previewSlider:SetScript("OnValueChanged", function(self, value)
@@ -158,9 +217,9 @@ local slotTextures = {
     ["Back"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-chest",
     ["Chest"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-chest",
     ["Shirt"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-shirt",
-    ["Tabard"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-tabard",
+    ["Tabard"] =    "Interface\\Paperdoll\\ui-paperdoll-slot-tabard",
     ["Wrist"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-wrists",
-    ["Hands"] =    "Interface\\Paperdoll\\ui-paperdoll-slot-hands",
+    ["Hands"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-hands",
     ["Waist"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-waist",
     ["Legs"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-legs",
     ["Feet"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-feet",
@@ -183,17 +242,10 @@ local function hasValue(array, value)
             return i
         end
     end
-
-    return false
+    return nil
 end
 
-local function slot_Undress(self)
-    --[[ Undress only current slot. In lack of 
-    the game's API we undress the whole model
-    and dress it again but without the slot. ]]
-end
-
-local function slot_ShiftLeftCick(self)
+local function slot_OnShiftLeftCick(self)
     local itemId = self.appearance.itemId
     local itemName = self.appearance.itemName
     if itemId ~= nil then
@@ -205,7 +257,7 @@ local function slot_ShiftLeftCick(self)
                 if index then
                     local color = itemName:sub(1, 10)
                     local name = itemName:sub(11, -3)
-                    DEFAULT_CHAT_FRAME:AddMessage("[DressMe]: Your hyperlink - "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r")
+                    DEFAULT_CHAT_FRAME:AddMessage("[DressMe]: "..selectedSlot.slotName.." - "..selectedSlot.selectedSubclass.." "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r".." ("..itemId..")")
                     return
                 end
             end
@@ -215,7 +267,7 @@ local function slot_ShiftLeftCick(self)
                 if index then
                     local color = data[2][index]:sub(1, 10)
                     local name = data[2][index]:sub(11, -3)
-                    DEFAULT_CHAT_FRAME:AddMessage("[DressMe]: Your hyperlink - "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r")
+                    DEFAULT_CHAT_FRAME:AddMessage("[DressMe]: "..selectedSlot.slotName.." - "..selectedSlot.selectedSubclass.." "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r".." ("..itemId..")")
                     return
                 end
             end
@@ -224,7 +276,7 @@ local function slot_ShiftLeftCick(self)
 end
 
 
-local function slot_LeftCick(self)
+local function slot_OnLeftCick(self)
     if selectedSlot ~= nil then
         selectedSlot:UnlockHighlight()
         selectedSlot.subclassList:Hide()
@@ -253,46 +305,20 @@ local function slot_LeftCick(self)
     if hasValue({mhSlot, ohSlot, rangedSlot}, self.slotName) then
         if self.appearance.shownItemId ~= nil then
             dressingRoom:TryOn(self.appearance.shownItemId)
-        elseif self.appearance.defaultItemId ~= nil then
-            dressingRoom:TryOn(self.appearance.defaultItemId)
         end
     end
 end
 
 local function slot_OnRightClick(self)
-    if self.appearance.itemId ~= nil then
-        self.appearance.itemId = nil
-        self.appearance.itemName = nil
-        self.appearance.shownItemId = nil
-        self.textures.empty:Show()
-        self.textures.item:Hide()
-        self:GetScript("OnEnter")(self)
-        -- We're undressning the whole model
-        -- and put on default (currentrly equiped)
-        -- items. A default item is 'nil' after
-        -- undress.
-        dressingRoom:Undress()
-        for _, slot in pairs(slots) do
-            if slot ~= self then
-                if slot.appearance.shownItemId ~= nil then
-                    dressingRoom:TryOn(slot.appearance.shownItemId)
-                elseif slot.appearance.defaultItemId ~= nil then
-                    dressingRoom:TryOn(slot.appearance.defaultItemId)
-                end
-            end
-        end
-        if self.appearance.defaultItemId ~= nil then
-            dressingRoom:TryOn(self.appearance.defaultItemId)
-        end
-    end
+    self:Undress()
 end
 
 local function slot_OnClick(self, button)
     if button == "LeftButton" then
         if IsShiftKeyDown() then
-            slot_ShiftLeftCick(self)
+            slot_OnShiftLeftCick(self)
         else
-            slot_LeftCick(self)
+            slot_OnLeftCick(self)
         end
     elseif button == "RightButton" then
         slot_OnRightClick(self)
@@ -304,14 +330,85 @@ local function slot_OnEnter(self)
     GameTooltip:AddLine(self.slotName)
     if self.appearance.itemName ~= nil then
         GameTooltip:AddLine(self.appearance.itemName)
-        GameTooltip:AddLine("|n|cff00ff00Shift + Left Click|r - create a hyperlink for the item.")
-        GameTooltip:AddLine("|cff00ff00Right Click|r - clear the slot.")
+        GameTooltip:AddLine("|n|cff00ff00Shift + Left Click:|r create a hyperlink for the item.")
+        GameTooltip:AddLine("|cff00ff00Right Click:|r undress the slot.")
     end
     GameTooltip:Show()
 end
 
 local function slot_OnLeave(self)
     GameTooltip:Hide()
+end
+
+local function slot_Reset(self)
+    local slotName = self.slotName
+    if slotName == mhSlot       then slotName = "MainHand"      end
+    if slotName == ohSlot       then slotName = "SecondaryHand" end
+    if slotName == rangedSlot   then slotName = "Ranged"        end
+    if slotName == backSlot     then slotName = "Back"        end
+    local slotId = GetInventorySlotInfo(slotName.."Slot")
+    local itemId = GetInventoryItemID("player", slotId)
+    local name, link, quality, _, _, _, _, _, _, texture = GetItemInfo(itemId ~= nil and itemId or 0)
+    self.appearance.defaultItemId = itemId
+    self.appearance.shownItemId = itemId
+    self.appearance.itemId = itemId
+    if name ~= nil then
+        self.appearance.itemName = "\124c"..colors[quality]..name.."\124r"
+        self.textures.empty:Hide()
+        self.textures.item:Show()
+        self.textures.item:SetTexture(texture)
+    else
+        self.appearance.itemName = nil
+        self.textures.empty:Show()
+        self.textures.item:Hide()
+    end
+end
+
+local function slot_Undress(self)
+    if self.appearance.itemId ~= nil then
+        self.appearance.itemId = nil
+        self.appearance.itemName = nil
+        self.appearance.shownItemId = nil
+        self.textures.empty:Show()
+        self.textures.item:Hide()
+        self:GetScript("OnEnter")(self)
+        --[[ Undress only current slot. In lack of 
+        the game's API we're undressing the whole
+        model and dress it again but without the
+        current slot. ]]
+        dressingRoom:Undress()
+        for _, slot in pairs(slots) do
+            if slot ~= self then
+                if slot.appearance.shownItemId ~= nil then
+                    dressingRoom:TryOn(slot.appearance.shownItemId)
+                end
+            end
+        end
+    end
+end
+
+local function slot_TryOn(self, itemId, shownItemId, name)
+    if not (shownItemId or name) then
+        -- Don't query, find in the database.
+        local db = itemsData["Armor"][self.slotName] ~= nil and itemsData["Armor"][self.slotName] or itemsData[self.slotName]
+        for _, subclass in pairs(db) do
+            for _, data in pairs(subclass) do
+                local index = hasValue(data[1], itemId)
+                if index then
+                    shownItemId = data[1][1]
+                    name = data[2][index]
+                end
+            end
+        end
+    end
+    local _, link, quality, _, _, _, _, _, _, texture = GetItemInfo(shownItemId)
+    self.textures.empty:Hide()
+    self.textures.item:SetTexture(texture)
+    self.textures.item:Show()
+    self.appearance.itemId = itemId
+    self.appearance.itemName = name
+    self.appearance.shownItemId = shownItemId
+    dressingRoom:TryOn(shownItemId)
 end
 
 for slotName, texturePath in pairs(slotTextures) do
@@ -343,6 +440,9 @@ for slotName, texturePath in pairs(slotTextures) do
     slot.textures.item = slot:CreateTexture(nil, "BACKGROUND")
     slot.textures.item:SetAllPoints()
     slot.textures.item:Hide()
+    slot.Reset = slot_Reset
+    slot.TryOn = slot_TryOn
+    slot.Undress = slot_Undress
 end
 
 slots["Head"]:SetPoint("TOPLEFT", dressingRoom, "TOPLEFT", 16, -16)
@@ -364,44 +464,15 @@ slots["Ranged"]:SetPoint("LEFT", slots["Off-hand"], "RIGHT", 4, 0)
 
 local function btnReset_Hook()
     for _, slotName in pairs(armorSlots) do
-        local slotId = GetInventorySlotInfo(slotName.."Slot")
-        slots[slotName].appearance.defaultItemId = GetInventoryItemID("player", slotId)
-        slots[slotName].appearance.shownItemId = nil
-        slots[slotName].appearance.itemId = nil
-        slots[slotName].appearance.itemName = nil
-        slots[slotName].textures.empty:Show()
-        slots[slotName].textures.item:Hide()
+        slots[slotName]:Reset()
     end
     for _, slotName, slot in pairs(miscellaneousSlots) do
-        local slotId = GetInventorySlotInfo(slotName.."Slot")
-        slots[slotName].appearance.defaultItemId = GetInventoryItemID("player", slotId)
-        slots[slotName].appearance.shownItemId = nil
-        slots[slotName].appearance.itemId = nil
-        slots[slotName].appearance.itemName = nil
-        slots[slotName].textures.empty:Show()
-        slots[slotName].textures.item:Hide()
+        slots[slotName]:Reset()
     end
-    local slotId = GetInventorySlotInfo("MainHandSlot")
-    slots[mhSlot].appearance.defaultItemId = GetInventoryItemID("player", slotId)
-    slots[mhSlot].appearance.shownItemId = nil
-    slots[mhSlot].appearance.itemId = nil
-    slots[mhSlot].appearance.itemName = nil
-    slots[mhSlot].textures.empty:Show()
-    slots[mhSlot].textures.item:Hide()
-    slotId = GetInventorySlotInfo("SecondaryHandSlot")
-    slots[ohSlot].appearance.defaultItemId = GetInventoryItemID("player", slotId)
-    slots[ohSlot].appearance.shownItemId = nil
-    slots[ohSlot].appearance.itemId = nil
-    slots[ohSlot].appearance.itemName = nil
-    slots[ohSlot].textures.empty:Show()
-    slots[ohSlot].textures.item:Hide()
-    slotId = GetInventorySlotInfo("RangedSlot")
-    slots[rangedSlot].appearance.defaultItemId = GetInventoryItemID("player", slotId)
-    slots[rangedSlot].appearance.shownItemId = nil
-    slots[rangedSlot].appearance.itemId = nil
-    slots[rangedSlot].appearance.itemName = nil
-    slots[rangedSlot].textures.empty:Show()
-    slots[rangedSlot].textures.item:Hide()
+    slots[backSlot]:Reset()
+    slots[mhSlot]:Reset()
+    slots[ohSlot]:Reset()
+    slots[rangedSlot]:Reset()
 end
 
 local function btnUndress_Hook()
@@ -425,8 +496,6 @@ local function dressingRoom_OnShowHook(self)
     for _, slot in pairs(slots) do
         if slot.appearance.shownItemId ~= nil then
             self:TryOn(slot.appearance.shownItemId)
-        elseif slot.appearance.defaultItemId ~= nil then
-            self:TryOn(slot.appearance.defaultItemId)
         end
     end
 end
@@ -451,17 +520,11 @@ do
     previewList:OnClick(function(self, ids, names, selected)
         local _, link, quality, _, _, _, _, _, _, texture = GetItemInfo(ids[1])
         if not IsShiftKeyDown() then
-            selectedSlot.textures.empty:Hide()
-            selectedSlot.textures.item:SetTexture(texture)
-            selectedSlot.textures.item:Show()
-            selectedSlot.appearance.itemId = ids[selected]
-            selectedSlot.appearance.itemName = names[selected]
-            selectedSlot.appearance.shownItemId = ids[1]
-            dressingRoom:TryOn(ids[1])
+            selectedSlot:TryOn(ids[selected], ids[1],  names[selected])
         else
             local color = names[selected]:sub(1, 10)
             local name = names[selected]:sub(11, -3)
-            DEFAULT_CHAT_FRAME:AddMessage("[DressMe]: Your hyperlink - "..color.."\124Hitem:"..ids[selected]..":::::::|h["..name.."]\124h\124r")
+            DEFAULT_CHAT_FRAME:AddMessage("[DressMe]: "..selectedSlot.slotName.." - "..selectedSlot.selectedSubclass.." "..color.."\124Hitem:"..ids[selected]..":::::::|h["..name.."]\124h\124r".." ("..ids[selected]..")")
         end
     end)
 end
@@ -483,7 +546,7 @@ local function subclass_OnClick(self)
     selectedSlot.selectedPage[selectedSlot.selectedSubclass] = previewSlider:GetValue()
 
     local slotName = selectedSlot.slotName
-    local subclass = selectedSlot.subclassList:GetButtonName(self)
+    local subclass = self.name
     local page = selectedSlot.selectedPage[subclass]
     if previewSetup["Armor"][slotName] then
         previewList:Update(previewSetup["Armor"][slotName], itemsData["Armor"][slotName][subclass], page)
@@ -504,12 +567,12 @@ end
 
 do
     local subclasses = {"Cloth", "Leather", "Mail", "Plate"}
-    local list = ns:CreateListFrame("TestList", subclasses, mainFrame)
+    local list = ns:CreateListFrame("ArmorList", subclasses, previewTabContent)
     list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
     list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
     list:Hide()
 
-    for name, btn in pairs(list.buttons) do
+    for _, btn in pairs(list.buttons) do
         btn:HookScript("OnClick", subclass_OnClick)
     end
     -- Classes and what they wear to select it by default.
@@ -539,11 +602,11 @@ end
 ---------------- BACK ----------------
 do
     local subclass = "Cloth"
-    local list = ns:CreateListFrame("TestList", {subclass}, mainFrame)
+    local list = ns:CreateListFrame("BackList", {subclass}, previewTabContent)
     list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
     list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
     list:Hide()
-    list.buttons[subclass]:HookScript("OnClick", subclass_OnClick)
+    list:GetButton(subclass):HookScript("OnClick", subclass_OnClick)
     slots[backSlot].subclassList = list
     slots[backSlot].selectedSubclass = subclass
     slots[backSlot].selectedPage[subclass] = 1
@@ -553,11 +616,11 @@ end
 
 do
     local subclass = "Miscellaneous"
-    local list = ns:CreateListFrame("TestList", {subclass}, mainFrame)
+    local list = ns:CreateListFrame("MiscellaneousList", {subclass}, previewTabContent)
     list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
     list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
     list:Hide()
-    list.buttons[subclass]:HookScript("OnClick", subclass_OnClick)
+    list:GetButton(subclass):HookScript("OnClick", subclass_OnClick)
     for _, name in pairs(miscellaneousSlots) do
         slots[name].subclassList = list
         slots[name].selectedSubclass = subclass
@@ -573,12 +636,12 @@ do
         "MH Axe", "MH Mace", "MH Sword", "MH Dagger", "MH Fist",
         "2H Axe", "2H Mace", "2H Sword", "Polearm", "Staff"
     }
-    local list = ns:CreateListFrame("TestList", subclasses, mainFrame)
+    local list = ns:CreateListFrame("MainHandList", subclasses, previewTabContent)
     list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
     list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
     list:Hide()
 
-    for name, btn in pairs(list.buttons) do
+    for _, btn in pairs(list.buttons) do
         btn:HookScript("OnClick", subclass_OnClick)
     end
     slots[mhSlot].subclassList = list
@@ -596,12 +659,12 @@ do
         "OH Axe", "OH Mace", "OH Sword", "OH Dagger", "OH Fist",
         "Shield", "Held in Off-hand"
     }
-    local list = ns:CreateListFrame("TestList", subclasses, mainFrame)
+    local list = ns:CreateListFrame("OffHandList", subclasses, previewTabContent)
     list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
     list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
     list:Hide()
 
-    for name, btn in pairs(list.buttons) do
+    for _, btn in pairs(list.buttons) do
         btn:HookScript("OnClick", subclass_OnClick)
     end
     slots[ohSlot].subclassList = list
@@ -615,12 +678,12 @@ end
 
 do
     local subclasses = {"Bow", "Crossbow", "Gun", "Wand", "Thrown"}
-    local list = ns:CreateListFrame("TestList", subclasses, mainFrame)
+    local list = ns:CreateListFrame("RangedList", subclasses, previewTabContent)
     list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
     list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
     list:Hide()
 
-    for name, btn in pairs(list.buttons) do
+    for _, btn in pairs(list.buttons) do
         btn:HookScript("OnClick", subclass_OnClick)
     end
     slots[rangedSlot].subclassList = list
@@ -630,6 +693,219 @@ do
     end
 end
 
+---------------- SAVED LOOKS ----------------
+
+do
+    local scrollFrame = CreateFrame("ScrollFrame", "$parentSavedLooks", savedLooksTabContent, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", 20, -46)
+    scrollFrame:SetPoint("BOTTOMLEFT", dressingRoom, "BOTTOMRIGHT", 0, 60)
+    scrollFrame:SetWidth(250)
+
+    local editBox = CreateFrame("EditBox", nil, scrollFrame)
+    editBox:SetAutoFocus(false)
+    editBox:SetFontObject(GameFontHighlightMedium)
+    editBox:SetHeight(18)
+    editBox:SetJustifyH("LEFT")
+    editBox:EnableMouse(true)
+    editBox:SetBackdrop({
+        bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+        edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
+        tile = true, edgeSize = 1, tileSize = 5,
+    })
+    editBox:SetBackdropColor(0, 0, 0, 0.5)
+    editBox:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80)
+    editBox.text = ""
+
+    local btnSave = CreateFrame("Button", "$parentButtonSave", scrollFrame, "UIPanelButtonTemplate2")
+    btnSave:SetSize(90, 20)
+    btnSave:SetPoint("RIGHT", btnSave:GetParent(), "BOTTOMRIGHT", 0, -32 - editBox:GetHeight())
+    btnSave:SetText("Save")
+    btnSave:Disable()
+
+    editBox:SetScript("OnEditFocusGained", function(self)
+        self:HighlightText()
+    end)
+    editBox:SetScript("OnEnterPressed", function(self)
+        self.text = self:GetText()
+        self:HighlightText(0, 0)
+        self:ClearFocus()
+        if self.text:len() > 0 then
+            btnSave:Enable()
+        else
+            btnSave:Disable()
+        end
+    end)
+    editBox:SetScript("OnEscapePressed", function(self)
+        self:SetText(self.text)
+        self:HighlightText(0, 0)
+        self:ClearFocus()
+        if self.text:len() > 0 then
+            btnSave:Enable()
+        else
+            btnSave:Disable()
+        end
+    end)
+    editBox:SetScript("OnTextChanged", function(self)
+        if self:GetText():len() > 0 then
+            btnSave:Enable()
+        else
+            btnSave:Disable()
+        end
+    end)
+
+    local label = editBox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetJustifyH("LEFT")
+    label:SetHeight(18)
+    label:SetPoint("RIGHT", label:GetParent(), "LEFT", -10, 1)
+    label:SetText("Name:")
+
+    editBox:SetPoint("TOPRIGHT", scrollFrame, "BOTTOMRIGHT", -5, -10)
+    editBox:SetWidth(scrollFrame:GetWidth() - label:GetWidth() - 20)
+
+    local btnTryOn = CreateFrame("Button", "$parentButtonTryOn", scrollFrame, "UIPanelButtonTemplate2")
+    btnTryOn:SetSize(90, 20)
+    btnTryOn:SetPoint("LEFT", btnTryOn:GetParent(), "BOTTOMLEFT", 0, -32 - editBox:GetHeight())
+    btnTryOn:SetText("Try on")
+    btnTryOn:Disable()
+
+    local btnRemove = CreateFrame("Button", "$parentButtonRemove", scrollFrame, "UIPanelButtonTemplate2")
+    btnRemove:SetSize(90, 20)
+    btnRemove:SetPoint("RIGHT", btnRemove:GetParent(), "TOPRIGHT", 0, 26)
+    btnRemove:SetText("Remove")
+    btnRemove:Disable()
+
+    local slotOrder = { "Head", "Shoulder", "Back", "Chest", "Shirt", "Tabard", "Wrist", "Hands", "Waist", "Legs", "Feet", "Main Hand", "Off-hand", "Ranged",}
+    --[[ Save looks structure 
+        _G["DressMeSavedLooks"] = {
+            {
+                ["name"] = "This is the name",
+                ["items"] = {...} -- an array of item ids in order of the "slotOrder" above.
+            },
+            {
+                ...
+            },
+            ...
+        }
+    ]]
+
+    local list = ns:CreateListFrame("$parentSavedLooks", nil, scrollFrame)
+    list:SetWidth(scrollFrame:GetWidth())
+
+    local function list_OnClick(self)
+        list:Select(self:GetID())
+        btnTryOn:Enable()
+        btnRemove:Enable()
+    end
+
+    local function buildList(savedLooks)
+        for index, look in pairs(savedLooks) do
+            local item = list:AddItem(look.name)
+            local btn = list.buttons[item]
+            btn.lookIndex = index
+            btn:SetScript("OnClick", list_OnClick)
+        end
+        scrollFrame:SetScrollChild(list)
+    end
+
+    local savedLooks
+
+    list:RegisterEvent("ADDON_LOADED")
+    list:SetScript("OnEvent", function(self, event, addonName)
+        if addonName == addon then
+            if event == "ADDON_LOADED" then
+                if _G["DressMeSavedLooks"] == nil then
+                    _G["DressMeSavedLooks"] = {}
+                end
+                savedLooks = _G["DressMeSavedLooks"]
+                buildList(_G["DressMeSavedLooks"])
+            end
+        end
+    end)
+
+    btnTryOn:HookScript("OnClick", function(self)
+        local lookIndex = list.buttons[list:GetSelected()].lookIndex
+        for index, slotName in pairs(slotOrder) do
+            local itemId = savedLooks[lookIndex].items[index]
+            if itemId ~= 0 then
+                slots[slotName]:TryOn(itemId)
+            else
+                slots[slotName]:Undress()
+            end
+        end
+    end)
+
+    btnSave:HookScript("OnClick", function(self)
+        local name = editBox:GetText()
+        local items = {}
+        for _, slotName in pairs(slotOrder) do
+            if slots[slotName].appearance.itemId ~= nil then
+                table.insert(items, slots[slotName].appearance.itemId)
+            else
+                table.insert(items, 0)
+            end
+        end
+        local lookIndex = nil
+        for index, look in pairs(savedLooks) do
+            if look.name == name then
+                lookIndex = index
+                break
+            end
+        end
+        if lookIndex == nil then
+            table.insert(savedLooks, {["name"] = name, ["items"] = items})
+            local item = list:AddItem(name)
+            list.buttons[item]:SetScript("OnClick", list_OnClick)
+            list.buttons[item].lookIndex = #savedLooks
+            scrollFrame:UpdateScrollChildRect()
+        else
+            StaticPopupDialogs["DressMeOverwriteConfirmDialog"] = {
+                text = ("\124cff00ff00%s\124r\124nalready exists. Overwrite?"):format(name),
+                button1 = "Yes",
+                button2 = "No",
+                timeout = 0,
+                whileDead = true,
+                hideOnEscape = true,
+                preferredIndex = 3,
+                OnAccept = function(self)
+                    savedLooks[lookIndex].items = items
+                end,
+            }
+            local dialog = StaticPopup_Show("DressMeOverwriteConfirmDialog")
+            if dialog then
+                dialog.lookIndex = lookIndex
+            end
+        end
+    end)
+
+    btnRemove:HookScript("OnClick", function()
+        StaticPopupDialogs["DressMeRemoveConfirmDialog"] = {
+            text = ("Remove \124cff00ff00%s\124r?"):format(list.buttons[list:GetSelected()].name),
+            button1 = "Yes",
+            button2 = "No",
+            timeout = 0,
+            whileDead = true,
+            hideOnEscape = true,
+            preferredIndex = 3,
+            OnAccept = function(self)
+                btnTryOn:Disable()
+                btnRemove:Disable()
+                for i = self.lookIndex + 1, #list.buttons do
+                    list.buttons[i].lookIndex = i - 1
+                end
+                list:RemoveItem(self.lookIndex)
+                table.remove(savedLooks, self.lookIndex)
+                scrollFrame:UpdateScrollChildRect()
+            end,
+        }
+        local dialog = StaticPopup_Show("DressMeRemoveConfirmDialog")
+        if dialog then
+            dialog.lookIndex = list.buttons[list:GetSelected()].lookIndex
+        end
+    end)
+end
+
+
+
 SLASH_DRESSME1 = "/dressme"
 
 SlashCmdList["DRESSME"] = function(msg)
@@ -638,4 +914,18 @@ SlashCmdList["DRESSME"] = function(msg)
     elseif msg == "debug" then
         if dressingRoom:IsDebugInfoShown() then dressingRoom:HideDebugInfo() else dressingRoom:ShowDebugInfo() end
     end
+end
+
+do
+    local btn = CreateFrame("Button", "$parent"..addon, CharacterModelFrame, "UIPanelButtonTemplate2")
+    btn:SetSize(80, 20)
+    btn:SetPoint("BOTTOMRIGHT", -2, 25)
+    btn:SetText("DressMe")
+    btn:SetScript("OnClick", function(self)
+        if mainFrame:IsShown() then
+            mainFrame:Hide()
+        else
+            mainFrame:Show() 
+        end
+    end)
 end
