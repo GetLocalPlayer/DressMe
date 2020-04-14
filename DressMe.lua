@@ -463,16 +463,9 @@ slots["Ranged"]:SetPoint("LEFT", slots["Off-hand"], "RIGHT", 4, 0)
 ------- Tricks and hooks with slots and provided appearances. -------
 
 local function btnReset_Hook()
-    for _, slotName in pairs(armorSlots) do
-        slots[slotName]:Reset()
+    for _, slot in pairs(slots) do
+        slot:Reset()
     end
-    for _, slotName, slot in pairs(miscellaneousSlots) do
-        slots[slotName]:Reset()
-    end
-    slots[backSlot]:Reset()
-    slots[mhSlot]:Reset()
-    slots[ohSlot]:Reset()
-    slots[rangedSlot]:Reset()
 end
 
 local function btnUndress_Hook()
