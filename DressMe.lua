@@ -250,25 +250,28 @@ local function slot_OnShiftLeftCick(self)
     local itemName = self.appearance.itemName
     if itemId ~= nil then
         local slotName = self.slotName
-        local subclass = self.selectedSubclass
         if itemsData[slotName] == nil then
-            for _, data in pairs(itemsData["Armor"][slotName][subclass]) do
-                local index = hasValue(data[1], itemId)                
-                if index then
-                    local color = itemName:sub(1, 10)
-                    local name = itemName:sub(11, -3)
-                    DEFAULT_CHAT_FRAME:AddMessage("[DressMe]: "..selectedSlot.slotName.." - "..selectedSlot.selectedSubclass.." "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r".." ("..itemId..")")
-                    return
+            for subclassName, sbuclassData in pairs(itemsData["Armor"][slotName]) do
+                for _, data in pairs(sbuclassData) do
+                    local index = hasValue(data[1], itemId)                
+                    if index then
+                        local color = itemName:sub(1, 10)
+                        local name = itemName:sub(11, -3)
+                        DEFAULT_CHAT_FRAME:AddMessage("[DressMe]: "..self.slotName.." - "..subclassName.." "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r".." ("..itemId..")")
+                        return
+                    end
                 end
             end
         else
-            for _, data in pairs(itemsData[slotName][subclass]) do
-                local index = hasValue(data[1], itemId)                
-                if index then
-                    local color = data[2][index]:sub(1, 10)
-                    local name = data[2][index]:sub(11, -3)
-                    DEFAULT_CHAT_FRAME:AddMessage("[DressMe]: "..selectedSlot.slotName.." - "..selectedSlot.selectedSubclass.." "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r".." ("..itemId..")")
-                    return
+            for subclassName, sbuclassData in pairs(itemsData[slotName]) do
+                for _, data in pairs(sbuclassData) do
+                    local index = hasValue(data[1], itemId)                
+                    if index then
+                        local color = itemName:sub(1, 10)
+                        local name = itemName:sub(11, -3)
+                        DEFAULT_CHAT_FRAME:AddMessage("[DressMe]: "..self.slotName.." - "..subclassName.." "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r".." ("..itemId..")")
+                        return
+                    end
                 end
             end
         end
