@@ -257,7 +257,7 @@ local function slot_OnShiftLeftCick(self)
                     if index then
                         local color = itemName:sub(1, 10)
                         local name = itemName:sub(11, -3)
-                        DEFAULT_CHAT_FRAME:AddMessage("[DressMe]: "..self.slotName.." - "..subclassName.." "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r".." ("..itemId..")")
+                        SELECTED_CHAT_FRAME:AddMessage("[DressMe]: "..self.slotName.." - "..subclassName.." "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r".." ("..itemId..")")
                         return
                     end
                 end
@@ -269,7 +269,7 @@ local function slot_OnShiftLeftCick(self)
                     if index then
                         local color = itemName:sub(1, 10)
                         local name = itemName:sub(11, -3)
-                        DEFAULT_CHAT_FRAME:AddMessage("[DressMe]: "..self.slotName.." - "..subclassName.." "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r".." ("..itemId..")")
+                        SELECTED_CHAT_FRAME:AddMessage("[DressMe]: "..self.slotName.." - "..subclassName.." "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r".." ("..itemId..")")
                         return
                     end
                 end
@@ -520,7 +520,7 @@ do
         else
             local color = names[selected]:sub(1, 10)
             local name = names[selected]:sub(11, -3)
-            DEFAULT_CHAT_FRAME:AddMessage("[DressMe]: "..selectedSlot.slotName.." - "..selectedSlot.selectedSubclass.." "..color.."\124Hitem:"..ids[selected]..":::::::|h["..name.."]\124h\124r".." ("..ids[selected]..")")
+            SELECTED_CHAT_FRAME:AddMessage("[DressMe]: "..selectedSlot.slotName.." - "..selectedSlot.selectedSubclass.." "..color.."\124Hitem:"..ids[selected]..":::::::|h["..name.."]\124h\124r".." ("..ids[selected]..")")
         end
     end)
 end
