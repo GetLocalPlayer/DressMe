@@ -13,15 +13,16 @@ db = mysql.connector.connect(
 
 cursor = db.cursor()
 
-quality_colors = {
-    0: "ff9d9d9d",
-    1: "ffffffff",
-    2: "ff1eff00",
-    3: "ff0070dd",
-    4: "ffa335ee",
-    5: "ffff8000",
-    6: "ffe6cc80",
-}
+quality_colors = [
+    "ff9d9d9d",
+    "ffffffff",
+    "ff1eff00",
+    "ff0070dd",
+    "ffa335ee",
+    "ffff8000",
+    "ffe6cc80",
+    "ff00ccff",
+]
 
 def get_colored_name(name, quality):
     return "|c{0}{1}|r".format(quality_colors[quality], name)
@@ -62,17 +63,17 @@ result = {}
 armor_subclasses = {"Miscellaneous": 0, "Cloth": 1, "Leather": 2, "Mail": 3, "Plate": 4}
 
 armor_slots = OrderedDict([
-    ("Head",     {"inventorytype": (1,),    "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 6}),
-    ("Shoulder", {"inventorytype": (3,),    "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 6}),
-    ("Back",     {"inventorytype": (16,),   "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 6}),
-    ("Chest",    {"inventorytype": (5, 20), "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 6}),
-    ("Shirt",    {"inventorytype": (4,),    "class": 4, "subclasses": armor_subclasses, "minquality": 0, "maxquality": 6}),
-    ("Tabard",   {"inventorytype": (19,),   "class": 4, "subclasses": armor_subclasses, "minquality": 0, "maxquality": 6}),
-    ("Wrist",    {"inventorytype": (9,),    "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 6}),
-    ("Hands",    {"inventorytype": (10,),   "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 6}),
-    ("Waist",    {"inventorytype": (6,),    "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 6}),
-    ("Legs",     {"inventorytype": (7,),    "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 6}),
-    ("Feet",     {"inventorytype": (8,),    "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 6}),
+    ("Head",     {"inventorytype": (1,),    "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 7}),
+    ("Shoulder", {"inventorytype": (3,),    "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 7}),
+    ("Back",     {"inventorytype": (16,),   "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 7}),
+    ("Chest",    {"inventorytype": (5, 20), "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 7}),
+    ("Shirt",    {"inventorytype": (4,),    "class": 4, "subclasses": armor_subclasses, "minquality": 0, "maxquality": 7}),
+    ("Tabard",   {"inventorytype": (19,),   "class": 4, "subclasses": armor_subclasses, "minquality": 0, "maxquality": 7}),
+    ("Wrist",    {"inventorytype": (9,),    "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 7}),
+    ("Hands",    {"inventorytype": (10,),   "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 7}),
+    ("Waist",    {"inventorytype": (6,),    "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 7}),
+    ("Legs",     {"inventorytype": (7,),    "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 7}),
+    ("Feet",     {"inventorytype": (8,),    "class": 4, "subclasses": armor_subclasses, "minquality": 2, "maxquality": 7}),
 ])
 
 armor_result = OrderedDict()
@@ -131,7 +132,7 @@ result.update({"Armor": armor_result})
 # }
 
 min_quality = 2
-max_quality = 6
+max_quality = 7
 
 main_hand_weapon = OrderedDict([
     ("2H Axe",       {"inventorytype": (17, ), "class": 2, "subclass": 1}),

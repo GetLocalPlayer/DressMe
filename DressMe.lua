@@ -5,16 +5,6 @@ local race, raceFileName = UnitRace("player")
 local itemsData = ns:GetItemsData()
 local previewSetup = ns:GetPreviewSetup().modern[raceFileName][sex]
 
-local colors = { -- per quality
-    [0] = "ff9d9d9d",
-    [1] = "ffffffff",
-    [2] = "ff1eff00",
-    [3] = "ff0070dd",
-    [4] = "ffa335ee",
-    [5] = "ffff8000",
-    [6] = "ffe6cc80",
-}
-
 local backdrop = {
     bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
 	edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
@@ -356,6 +346,16 @@ local function slot_Reset(self)
     self.appearance.shownItemId = itemId
     self.appearance.itemId = itemId
     if name ~= nil then
+        local colors = { -- per quality
+            [0] = "ff9d9d9d",
+            [1] = "ffffffff",
+            [2] = "ff1eff00",
+            [3] = "ff0070dd",
+            [4] = "ffa335ee",
+            [5] = "ffff8000",
+            [6] = "ffe6cc80",
+            [7] = "ff00ccff",
+        }
         self.appearance.itemName = "\124c"..colors[quality]..name.."\124r"
         self.textures.empty:Hide()
         self.textures.item:Show()
