@@ -3,7 +3,7 @@ local addon, ns = ...
 local sex = UnitSex("player")
 local race, raceFileName = UnitRace("player")
 local itemsData = ns:GetItemsData()
-local previewSetup = ns:GetPreviewSetup().modern[raceFileName][sex]
+local previewSetup = ns:GetPreviewSetup().classic[raceFileName][sex]
 
 local backdrop = {
     bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
