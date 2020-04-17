@@ -1,6 +1,7 @@
 ## Interface: 30300
 ## Notes: This is mah shit
 ## SavedVariables: DressMeSavedLooks
+## SavedVariables: DressMeSettings
 
 db\Items.lua
 db\PreviewSetup.lua

@@ -2,10 +2,23 @@ local addon, ns = ...
 
 
 local recycler = {}
+local counter = 0
+local function nextInt()
+    counter = counter + 1
+    return counter
+end
 
 
 local function button_OnClick(self)
     self:GetParent():Select(self:GetID())
+end
+
+local function ListFrame_SetInsets(self, left, right, top, bottom)
+    self.insets.left = left
+    self.insets.right = right
+    self.insets.top = top
+    self.insets.bottom = bottom
+    self:Update()
 end
 
 local function ListFrame_GetListHeight(self)
@@ -79,26 +92,26 @@ local function ListFrame_RemoveItem(self, item)
 end
 
 local function ListFrame_Update(self)
-    self:SetHeight(self:GetListHeight())
+    self:SetHeight(self:GetListHeight() + self.insets.top + self.insets.bottom)
     if #self.buttons > 0 then
-        self.buttons[1]:SetPoint("TOPLEFT")
-        self.buttons[1]:SetPoint("TOPRIGHT")
+        self.buttons[1]:SetPoint("TOPLEFT", self.insets.left, -self.insets.top)
+        self.buttons[1]:SetPoint("TOPRIGHT", -self.insets.right, self.insets.bottom)
 
         for i = 2, #self.buttons do
             self.buttons[i]:SetPoint("TOPLEFT", self.buttons[i - 1], "BOTTOMLEFT")
             self.buttons[i]:SetPoint("TOPRIGHT", self.buttons[i - 1], "BOTTOMRIGHT")
         end
     end
-    self:SetHeight(self:GetListHeight())
 end
 
-local function ListFrame_AddItem(self, name)
-    assert(type(name) == "string", "Item name must be a 'string' value.")
-    local btn = CreateFrame("Button", ("$parent%s"):format(name), self, "OptionsListButtonTemplate")
+local function ListFrame_AddItem(self, itemName)
+    assert(type(itemName) == "string", "Item name must be a 'string' value.")
+    local btn = #recycler == 0 and CreateFrame("Button", "ListFrame"..nextInt(), self, "OptionsListButtonTemplate") or table.remove(recycler)
+    btn:SetParent(self)
     btn:Show()
-    btn:SetText(name)
+    btn:SetText(itemName)
     btn:SetScript("OnClick", button_OnClick)
-    btn.name = name
+    btn.name = itemName
     table.insert(self.buttons, btn)
     btn:SetID(#self.buttons)
     if self.GetListHeight ~= nil then
@@ -110,9 +123,11 @@ end
 
 function ns:CreateListFrame(name, list, parent)
     local frame = CreateFrame("Frame", name, parent)
+    frame.insets = {left = 0, right = 0, top = 0, bottom = 0}
     frame.buttons = {}
     frame.selected = nil
 
+    frame.SetInsets = ListFrame_SetInsets
     frame.GetListHeight = ListFrame_GetListHeight
     frame.GetSelected = ListFrame_GetSelected
     frame.GetButton = ListFrame_GetButton

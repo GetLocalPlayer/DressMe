@@ -5,13 +5,18 @@ local race, raceFileName = UnitRace("player")
 local itemsData = ns:GetItemsData()
 local previewSetup = ns:GetPreviewSetup().classic[raceFileName][sex]
 
+local defaultSettings = {
+    dressingRoomBackgroundColor = {0.055, 0.055, 0.055, 1},
+    previewSetup = "classic", -- Or "modern"
+}
+
 local backdrop = {
     bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
 	edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
 	tile = false, tileSize = 16, edgeSize = 16,
 	insets = { left = 4, right = 4, top = 4, bottom = 4 }
 }
-local backdropColor = {["r"] = 0, ["g"] = 0, ["b"] = 0, ["a"] = 0.666666}
+local backdropColor = {0, 0, 0, 0.666666}
 
 local dressingRoomBorderBackdrop = { -- For a frame above DressingRoom
     bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
@@ -19,14 +24,6 @@ local dressingRoomBorderBackdrop = { -- For a frame above DressingRoom
 	tile = false, tileSize = 16, edgeSize = 32,
 	insets = { left = 4, right = 4, top = 4, bottom = 4 }
 }
-
-local subclassListBackdrop = {
-	bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-	edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Gold-Border",
-	tile = false, edgeSize = 8, tileSize = 8,
-}
-local subclassListBackdropColor = {["r"] = 0, ["g"] = 0, ["b"] = 0, ["a"] = 0.8}
-local subclassListBorderColor = {["r"] = 1, ["g"] = 1, ["b"] = 1, ["a"] = 1}
 
 local mainFrame = CreateFrame("Frame", addon, UIParent)
 -- Hurry up! You must hack the main frame!
@@ -36,8 +33,9 @@ mainFrame:SetSize(1182, 502)
 mainFrame:SetMovable(true)
 mainFrame:SetFrameStrata("HIGH")
 mainFrame:SetBackdrop(backdrop)
-mainFrame:SetBackdropColor(backdropColor.r, backdropColor.g, backdropColor.b, backdropColor.a)
+mainFrame:SetBackdropColor(unpack(backdropColor))
 mainFrame:EnableMouse(true)
+mainFrame:EnableMouseWheel(true)
 mainFrame:RegisterForDrag("LeftButton")
 mainFrame:SetScript("OnDragStart", mainFrame.StartMoving)
 mainFrame:SetScript("OnDragStop", mainFrame.StopMovingOrSizing)
@@ -87,7 +85,7 @@ local dressingRoom = ns:CreateDressingRoom(mainFrame, true)
 dressingRoom:SetPoint("TOPLEFT", 16, -56)
 dressingRoom:SetSize(400, 400)
 dressingRoom:SetBackdrop(backdrop)
-dressingRoom:SetBackdropColor(0.055, 0.055, 0.055, 1)
+dressingRoom:SetBackdropColor(unpack(defaultSettings.dressingRoomBackgroundColor))
 
 do
     local dressingRoomBorder = CreateFrame("Frame", nil, dressingRoom)
@@ -136,7 +134,7 @@ do
         self:GetParent().content[self:GetID()]:Show()
     end
 
-    local tabNames = {"Items Preview", "Saved Looks"}
+    local tabNames = {"Items Preview", "Saved Looks", "Setting"}
 
     for i = 1, #tabNames do
         local tab = CreateFrame("Button", "$parentTab"..i, tabFrame, "OptionsFrameTabButtonTemplate")
@@ -144,6 +142,8 @@ do
         tab:SetID(i)
         if i == 1 then
             tab:SetPoint("BOTTOMLEFT", tab:GetParent(), "TOPLEFT")
+        elseif i == #tabNames then
+            tab:SetPoint("BOTTOMRIGHT", tab:GetParent(), "TOPRIGHT")
         else
             tab:SetPoint("LEFT", _G[tabFrame:GetName().."Tab"..(i - 1)], "RIGHT")
         end
@@ -161,6 +161,7 @@ end
 
 local previewTabContent = tabFrame.content[1]
 local savedLooksTabContent = tabFrame.content[2]
+local settingsTabContent = tabFrame.content[#tabFrame.content]
 
 ---------------- PREVIEW LIST ----------------
 
@@ -701,10 +702,22 @@ end
 ---------------- SAVED LOOKS ----------------
 
 do
-    local scrollFrame = CreateFrame("ScrollFrame", "$parentSavedLooks", savedLooksTabContent, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetPoint("TOPLEFT", 20, -46)
-    scrollFrame:SetPoint("BOTTOMLEFT", dressingRoom, "BOTTOMRIGHT", 0, 60)
-    scrollFrame:SetWidth(250)
+    local background = CreateFrame("Frame", "$parentSavedLooksBackground", savedLooksTabContent)
+    background:SetPoint("TOPLEFT", 20, -46)
+    background:SetPoint("BOTTOMLEFT", dressingRoom, "BOTTOMRIGHT", 0, 60)
+    background:SetWidth(266)
+    background:SetBackdrop({
+        bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true, tileSize = 16, edgeSize = 16,
+        insets = { left = 3, right = 3, top = 3, bottom = 3 }
+    })
+    background:SetBackdropColor(0, 0, 0, 1)
+
+    local scrollFrame = CreateFrame("ScrollFrame", "$parentScrollFrame", background, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", 8, -8)
+    scrollFrame:SetPoint("BOTTOMLEFT", 8, 8)
+    scrollFrame:SetWidth(background:GetWidth() - 12)
 
     local editBox = CreateFrame("EditBox", nil, scrollFrame)
     editBox:SetAutoFocus(false)
@@ -775,7 +788,7 @@ do
 
     local btnRemove = CreateFrame("Button", "$parentButtonRemove", scrollFrame, "UIPanelButtonTemplate2")
     btnRemove:SetSize(90, 20)
-    btnRemove:SetPoint("RIGHT", btnRemove:GetParent(), "TOPRIGHT", 0, 26)
+    btnRemove:SetPoint("RIGHT", background, "TOPRIGHT", 0, 20)
     btnRemove:SetText("Remove")
     btnRemove:Disable()
 
@@ -795,7 +808,6 @@ do
 
     local list = ns:CreateListFrame("$parentSavedLooks", nil, scrollFrame)
     list:SetWidth(scrollFrame:GetWidth())
-
     local function list_OnClick(self)
         list:Select(self:GetID())
         btnTryOn:Enable()
@@ -806,7 +818,6 @@ do
         for index, look in pairs(savedLooks) do
             local item = list:AddItem(look.name)
             local btn = list.buttons[item]
-            btn.lookIndex = index
             btn:SetScript("OnClick", list_OnClick)
         end
         scrollFrame:SetScrollChild(list)
@@ -828,9 +839,9 @@ do
     end)
 
     btnTryOn:HookScript("OnClick", function(self)
-        local lookIndex = list.buttons[list:GetSelected()].lookIndex
+        local id = list.buttons[list:GetSelected()]:GetID()
         for index, slotName in pairs(slotOrder) do
-            local itemId = savedLooks[lookIndex].items[index]
+            local itemId = savedLooks[id].items[index]
             if itemId ~= 0 then
                 slots[slotName]:TryOn(itemId)
             else
@@ -849,18 +860,17 @@ do
                 table.insert(items, 0)
             end
         end
-        local lookIndex = nil
+        local id = nil
         for index, look in pairs(savedLooks) do
             if look.name == name then
-                lookIndex = index
+                id = index
                 break
             end
         end
-        if lookIndex == nil then
+        if id == nil then
             table.insert(savedLooks, {["name"] = name, ["items"] = items})
-            local item = list:AddItem(name)
-            list.buttons[item]:SetScript("OnClick", list_OnClick)
-            list.buttons[item].lookIndex = #savedLooks
+            local new = list:AddItem(name)
+            list.buttons[new]:SetScript("OnClick", list_OnClick)
             scrollFrame:UpdateScrollChildRect()
         else
             StaticPopupDialogs["DressMeOverwriteConfirmDialog"] = {
@@ -872,12 +882,12 @@ do
                 hideOnEscape = true,
                 preferredIndex = 3,
                 OnAccept = function(self)
-                    savedLooks[lookIndex].items = items
+                    savedLooks[id].items = items
                 end,
             }
             local dialog = StaticPopup_Show("DressMeOverwriteConfirmDialog")
             if dialog then
-                dialog.lookIndex = lookIndex
+                dialog.id = id
             end
         end
     end)
@@ -894,21 +904,158 @@ do
             OnAccept = function(self)
                 btnTryOn:Disable()
                 btnRemove:Disable()
-                for i = self.lookIndex + 1, #list.buttons do
-                    list.buttons[i].lookIndex = i - 1
+                for i = self.id + 1, #list.buttons do
+                    list.buttons[i].id = i - 1
                 end
-                list:RemoveItem(self.lookIndex)
-                table.remove(savedLooks, self.lookIndex)
+                list:RemoveItem(self.id)
+                table.remove(savedLooks, self.id)
                 scrollFrame:UpdateScrollChildRect()
             end,
         }
         local dialog = StaticPopup_Show("DressMeRemoveConfirmDialog")
         if dialog then
-            dialog.lookIndex = list.buttons[list:GetSelected()].lookIndex
+            dialog.id = list.buttons[list:GetSelected()]:GetID()
         end
     end)
 end
 
+
+---------------- SETTINGS TAB ----------------
+
+do
+    local function GetSettings()
+        if _G["DressMeSettings"] == nil then
+            local function copyTable(tableFrom)
+                local result = {}
+                for k, v in pairs(tableFrom) do
+                    if type(v) == "table" then
+                        result[k] = copyTable(v)
+                    else
+                        result[k] = v
+                    end
+                end
+                return result
+            end
+            _G["DressMeSettings"] = copyTable(defaultSettings)
+        end
+        return _G["DressMeSettings"]
+    end
+    
+    --------- Preview Setup
+
+    local menu = CreateFrame("Frame", addon.."PreviewSetupDropDownMenu", settingsTabContent, "UIDropDownMenuTemplate")
+
+    local function menu_OnClick(self, arg1, arg2, checked)
+        GetSettings().previewSetup = arg1
+        UIDropDownMenu_SetText(menu, arg1)
+        previewSetup = ns:GetPreviewSetup()[arg1][raceFileName][sex]
+        selectedSlot:Click("LeftButton")
+    end
+
+    UIDropDownMenu_Initialize(menu, function(frame, level, menuList)
+        local previewSetup = GetSettings().previewSetup
+        local info = UIDropDownMenu_CreateInfo()
+        info.text, info.checked, info.arg1, info.func = "classic", previewSetup == "classic", "classic", menu_OnClick
+        UIDropDownMenu_AddButton(info)
+        info.text, info.checked, info.arg1, info.func = "modern", previewSetup == "modern", "modern", menu_OnClick
+        UIDropDownMenu_AddButton(info)
+    end)
+
+    local menuTitle = menu:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    menuTitle:SetPoint("TOPLEFT", settingsTabContent, "TOPLEFT", 16, -24)
+    menuTitle:SetText("Used models:")
+
+    local menuTip = CreateFrame("Frame", addon.."PreviewSetupDropDownMenuTip", settingsTabContent)
+    menuTip:SetPoint("LEFT", menuTitle, "LEFT")
+    menuTip:SetPoint("RIGHT", menu:GetChildren(), "LEFT")
+    menuTip:SetHeight(menu:GetChildren():GetHeight())
+    menuTip:EnableMouse(true)
+    menuTip:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+        GameTooltip:ClearLines()
+        GameTooltip:AddLine("Used models")
+        GameTooltip:AddLine("There's a funmade modification for WotLK client that brings modern high quality character models from \"Warlords of Draenor\" expansion. Unfortunately, preview for the modern models has different setup. If your game client's using the modern models, choose \"modern\" in this popup menu and \"classic\" otherwise.", 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    menuTip:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+    
+    menu:SetPoint("TOPLEFT", menuTitle:GetWidth() + 10, -16)
+
+    --------- Preview Setup
+
+    local colorPicker = CreateFrame("Frame", addon.."BorderDressingRoomBackgroundColorPicker", settingsTabContent)
+    colorPicker:SetSize(24, 24)
+    colorPicker:SetBackdrop({bgFile = "Interface\\ChatFrame\\ChatFrameBackground"})
+    colorPicker:SetBackdropColor(0.15, 0.15, 0.15, 1)
+    local btnColorPicker = CreateFrame("Button", "$parentButton", colorPicker)
+    btnColorPicker:SetPoint("TOPLEFT", 2, -2)
+    btnColorPicker:SetPoint("BOTTOMRIGHT", -2, 2)
+    btnColorPicker:RegisterForClicks("LeftButtonDown")
+    
+    btnColorPicker:SetBackdrop({bgFile = "Interface\\ChatFrame\\ChatFrameBackground"})
+    btnColorPicker:SetBackdropColor(unpack(defaultSettings.dressingRoomBackgroundColor))
+
+    local btnColorTitle = colorPicker:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    btnColorTitle:SetPoint("TOPLEFT", settingsTabContent, "TOPLEFT", 16, -80)
+    btnColorTitle:SetText("Character background color:")
+
+    colorPicker:SetPoint("LEFT", btnColorTitle, "RIGHT", 8, 0)
+
+    local function colorPicker_OnAccept(a, b, c)
+        local r, g, b = ColorPickerFrame:GetColorRGB() 
+        dressingRoom:SetBackdropColor(r, g, b)
+        btnColorPicker:SetBackdropColor(r, g, b)
+        GetSettings().dressingRoomBackgroundColor = {r, g, b}
+    end
+
+    local function colorPicker_OnCancel(previousValues)
+        dressingRoom:SetBackdropColor(unpack(previousValues))
+        btnColorPicker:SetBackdropColor(unpack(previousValues))
+    end
+
+    btnColorPicker:SetScript("OnClick", function(self)
+        local color = GetSettings().dressingRoomBackgroundColor
+        ColorPickerFrame.previousValues = {unpack(color)}
+        ColorPickerFrame:SetColorRGB(unpack(color))
+        ColorPickerFrame.func = colorPicker_OnAccept
+        ColorPickerFrame.cancelFunc = colorPicker_OnCancel
+        ColorPickerFrame:Hide()
+        ColorPickerFrame:Show()
+    end)
+
+    local btnColorPickerReset = CreateFrame("Button", "$parentResetButton", colorPicker, "UIPanelButtonTemplate2")
+    btnColorPickerReset:SetPoint("TOPRIGHT", btnColorPickerReset:GetParent(), "BOTTOMRIGHT", 0, -4)
+    btnColorPickerReset:SetText("Reset")
+    btnColorPickerReset:SetWidth(90)
+    btnColorPickerReset:SetScript("OnClick", function(self)
+        local settings = GetSettings()
+        local color = {unpack(defaultSettings.dressingRoomBackgroundColor)}
+        settings.dressingRoomBackgroundColor = color
+        dressingRoom:SetBackdropColor(unpack(color))
+        btnColorPicker:SetBackdropColor(unpack(color))
+    end)
+
+    local function applySettings(settings)
+        -- Dressing room background color
+        dressingRoom:SetBackdropColor(unpack(settings.dressingRoomBackgroundColor))
+        btnColorPicker:SetBackdropColor(unpack(settings.dressingRoomBackgroundColor))
+        -- Preview setup popup menu
+        previewSetup = ns:GetPreviewSetup()[GetSettings().previewSetup][raceFileName][sex]
+        UIDropDownMenu_SetText(menu, settings.previewSetup)
+    end
+
+    settingsTabContent:RegisterEvent("ADDON_LOADED")
+    settingsTabContent:SetScript("OnEvent", function(self, event, addonName)
+        if addonName == addon then
+            if event == "ADDON_LOADED" then
+                local settings = GetSettings()
+                applySettings(settings)
+            end
+        end
+    end)
+end
 
 
 SLASH_DRESSME1 = "/dressme"

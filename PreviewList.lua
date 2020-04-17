@@ -7,13 +7,7 @@ local previewBackdrop = { -- small "DressingRoom"s
 	tile = true, tileSize = 16, edgeSize = 16,
     insets = { left = 3, right = 3, top = 3, bottom = 3 }
 }
---[[ local previewBackdropSelected = {
-    bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-	edgeFile = "Interface\\AddOns\\DressMe\\images\\ui-tooltip-border-selected",
-	tile = true, tileSize = 16, edgeSize = 16,
-    insets = { left = 3, right = 3, top = 3, bottom = 3 }
-} ]]
-local previewBackdropColor = {["r"] = 0.25, ["g"] = 0.25, ["b"] = 0.25, ["a"] = 1}
+local previewBackdropColor = {0.25, 0.25, 0.25, 1}
 local previewHighlightTexture = "Interface\\Buttons\\ButtonHilight-Square"
 
 
@@ -121,7 +115,7 @@ function ns:CreatePreviewList(parent)
                 if preview == nil then
                     preview = ns:CreateDressingRoom(frame)
                     preview:SetBackdrop(previewBackdrop)
-                    preview:SetBackdropColor(previewBackdropColor.r, previewBackdropColor.g, previewBackdropColor.b, previewBackdropColor.a)
+                    preview:SetBackdropColor(unpack(previewBackdropColor))
                     preview:EnableDragRotation(false)
                     preview:EnableMouseWheel(false)
                     preview.button = CreateFrame("Button", nil, preview)

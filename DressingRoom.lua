@@ -16,17 +16,17 @@ local male, female = 2, 3
 local modelX = { -- male = 2, female = 3
     min = {
         -- The Alliance
-        Dwarf =     {male = 0.0, female = 0.0},
-        Draenei =   {male = 0.0, female = 0.0},
-        Gnome =     {male = 0.0, female = 0.0},
-        Human =     {male = 0.0, female = 0.0},
-        NightElf =  {male = 0.0, female = 0.0},
+        Dwarf =     {male = -0.75, female = -0.75},
+        Draenei =   {male = -0.75, female = -0.75},
+        Gnome =     {male = -0.75, female = -0.75},
+        Human =     {male = -0.75, female = -0.75},
+        NightElf =  {male = -0.75, female = -0.75},
         -- The Horde
-        BloodElf =  {male = 0.0, female = 0.0},
-        Orc =       {male = 0.0, female = 0.0},
-        Scourge =   {male = 0.0, female = 0.0},
-        Tauren =    {male = 0.0, female = 0.0},
-        Troll =     {male = 0.0, female = 0.0},
+        BloodElf =  {male = -0.75, female = -0.75},
+        Orc =       {male = -0.75, female = -0.75},
+        Scourge =   {male = -0.75, female = -0.75},
+        Tauren =    {male = -0.75, female = -0.75},
+        Troll =     {male = -0.75, female = -0.75},
     },
     max = {
         -- The Alliance
@@ -77,37 +77,15 @@ local modelZ = {
 
 
 function ns:CreateDressingRoom(parent)
-    --assert(type(useBackgroundModel) == "boolean", "'useBackgroundModel' must be a boolean value")
     local frame = CreateFrame("Frame", nil, parent)
     frame:EnableMouseWheel(true)
     frame:SetSize(initWidth, initHeight)
     frame:SetMinResize(initWidth, initHeight)
     frame:SetMaxResize(initWidth, initHeight)
-    --frame:SetFrameStrata("FULLSCREEN_DIALOG")
-
---[[     local bgModel = nil
-    if useBackgroundModel then
-        bgModel = CreateFrame("Model", nil, frame)
-        bgModel:SetAllPoints()
-        bgModel:ClearModel()
-    
-        local class, classFileName = UnitClass("player") 
-        if classFileName == "DEATHKNIGHT" then
-            bgModel:SetModel("interface\\glues\\models\\ui_deathknight\\ui_deathknight.m2")
-        else
-            local race, raceFileName = UnitRace("player")
-            bgModel:SetModel(string.format("interface\\glues\\models\\ui_%s\\ui_%s.m2", raceFileName, raceFileName))
-        end
-    end ]]
 
     local model = CreateFrame("DressUpModel", nil, frame)
     model:SetAllPoints()
     model:SetUnit("player")
-
---[[     if bgModel then
-        bgModel:SetPoint("TOPLEFT", model, "TOPLEFT")
-        bgModel:SetPoint("BOTTOMRIGHT", model, "BOTTOMRIGHT")
-    end ]]
 
     local dragDummy = CreateFrame("Frame", nil, frame)
     dragDummy:SetPoint("TOPLEFT", 24, -24)
