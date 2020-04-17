@@ -1,7 +1,10 @@
 ## Interface: 30300
-## Notes: This is mah shit
+## Author: GetLocalPlayer
+## Title: DressMe
+## Notes: Create your look and save it.
 ## SavedVariables: DressMeSavedLooks
 ## SavedVariables: DressMeSettings
+## Version: 1.0.0
 
 db\Items.lua
 db\PreviewSetup.lua
