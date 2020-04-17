@@ -134,7 +134,7 @@ do
         self:GetParent().content[self:GetID()]:Show()
     end
 
-    local tabNames = {"Items Preview", "Saved Looks", "Setting"}
+    local tabNames = {"Items Preview", "Saved Looks", "Settings"}
 
     for i = 1, #tabNames do
         local tab = CreateFrame("Button", "$parentTab"..i, tabFrame, "OptionsFrameTabButtonTemplate")
