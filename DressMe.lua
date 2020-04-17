@@ -736,7 +736,7 @@ do
 
     local btnSave = CreateFrame("Button", "$parentButtonSave", scrollFrame, "UIPanelButtonTemplate2")
     btnSave:SetSize(90, 20)
-    btnSave:SetPoint("RIGHT", btnSave:GetParent(), "BOTTOMRIGHT", 0, -32 - editBox:GetHeight())
+    btnSave:SetPoint("RIGHT", background, "BOTTOMRIGHT", 0, -32 - editBox:GetHeight())
     btnSave:SetText("Save")
     btnSave:Disable()
 
@@ -777,12 +777,12 @@ do
     label:SetPoint("RIGHT", label:GetParent(), "LEFT", -10, 1)
     label:SetText("Name:")
 
-    editBox:SetPoint("TOPRIGHT", scrollFrame, "BOTTOMRIGHT", -5, -10)
+    editBox:SetPoint("TOPRIGHT", background, "BOTTOMRIGHT", -5, -10)
     editBox:SetWidth(scrollFrame:GetWidth() - label:GetWidth() - 20)
 
     local btnTryOn = CreateFrame("Button", "$parentButtonTryOn", scrollFrame, "UIPanelButtonTemplate2")
     btnTryOn:SetSize(90, 20)
-    btnTryOn:SetPoint("LEFT", btnTryOn:GetParent(), "BOTTOMLEFT", 0, -32 - editBox:GetHeight())
+    btnTryOn:SetPoint("LEFT", background, "BOTTOMLEFT", 0, -32 - editBox:GetHeight())
     btnTryOn:SetText("Try on")
     btnTryOn:Disable()
 
