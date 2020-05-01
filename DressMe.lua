@@ -1,9 +1,17 @@
 local addon, ns = ...
 
 local sex = UnitSex("player")
-local race, raceFileName = UnitRace("player")
-local itemsData = ns:GetItemsData()
-local previewSetup = ns:GetPreviewSetup().classic[raceFileName][sex]
+local _, raceFileName = UnitRace("player")
+
+local previewSetupVersion = "classic"
+
+local GetPreviewSetup = ns.GetPreviewSetup
+local GetSubclassAppearances = ns.GetSubclassAppearances
+local GetOtherAppearances = ns.GetOtherAppearances
+
+-- Used in look saving/sending. Chenging wil breack compatibility.
+local slotOrder = { "Head", "Shoulder", "Back", "Chest", "Shirt", "Tabard", "Wrist", "Hands", "Waist", "Legs", "Feet", "Main Hand", "Off-hand", "Ranged",}
+
 
 local defaultSettings = {
     dressingRoomBackgroundColor = {0.055, 0.055, 0.055, 1},
@@ -112,9 +120,6 @@ local btnReset = CreateFrame("Button", "$parentButtonReset", mainFrame, "UIPanel
 btnReset:SetSize(120, 20)
 btnReset:SetPoint("LEFT", dressingRoom, "BOTTOMLEFT", 20, -20)
 btnReset:SetText("Reset")
-btnReset:SetScript("OnClick", function()
-    dressingRoom:Reset()
-end)
 
 ---------------- TABS ----------------
 
@@ -250,30 +255,13 @@ local function slot_OnShiftLeftCick(self)
     local itemName = self.appearance.itemName
     if itemId ~= nil then
         local slotName = self.slotName
-        if itemsData[slotName] == nil then
-            for subclassName, sbuclassData in pairs(itemsData["Armor"][slotName]) do
-                for _, data in pairs(sbuclassData) do
-                    local index = hasValue(data[1], itemId)                
-                    if index then
-                        local color = itemName:sub(1, 10)
-                        local name = itemName:sub(11, -3)
-                        SELECTED_CHAT_FRAME:AddMessage("[DressMe]: "..self.slotName.." - "..subclassName.." "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r".." ("..itemId..")")
-                        return
-                    end
-                end
-            end
+        local ids, names, index, subclassName = GetOtherAppearances(itemId, slotName)
+        if ids ~= nil then
+            local color = itemName:sub(1, 10)
+            local name = itemName:sub(11, -3)
+            SELECTED_CHAT_FRAME:AddMessage("[DressMe]: "..self.slotName.." - "..subclassName.." "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r".." ("..itemId..")")
         else
-            for subclassName, sbuclassData in pairs(itemsData[slotName]) do
-                for _, data in pairs(sbuclassData) do
-                    local index = hasValue(data[1], itemId)                
-                    if index then
-                        local color = itemName:sub(1, 10)
-                        local name = itemName:sub(11, -3)
-                        SELECTED_CHAT_FRAME:AddMessage("[DressMe]: "..self.slotName.." - "..subclassName.." "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r".." ("..itemId..")")
-                        return
-                    end
-                end
-            end
+            SELECTED_CHAT_FRAME:AddMessage("[DressMe]: It seems this item cannot be used for transmogrification.")
         end
     end
 end
@@ -292,12 +280,11 @@ local function slot_OnLeftCick(self)
     local slotName = self.slotName
     local subclass = self.selectedSubclass
     local page = self.selectedPage[subclass]
-    if previewSetup[slotName] == nil then
-        previewList:Update(previewSetup["Armor"][slotName], itemsData["Armor"][slotName][subclass])
-    else
-        local previewSubclass = subclass:startswith("OH", "MH", "1H") and subclass:sub(4) or subclass
-        previewList:Update(previewSetup[slotName][previewSubclass], itemsData[slotName][subclass])
-    end
+
+    local previewSetup = GetPreviewSetup(previewSetupVersion, raceFileName, sex, slotName, subclass)
+    local subclassAppearances = GetSubclassAppearances(slotName, subclass)
+    previewList:Update(previewSetup, subclassAppearances, page)
+
     previewSlider:SetMinMaxValues(1, previewList:GetPageCount())
     if previewSlider:GetValue() ~= page then
         previewSlider:SetValue(page)
@@ -352,25 +339,17 @@ local function slot_Reset(self)
     local slotId = GetInventorySlotInfo(slotName.."Slot")
     local itemId = GetInventoryItemID("player", slotId)
     local name, link, quality, _, _, _, _, _, _, texture = GetItemInfo(itemId ~= nil and itemId or 0)
-    self.appearance.defaultItemId = itemId
-    self.appearance.shownItemId = itemId
-    self.appearance.itemId = itemId
-    if name ~= nil then
-        local colors = { -- per quality
-            [0] = "ff9d9d9d",
-            [1] = "ffffffff",
-            [2] = "ff1eff00",
-            [3] = "ff0070dd",
-            [4] = "ffa335ee",
-            [5] = "ffff8000",
-            [6] = "ffe6cc80",
-            [7] = "ff00ccff",
-        }
-        self.appearance.itemName = "\124c"..colors[quality]..name.."\124r"
+    if name ~= nil and (quality >= 2 or hasValue(miscellaneousSlots, self.slotName))then
+        self.appearance.shownItemId = itemId
+        self.appearance.itemId = itemId
+        self.appearance.itemName = link:sub(1, 10)..name.."\124r"
         self.textures.empty:Hide()
         self.textures.item:Show()
         self.textures.item:SetTexture(texture)
+        self:TryOn(itemId)
     else
+        self.appearance.shownItemId = nil
+        self.appearance.itemId = nil
         self.appearance.itemName = nil
         self.textures.empty:Show()
         self.textures.item:Hide()
@@ -403,15 +382,10 @@ end
 local function slot_TryOn(self, itemId, shownItemId, name)
     if not (shownItemId or name) then
         -- Don't query, find in the database.
-        local db = itemsData["Armor"][self.slotName] ~= nil and itemsData["Armor"][self.slotName] or itemsData[self.slotName]
-        for _, subclass in pairs(db) do
-            for _, data in pairs(subclass) do
-                local index = hasValue(data[1], itemId)
-                if index then
-                    shownItemId = data[1][1]
-                    name = data[2][index]
-                end
-            end
+        local ids, names, index = GetOtherAppearances(itemId, self.slotName)
+        if ids ~= nil then
+            shownItemId = ids[1]
+            name = names[index]
         end
     end
     local _, link, quality, _, _, _, _, _, _, texture = GetItemInfo(shownItemId)
@@ -440,10 +414,6 @@ for slotName, texturePath in pairs(slotTextures) do
         ["itemName"] = nil,
         ["shownItemId"] = nil,      -- To avoid overquerying, we TryOn only the first
                                     -- item from according preview.
-        ["defaultItemId"] = nil,    -- Used when we right-click to undress the slot.
-                                    -- The character's current equipement is assigned
-                                    -- on first "OnShow", on each "Reset", and on each.
-                                    -- "Undress". 'nil' on each "Undress"
     } 
     slots[slotName] = slot
     slot.textures = {}
@@ -475,7 +445,8 @@ slots["Ranged"]:SetPoint("LEFT", slots["Off-hand"], "RIGHT", 4, 0)
 
 ------- Tricks and hooks with slots and provided appearances. -------
 
-local function btnReset_Hook()
+local function btnReset_OnClick()
+    dressingRoom:Undress()
     for _, slot in pairs(slots) do
         slot:Reset()
     end
@@ -486,7 +457,6 @@ local function btnUndress_Hook()
         slot.appearance.itemId = nil
         slot.appearance.itemName = nil
         slot.appearance.shownItemId = nil
-        slot.appearance.defaultItemId = nil
         slot.textures.empty:Show()
         slot.textures.item:Hide()
     end
@@ -496,7 +466,7 @@ end
     Have to reTryOn selected appearances since
     the model's reset each time it's shown.
 ]]
-local function dressingRoom_OnShowHook(self)
+local function dressingRoom_OnShow(self)
     self:Reset()
     self:Undress()
     for _, slot in pairs(slots) do
@@ -510,10 +480,9 @@ end
 slots["Head"]:SetScript("OnShow", function(self)
     self:Click("LeftButton")
     self:SetScript("OnShow", nil)
-    dressingRoom:Reset()
-    btnReset_Hook()
-    btnReset:HookScript("OnClick", btnReset_Hook)
-    dressingRoom:HookScript("OnShow", dressingRoom_OnShowHook)
+    btnReset_OnClick()
+    btnReset:SetScript("OnClick", btnReset_OnClick)
+    dressingRoom:SetScript("OnShow", dressingRoom_OnShow)
     btnUndress:HookScript("OnClick", btnUndress_Hook)
 end)
 
@@ -524,7 +493,7 @@ do
     tooltip:Hide()
 
     previewList:OnClick(function(self, ids, names, selected)
-        local _, link, quality, _, _, _, _, _, _, texture = GetItemInfo(ids[1])
+        --local _, link, quality, _, _, _, _, _, _, texture = GetItemInfo(ids[1])
         if not IsShiftKeyDown() then
             selectedSlot:TryOn(ids[selected], ids[1],  names[selected])
         else
@@ -554,12 +523,11 @@ local function subclass_OnClick(self)
     local slotName = selectedSlot.slotName
     local subclass = self.name
     local page = selectedSlot.selectedPage[subclass]
-    if previewSetup["Armor"][slotName] then
-        previewList:Update(previewSetup["Armor"][slotName], itemsData["Armor"][slotName][subclass], page)
-    else
-        local previewSubclass = subclass:startswith("OH", "MH", "1H") and subclass:sub(4) or subclass
-        previewList:Update(previewSetup[slotName][previewSubclass], itemsData[slotName][subclass], page)
-    end
+
+    local previewSetup = GetPreviewSetup(previewSetupVersion, raceFileName, sex, slotName, subclass)
+    local subclassAppearances = GetSubclassAppearances(slotName, subclass)
+    previewList:Update(previewSetup, subclassAppearances, page)
+
     selectedSlot.selectedSubclass = subclass
     previewSlider:SetMinMaxValues(1, previewList:GetPageCount())
     if previewSlider:GetValue() ~= page then
@@ -792,7 +760,6 @@ do
     btnRemove:SetText("Remove")
     btnRemove:Disable()
 
-    local slotOrder = { "Head", "Shoulder", "Back", "Chest", "Shirt", "Tabard", "Wrist", "Hands", "Waist", "Legs", "Feet", "Main Hand", "Off-hand", "Ranged",}
     --[[ Save looks structure 
         _G["DressMeSavedLooks"] = {
             {
@@ -854,7 +821,7 @@ do
         local name = editBox:GetText()
         local items = {}
         for _, slotName in pairs(slotOrder) do
-            if slots[slotName].appearance.itemId ~= nil then
+            if slots[slotName].appearance.shownItemId ~= nil then
                 table.insert(items, slots[slotName].appearance.itemId)
             else
                 table.insert(items, 0)
@@ -948,7 +915,7 @@ do
     local function menu_OnClick(self, arg1, arg2, checked)
         GetSettings().previewSetup = arg1
         UIDropDownMenu_SetText(menu, arg1)
-        previewSetup = ns:GetPreviewSetup()[arg1][raceFileName][sex]
+        previewSetupVersion = arg1
         selectedSlot:Click("LeftButton")
     end
 
@@ -983,7 +950,7 @@ do
     
     menu:SetPoint("TOPLEFT", menuTitle:GetWidth() + 10, -16)
 
-    --------- Preview Setup
+    --------- Character background color
 
     local colorPicker = CreateFrame("Frame", addon.."BorderDressingRoomBackgroundColorPicker", settingsTabContent)
     colorPicker:SetSize(24, 24)
@@ -1037,12 +1004,14 @@ do
         btnColorPicker:SetBackdropColor(unpack(color))
     end)
 
+    --------- Apply settings on addon loaded
+
     local function applySettings(settings)
         -- Dressing room background color
         dressingRoom:SetBackdropColor(unpack(settings.dressingRoomBackgroundColor))
         btnColorPicker:SetBackdropColor(unpack(settings.dressingRoomBackgroundColor))
         -- Preview setup popup menu
-        previewSetup = ns:GetPreviewSetup()[GetSettings().previewSetup][raceFileName][sex]
+        previewSetupVersion = settings.previewSetup
         UIDropDownMenu_SetText(menu, settings.previewSetup)
     end
 
