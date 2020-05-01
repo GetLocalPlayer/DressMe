@@ -136717,15 +136717,6 @@ local function hasValue(array, value)
 end
 
 
-local function asTable(keyArray, valueArray)
-    local result = {}
-    for i = 1, #keyArray do
-        result[keyArray[i]] = valueArray[i]
-    end
-    return result
-end
-
-
 -- Returns all the appearances for the given slot/subclass.
 function ns.GetSubclassAppearances(slot, subclass)
     assert(type(slot) == "string", "'slot' is mandatroy and must be 'string'.")
