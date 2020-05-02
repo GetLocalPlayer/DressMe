@@ -234,6 +234,7 @@ def to_lua(data, indent = "    ", level = 0):
 
 lua_code = """
 
+
 local function hasValue(array, value)
     for i = 1, #array do
         if array[i] == value then
@@ -241,15 +242,6 @@ local function hasValue(array, value)
         end
     end
     return nil
-end
-
-
-local function asTable(keyArray, valueArray)
-    local result = {}
-    for i = 1, #keyArray do
-        result[keyArray[i]] = valueArray[i]
-    end
-    return result
 end
 
 
