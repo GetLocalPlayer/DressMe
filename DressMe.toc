@@ -4,7 +4,7 @@
 ## Notes: Create your look and save it.
 ## SavedVariables: DressMeSavedLooks
 ## SavedVariables: DressMeSettings
-## Version: 1.0.0
+## Version: 1.0.1
 
 db\Items.lua
 db\PreviewSetup.lua
