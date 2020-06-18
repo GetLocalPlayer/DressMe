@@ -2,6 +2,7 @@ local addon, ns = ...
 
 local sex = UnitSex("player")
 local _, raceFileName = UnitRace("player")
+local _, classFileName = UnitClass("player")
 
 local previewSetupVersion = "classic"
 
@@ -388,14 +389,16 @@ local function slot_TryOn(self, itemId, shownItemId, name)
             name = names[index]
         end
     end
-    local _, link, quality, _, _, _, _, _, _, texture = GetItemInfo(shownItemId)
-    self.textures.empty:Hide()
-    self.textures.item:SetTexture(texture)
-    self.textures.item:Show()
-    self.appearance.itemId = itemId
-    self.appearance.itemName = name
-    self.appearance.shownItemId = shownItemId
-    dressingRoom:TryOn(shownItemId)
+    if shownItemId then -- we don't need an item that doens't exist in the db
+        local _, link, quality, _, _, _, _, _, _, texture = GetItemInfo(shownItemId)
+        self.textures.empty:Hide()
+        self.textures.item:SetTexture(texture)
+        self.textures.item:Show()
+        self.appearance.itemId = itemId
+        self.appearance.itemName = name
+        self.appearance.shownItemId = shownItemId
+        dressingRoom:TryOn(shownItemId)
+    end
 end
 
 for slotName, texturePath in pairs(slotTextures) do
@@ -562,7 +565,6 @@ do
         WARRIOR = "Plate",
         DEATHKNIGHT = "Plate"
     }
-    local className, classFileName = UnitClass("player")
 
     for _, name in pairs(armorSlots) do
         slots[name].subclassList = list
