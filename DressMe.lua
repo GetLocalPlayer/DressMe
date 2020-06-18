@@ -481,11 +481,12 @@ end
 
 -- At first time it's shown.
 slots["Head"]:SetScript("OnShow", function(self)
-    self:Click("LeftButton")
     self:SetScript("OnShow", nil)
-    btnReset_OnClick()
+    self:Click("LeftButton")
     btnReset:SetScript("OnClick", btnReset_OnClick)
     dressingRoom:SetScript("OnShow", dressingRoom_OnShow)
+    dressingRoom_OnShow(dressingRoom)
+    btnReset_OnClick()
     btnUndress:HookScript("OnClick", btnUndress_Hook)
 end)
 
