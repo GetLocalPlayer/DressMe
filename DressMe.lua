@@ -16,7 +16,8 @@ local slotOrder = { "Head", "Shoulder", "Back", "Chest", "Shirt", "Tabard", "Wri
 
 local defaultSettings = {
     dressingRoomBackgroundColor = {0.055, 0.055, 0.055, 1},
-    previewSetup = "classic", -- Or "modern"
+    previewSetup = "classic", -- possible values are "classic" and "modern",
+    showDressMeButton = true,
 }
 
 local backdrop = {
@@ -367,7 +368,7 @@ local function slot_Undress(self)
         self:GetScript("OnEnter")(self)
         --[[ Undress only current slot. In lack of 
         the game's API we're undressing the whole
-        model and dress it again but without the
+        model and dress it up again but without the
         current slot. ]]
         dressingRoom:Undress()
         for _, slot in pairs(slots) do
@@ -411,8 +412,8 @@ for slotName, texturePath in pairs(slotTextures) do
     slot.slotName = slotName
     slot.selectedSubclass = nil -- init later in subclass
     slot.selectedPage = {}      -- per subclass, filled later in subclass
-    slot.subclassList = nil     -- init later in subclss
-    slot.appearance = {         -- assigned when a preview's clicked. Used to save in collection.
+    slot.subclassList = nil     -- init later in subclass
+    slot.appearance = {         -- assigned when a preview's clicked. Used to save in a collection.
         ["itemId"] = nil,
         ["itemName"] = nil,
         ["shownItemId"] = nil,      -- To avoid overquerying, we TryOn only the first
@@ -889,6 +890,19 @@ do
     end)
 end
 
+---------------- CHARACTER MENU BUTTON ----------------
+
+local btnDressMe = CreateFrame("Button", "$parent"..addon.."DressMeButton", CharacterModelFrame, "UIPanelButtonTemplate2")
+btnDressMe:SetSize(80, 20)
+btnDressMe:SetPoint("BOTTOMRIGHT", -2, 25)
+btnDressMe:SetText("DressMe")
+btnDressMe:SetScript("OnClick", function(self)
+    if mainFrame:IsShown() then
+        mainFrame:Hide()
+    else
+        mainFrame:Show() 
+    end
+end)
 
 ---------------- SETTINGS TAB ----------------
 
@@ -967,11 +981,11 @@ do
     btnColorPicker:SetBackdrop({bgFile = "Interface\\ChatFrame\\ChatFrameBackground"})
     btnColorPicker:SetBackdropColor(unpack(defaultSettings.dressingRoomBackgroundColor))
 
-    local btnColorTitle = colorPicker:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    btnColorTitle:SetPoint("TOPLEFT", settingsTabContent, "TOPLEFT", 16, -80)
-    btnColorTitle:SetText("Character background color:")
+    local colorPickerTitle = colorPicker:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    colorPickerTitle:SetPoint("TOPLEFT", settingsTabContent, "TOPLEFT", 16, -80)
+    colorPickerTitle:SetText("Character background color:")
 
-    colorPicker:SetPoint("LEFT", btnColorTitle, "RIGHT", 8, 0)
+    colorPicker:SetPoint("LEFT", colorPickerTitle, "RIGHT", 8, 0)
 
     local function colorPicker_OnAccept(a, b, c)
         local r, g, b = ColorPickerFrame:GetColorRGB() 
@@ -1007,6 +1021,25 @@ do
         btnColorPicker:SetBackdropColor(unpack(color))
     end)
 
+    --------- Show/hide "DressMe" button
+    
+    local showDressMeButtonCheckBox = CreateFrame("CheckButton", addon.."ShowDressMeButtonCheckBox", settingsTabContent, "ChatConfigCheckButtonTemplate")
+    showDressMeButtonCheckBox:SetScript("OnClick", function(self)
+        if self:GetChecked() then
+            btnDressMe:Show()
+            GetSettings().showDressMeButton = true
+        else
+            btnDressMe:Hide()
+            GetSettings().showDressMeButton = false
+        end
+    end)
+
+    local showDressMeButtonTitle = colorPicker:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    showDressMeButtonTitle:SetText("Show \"DressMe\" button:")
+    showDressMeButtonTitle:SetPoint("TOPRIGHT", showDressMeButtonCheckBox, "TOPLEFT", -4, -4)
+
+    showDressMeButtonCheckBox:SetPoint("TOPLEFT", settingsTabContent, "TOPLEFT", showDressMeButtonTitle:GetWidth() + 28, -150)
+
     --------- Apply settings on addon loaded
 
     local function applySettings(settings)
@@ -1015,6 +1048,13 @@ do
         btnColorPicker:SetBackdropColor(unpack(settings.dressingRoomBackgroundColor))
         -- Preview setup popup menu
         previewSetupVersion = settings.previewSetup
+        -- Show/hide "DressMe" button
+        showDressMeButtonCheckBox:SetChecked(settings.showDressMeButton)
+        if settings.showDressMeButton then
+            btnDressMe:Show()
+        else
+            btnDressMe:Hide()
+        end
         UIDropDownMenu_SetText(menu, settings.previewSetup)
     end
 
@@ -1039,20 +1079,4 @@ SlashCmdList["DRESSME"] = function(msg)
     elseif msg == "debug" then
         if dressingRoom:IsDebugInfoShown() then dressingRoom:HideDebugInfo() else dressingRoom:ShowDebugInfo() end
     end
-end
-
----------------- CHARACTER MENU BUTTON ----------------
-
-do
-    local btn = CreateFrame("Button", "$parent"..addon, CharacterModelFrame, "UIPanelButtonTemplate2")
-    btn:SetSize(80, 20)
-    btn:SetPoint("BOTTOMRIGHT", -2, 25)
-    btn:SetText("DressMe")
-    btn:SetScript("OnClick", function(self)
-        if mainFrame:IsShown() then
-            mainFrame:Hide()
-        else
-            mainFrame:Show() 
-        end
-    end)
 end
