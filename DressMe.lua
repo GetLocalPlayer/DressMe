@@ -1029,6 +1029,7 @@ do
     end)
 end
 
+---------------- CHAT COMMANDS ----------------
 
 SLASH_DRESSME1 = "/dressme"
 
@@ -1039,6 +1040,8 @@ SlashCmdList["DRESSME"] = function(msg)
         if dressingRoom:IsDebugInfoShown() then dressingRoom:HideDebugInfo() else dressingRoom:ShowDebugInfo() end
     end
 end
+
+---------------- CHARACTER MENU BUTTON ----------------
 
 do
     local btn = CreateFrame("Button", "$parent"..addon, CharacterModelFrame, "UIPanelButtonTemplate2")
