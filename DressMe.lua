@@ -997,6 +997,7 @@ do
     local function colorPicker_OnCancel(previousValues)
         dressingRoom:SetBackdropColor(unpack(previousValues))
         btnColorPicker:SetBackdropColor(unpack(previousValues))
+        GetSettings().dressingRoomBackgroundColor = {unpack(previousValues)}
     end
 
     btnColorPicker:SetScript("OnClick", function(self)
