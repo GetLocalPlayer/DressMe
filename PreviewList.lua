@@ -95,6 +95,7 @@ function ns:CreatePreviewList(parent)
     local currentPage = 0
     local onClickScript
 
+    -- Updates the list of previews
     function frame:Update(previewSetup, items, page)
         local width, height = previewSetup.width, previewSetup.height
         local x, y, z = previewSetup.x, previewSetup.y, previewSetup.z
@@ -191,7 +192,9 @@ function ns:CreatePreviewList(parent)
                 end
                 preview.appereanceData = data
                 preview:Show()
+                local x, y, z = preview:GetPosition()
                 preview:Reset()
+                preview:SetPosition(x, y, z)
                 preview:Undress()
                 preview:TryOn(itemId)
             else

@@ -84,6 +84,8 @@ function ns:CreateDressingRoom(parent)
     frame:SetMaxResize(initWidth, initHeight)
 
     local unit = "player"
+    local _, unitRaceFileName = UnitRace(unit)
+    local unitSex = UnitSex(unit)
 
     local model = CreateFrame("DressUpModel", nil, frame)
     model:SetAllPoints()
@@ -115,8 +117,7 @@ function ns:CreateDressingRoom(parent)
                 local x, y, z = model:GetPosition()
                 local zOffset = zStep * deltaY
                 z = z + zOffset
-                local race, raceFileName = UnitRace(unit)
-                local max, min = modelZ.max[raceFileName][sex[UnitSex(unit)]], modelZ.min[raceFileName][sex[UnitSex(unit)]]
+                local max, min = modelZ.max[unitRaceFileName][sex[unitSex]], modelZ.min[unitRaceFileName][sex[unitSex]]
                 z = z > max and max or z
                 z = z < min and min or z
                 model:SetPosition(x, y, z)
@@ -163,16 +164,50 @@ function ns:CreateDressingRoom(parent)
         model:SetFacing(0)
         model:ClearModel()
         model:SetUnit("player")
+
+        unit = "player"
+        _, unitRaceFileName = UnitRace(unit)
+        unitSex = UnitSex(unit)
+
+        local minX = modelX.min[unitRaceFileName][sex[unitSex]]
+        local maxX = modelX.max[unitRaceFileName][sex[unitSex]]
+        local minZ = modelZ.min[unitRaceFileName][sex[unitSex]]
+        local maxZ = modelZ.max[unitRaceFileName][sex[unitSex]]
+
+        x = x < minX and minX or x > maxX and maxX or x
+        z = z < minZ and minZ or z > maxZ and maxZ or z
+
         model:SetPosition(x, y, z)
         model:SetFacing(facing)
     end
 
-    function frame:SetUnit(...)
-        model:SetUnit(...) 
+    function frame:SetUnit(newUnit)
+        if UnitIsPlayer(newUnit) then
+            local x, y, z = model:GetPosition()    
+            local facing = model:GetFacing()
+            model:SetPosition(0, 0, 0)
+            model:SetFacing(0)
+            model:ClearModel()
+            model:SetUnit(newUnit)
+            unit = newUnit
+            _, unitRaceFileName = UnitRace(unit)
+            unitSex = UnitSex(unit)
+            local minX = modelX.min[unitRaceFileName][sex[unitSex]]
+            local maxX = modelX.max[unitRaceFileName][sex[unitSex]]
+            local minZ = modelZ.min[unitRaceFileName][sex[unitSex]]
+            local maxZ = modelZ.max[unitRaceFileName][sex[unitSex]]
+
+            x = x < minX and minX or x > maxX and maxX or x
+            z = z < minZ and minZ or z > maxZ and maxZ or z
+
+            model:SetPosition(x, y, z)
+            model:SetFacing(facing)
+        end
     end
 
     function frame:TryOn(...) model:TryOn(...) end
     function frame:Undress() model:Undress() end
+    function frame:GetPosition(...) return model:GetPosition(...) end
     function frame:SetPosition(...) model:SetPosition(...) end
     function frame:SetFacing(...) model:SetFacing(...) end
     function frame:SetSequence(...) model:SetSequence(...) end
@@ -191,8 +226,7 @@ function ns:CreateDressingRoom(parent)
     frame:SetScript("OnMouseWheel", function (self, delta)
         local x, y, z = model:GetPosition()
         x = x + delta * xStep
-        local race, raceFileName = UnitRace("player")
-        local max, min = modelX.max[raceFileName][sex[UnitSex("player")]], modelX.min[raceFileName][sex[UnitSex("player")]]
+        local max, min = modelX.max[unitRaceFileName][sex[unitSex]], modelX.min[unitRaceFileName][sex[unitSex]]
         x = x > max and max or x
         x = x < min and min or x
         model:SetPosition(x, y ,z)

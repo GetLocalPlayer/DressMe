@@ -126,17 +126,17 @@ local btnReset = CreateFrame("Button", "$parentButtonReset", mainFrame, "UIPanel
 btnReset:SetSize(120, 20)
 btnReset:SetPoint("RIGHT", dressingRoom, "BOTTOMRIGHT", -10, -20)
 btnReset:SetText("Reset")
-btnReset:SetScript("OnClick", function() PlaySound("gsTitleOptionOK") end)
+btnReset:SetScript("OnClick", function()
+    PlaySound("gsTitleOptionOK")
+    dressingRoom:Reset()
+end)
 
 local btnUseTarget = CreateFrame("Button", "$parentButtonUseTarget", mainFrame, "UIPanelButtonTemplate2")
 btnUseTarget:SetSize(120, 20)
 btnUseTarget:SetPoint("LEFT", dressingRoom, "BOTTOMLEFT", 10, -20)
 btnUseTarget:SetText("Use Target")
 btnUseTarget:SetScript("OnClick", function()
-    if UnitIsPlayer("target") then
-        btnUndress:Click("LeftButton")
-        print(dressingRoom:SetUnit("target"))
-    end
+    dressingRoom:SetUnit("target")
     PlaySound("gsTitleOptionOK")
 end)
 
@@ -487,19 +487,37 @@ local function btnUndress_Hook()
     end
 end
 
+local function tryOnSlots(dressUpModel)
+    for _, slot in pairs(slots) do
+        if slot.appearance.shownItemId ~= nil then
+            dressUpModel:TryOn(slot.appearance.shownItemId)
+        end
+    end
+end
+
 --[[
     Have to reTryOn selected appearances since
     the model's reset each time it's shown.
 ]]
+--[[
+    After half of a year I don't remeber anymore
+    why I do it, but showing/hiding a DressUpModel
+    brokes positioning.
+]]
 local function dressingRoom_OnShow(self)
     self:Reset()
     self:Undress()
-    for _, slot in pairs(slots) do
-        if slot.appearance.shownItemId ~= nil then
-            self:TryOn(slot.appearance.shownItemId)
-        end
-    end
+    tryOnSlots(self)
 end
+
+--[[
+    Need to TryOn items in the slots if we changed
+    displayed model.
+]]
+btnUseTarget:HookScript("OnClick", function(slef)
+    dressingRoom:Undress()
+    tryOnSlots(dressingRoom)
+end)
 
 -- At first time it's shown.
 slots["Head"]:SetScript("OnShow", function(self)
