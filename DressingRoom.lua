@@ -83,6 +83,8 @@ function ns:CreateDressingRoom(parent)
     frame:SetMinResize(initWidth, initHeight)
     frame:SetMaxResize(initWidth, initHeight)
 
+    local unit = "player"
+
     local model = CreateFrame("DressUpModel", nil, frame)
     model:SetAllPoints()
     model:SetUnit("player")
@@ -113,8 +115,8 @@ function ns:CreateDressingRoom(parent)
                 local x, y, z = model:GetPosition()
                 local zOffset = zStep * deltaY
                 z = z + zOffset
-                local race, raceFileName = UnitRace("player")
-                local max, min = modelZ.max[raceFileName][sex[UnitSex("player")]], modelZ.min[raceFileName][sex[UnitSex("player")]]
+                local race, raceFileName = UnitRace(unit)
+                local max, min = modelZ.max[raceFileName][sex[UnitSex(unit)]], modelZ.min[raceFileName][sex[UnitSex(unit)]]
                 z = z > max and max or z
                 z = z < min and min or z
                 model:SetPosition(x, y, z)
@@ -136,6 +138,7 @@ function ns:CreateDressingRoom(parent)
     dbgFrame:EnableMouse(false)
     dbgFrame:EnableMouseWheel(false)
     dbgFrame:SetAllPoints()
+
     local dbgInfo = dbgFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     dbgInfo:SetAllPoints()
     dbgInfo:SetJustifyH("LEFT")
@@ -162,6 +165,10 @@ function ns:CreateDressingRoom(parent)
         model:SetUnit("player")
         model:SetPosition(x, y, z)
         model:SetFacing(facing)
+    end
+
+    function frame:SetUnit(...)
+        model:SetUnit(...) 
     end
 
     function frame:TryOn(...) model:TryOn(...) end

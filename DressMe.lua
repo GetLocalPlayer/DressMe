@@ -55,7 +55,10 @@ local btnClose = CreateFrame("Button", "$parentButtonClose", mainFrame, "UIPanel
 btnClose:SetSize(120, 20)
 btnClose:SetPoint("BOTTOMRIGHT", -16, 16)
 btnClose:SetText(CLOSE)
-btnClose:SetScript("OnClick", function() mainFrame:Hide() end)
+btnClose:SetScript("OnClick", function()
+    mainFrame:Hide()
+    PlaySound("gsTitleOptionOK")
+end)
 
 local titleFrame = CreateFrame("Frame", nil, mainFrame)
 titleFrame:EnableMouse(true)
@@ -112,16 +115,30 @@ end
 
 local btnUndress = CreateFrame("Button", "$parentButtonUndress", mainFrame, "UIPanelButtonTemplate2")
 btnUndress:SetSize(120, 20)
-btnUndress:SetPoint("RIGHT", dressingRoom, "BOTTOMRIGHT", -20, -20)
+btnUndress:SetPoint("CENTER", dressingRoom, "BOTTOM", 0, -20)
 btnUndress:SetText("Undress")
 btnUndress:SetScript("OnClick", function()
     dressingRoom:Undress()
+    PlaySound("gsTitleOptionOK")
 end)
 
 local btnReset = CreateFrame("Button", "$parentButtonReset", mainFrame, "UIPanelButtonTemplate2")
 btnReset:SetSize(120, 20)
-btnReset:SetPoint("LEFT", dressingRoom, "BOTTOMLEFT", 20, -20)
+btnReset:SetPoint("RIGHT", dressingRoom, "BOTTOMRIGHT", -10, -20)
 btnReset:SetText("Reset")
+btnReset:SetScript("OnClick", function() PlaySound("gsTitleOptionOK") end)
+
+local btnUseTarget = CreateFrame("Button", "$parentButtonUseTarget", mainFrame, "UIPanelButtonTemplate2")
+btnUseTarget:SetSize(120, 20)
+btnUseTarget:SetPoint("LEFT", dressingRoom, "BOTTOMLEFT", 10, -20)
+btnUseTarget:SetText("Use Target")
+btnUseTarget:SetScript("OnClick", function()
+    if UnitIsPlayer("target") then
+        btnUndress:Click("LeftButton")
+        print(dressingRoom:SetUnit("target"))
+    end
+    PlaySound("gsTitleOptionOK")
+end)
 
 ---------------- TABS ----------------
 
@@ -139,6 +156,7 @@ do
         end
         PanelTemplates_SetTab(self:GetParent(), self:GetID())
         self:GetParent().content[self:GetID()]:Show()
+        PlaySound("gsTitleOptionOK")
     end
 
     local tabNames = {"Items Preview", "Saved Looks", "Settings"}
@@ -202,10 +220,12 @@ previewSlider:SetValue(1)
 _G[previewSlider:GetName() .. "ScrollUpButton"]:SetScript("OnClick", function(self)
     local parent = self:GetParent()
     parent:SetValue(parent:GetValue() - 1)
+    PlaySound("gsTitleOptionOK")
 end)
 _G[previewSlider:GetName() .. "ScrollDownButton"]:SetScript("OnClick", function(self)
     local parent = self:GetParent()
     parent:SetValue(parent:GetValue() + 1)
+    PlaySound("gsTitleOptionOK")
 end)
 
 previewList:EnableMouseWheel(true)
@@ -299,6 +319,7 @@ local function slot_OnLeftCick(self)
             dressingRoom:TryOn(self.appearance.shownItemId)
         end
     end
+    PlaySound("gsTitleOptionOK")
 end
 
 local function slot_OnRightClick(self)
@@ -449,7 +470,7 @@ slots["Ranged"]:SetPoint("LEFT", slots["Off-hand"], "RIGHT", 4, 0)
 
 ------- Tricks and hooks with slots and provided appearances. -------
 
-local function btnReset_OnClick()
+local function btnReset_Hook()
     dressingRoom:Undress()
     for _, slot in pairs(slots) do
         slot:Reset()
@@ -484,10 +505,10 @@ end
 slots["Head"]:SetScript("OnShow", function(self)
     self:SetScript("OnShow", nil)
     self:Click("LeftButton")
-    btnReset:SetScript("OnClick", btnReset_OnClick)
-    dressingRoom:SetScript("OnShow", dressingRoom_OnShow)
+    btnReset:HookScript("OnClick", btnReset_Hook)
+    dressingRoom:HookScript("OnShow", dressingRoom_OnShow)
     dressingRoom_OnShow(dressingRoom)
-    btnReset_OnClick()
+    btnReset_Hook()
     btnUndress:HookScript("OnClick", btnUndress_Hook)
 end)
 
@@ -690,6 +711,7 @@ do
     scrollFrame:SetPoint("TOPLEFT", 8, -8)
     scrollFrame:SetPoint("BOTTOMLEFT", 8, 8)
     scrollFrame:SetWidth(background:GetWidth() - 12)
+    --scrollFrame:HookScript()
 
     local editBox = CreateFrame("EditBox", nil, scrollFrame)
     editBox:SetAutoFocus(false)
@@ -710,6 +732,7 @@ do
     btnSave:SetSize(90, 20)
     btnSave:SetPoint("RIGHT", background, "BOTTOMRIGHT", 0, -32 - editBox:GetHeight())
     btnSave:SetText("Save")
+    btnSave:SetScript("OnClick", function() PlaySound("gsTitleOptionOK") end)
     btnSave:Disable()
 
     editBox:SetScript("OnEditFocusGained", function(self)
@@ -756,12 +779,14 @@ do
     btnTryOn:SetSize(90, 20)
     btnTryOn:SetPoint("LEFT", background, "BOTTOMLEFT", 0, -32 - editBox:GetHeight())
     btnTryOn:SetText("Try on")
+    btnTryOn:SetScript("OnClick", function() PlaySound("gsTitleOptionOK") end)
     btnTryOn:Disable()
 
     local btnRemove = CreateFrame("Button", "$parentButtonRemove", scrollFrame, "UIPanelButtonTemplate2")
     btnRemove:SetSize(90, 20)
     btnRemove:SetPoint("RIGHT", background, "TOPRIGHT", 0, 20)
     btnRemove:SetText("Remove")
+    btnRemove:SetScript("OnClick", function() PlaySound("gsTitleOptionOK") end)
     btnRemove:Disable()
 
     --[[ Save looks structure 
@@ -897,6 +922,7 @@ btnDressMe:SetSize(80, 20)
 btnDressMe:SetPoint("BOTTOMRIGHT", -2, 25)
 btnDressMe:SetText("DressMe")
 btnDressMe:SetScript("OnClick", function(self)
+    PlaySound("gsTitleOptionOK")
     if mainFrame:IsShown() then
         mainFrame:Hide()
     else
@@ -1012,14 +1038,15 @@ do
 
     local btnColorPickerReset = CreateFrame("Button", "$parentResetButton", colorPicker, "UIPanelButtonTemplate2")
     btnColorPickerReset:SetPoint("TOPRIGHT", btnColorPickerReset:GetParent(), "BOTTOMRIGHT", 0, -4)
-    btnColorPickerReset:SetText("Reset")
-    btnColorPickerReset:SetWidth(90)
+    btnColorPickerReset:SetText("Reset Color")
+    btnColorPickerReset:SetWidth(120)
     btnColorPickerReset:SetScript("OnClick", function(self)
         local settings = GetSettings()
         local color = {unpack(defaultSettings.dressingRoomBackgroundColor)}
         settings.dressingRoomBackgroundColor = color
         dressingRoom:SetBackdropColor(unpack(color))
         btnColorPicker:SetBackdropColor(unpack(color))
+        PlaySound("gsTitleOptionOK")
     end)
 
     --------- Show/hide "DressMe" button

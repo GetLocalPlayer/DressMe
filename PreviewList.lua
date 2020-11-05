@@ -134,6 +134,7 @@ function ns:CreatePreviewList(parent)
                                 table.insert(names, preview.appereanceData[2][i])
                             end
                             onClickScript(frame, ids, names, btn.selectedItem)
+                            PlaySound("gsTitleOptionOK")
                         end
                     end)
                     btn:SetScript("OnKeyDown", btn_OnKeyDown)
