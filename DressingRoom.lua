@@ -98,7 +98,7 @@ function ns:CreateDressingRoom(parent)
     dragDummy:RegisterForDrag("LeftButton", "RightButton")
     dragDummy:SetMovable(true)
 
-    dragDummy:SetScript("OnDragStart", function(self, button)
+    dragDummy:SetScript("OnMouseDown", function(self, button)
         self:StartMoving()
         local cursorX, cursorY = GetCursorPosition()
         if button == "LeftButton" then
@@ -124,7 +124,7 @@ function ns:CreateDressingRoom(parent)
                 cursorX, cursorY = newX, newY
             end)
         end
-        self:SetScript("OnReceiveDrag", function(self) 
+        self:SetScript("OnMouseUp", function(self) 
             self:StopMovingOrSizing()
             self:SetScript("OnUpdate", nil)
             self:ClearAllPoints()
@@ -133,6 +133,8 @@ function ns:CreateDressingRoom(parent)
             self:RegisterForDrag("LeftButton", "RightButton")
         end)
     end)
+
+    dragDummy:SetScript("OnHide", function(self) self:StopMovingOrSizing() end)
 
     local dbgFrame = CreateFrame("Frame", nil, model)
     dbgFrame:Hide()
