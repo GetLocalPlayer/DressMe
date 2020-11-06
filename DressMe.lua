@@ -94,7 +94,7 @@ titleText:SetText(addon)
 titleFrame:SetPoint("BOTTOMLEFT", titleBgLeft, "BOTTOMLEFT")
 titleFrame:SetPoint("TOPRIGHT", titleBgRight, "TOPRIGHT")
 
-local dressingRoom = ns:CreateDressingRoom(mainFrame, true)
+local dressingRoom = ns:CreateDressingRoom(nil, mainFrame)
 dressingRoom:SetPoint("TOPLEFT", 16, -56)
 dressingRoom:SetSize(400, 400)
 dressingRoom:SetBackdrop(backdrop)
@@ -536,8 +536,10 @@ do
     local tooltip = CreateFrame("GameTooltip", nil, UIParent)
     tooltip:Hide()
 
-    previewList:OnClick(function(self, ids, names, selected)
-        --local _, link, quality, _, _, _, _, _, _, texture = GetItemInfo(ids[1])
+    previewList:OnButtonClick(function(self, button)
+        local preview = self:GetParent()
+        local ids, names = unpack(preview.appereanceData)
+        local selected = preview.selected
         if not IsShiftKeyDown() then
             selectedSlot:TryOn(ids[selected], ids[1],  names[selected])
         else

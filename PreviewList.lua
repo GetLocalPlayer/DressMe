@@ -24,25 +24,18 @@ local function subrange(t, first, last)
 end
 
 
+-- Used to quety items only.
 local tooltip = CreateFrame("GameTooltip", nil, UIParent)
 local function queryItem(itemId)
     tooltip:SetHyperlink("item:".. tostring(itemId) ..":0:0:0:0:0:0:0")
 end
 
 
-local function btn_OnEnter(self)
-    local data = self:GetParent().appereanceData
-    self:EnableKeyboard(true)
-    self.focused = true
-    self.selectedItem = 1
-    local names = self:GetParent().appereanceData[2]
-    GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
-    GameTooltip:ClearLines()
+local function fillGameTooltip(names, selected)
     GameTooltip:AddLine("This appearance's provided by:", 1, 1, 1)
     GameTooltip:AddLine(" ")
-    GameTooltip:AddLine(" > " .. names[1])
-    for i = 2, #names do
-        GameTooltip:AddLine("- " .. names[i])
+    for i = 1, #names do
+        GameTooltip:AddLine((i == selected and "> " or "- ")..names[i])
     end
     GameTooltip:AddLine("|n|cff00ff00Left Click:|r try on the appearance.")
     if #names > 1 then
@@ -51,50 +44,58 @@ local function btn_OnEnter(self)
     else
         GameTooltip:AddLine("|cff00ff00Shift + Left Click:|r create a hyperlink for the item.")
     end
+end
+
+
+local onTabDummy = CreateFrame("Button", addon.."PreviewListOnTabDummy")
+onTabDummy:SetScript("OnClick", function(self)
+    local preview = self.preview
+    local names = preview.appereanceData[2]
+    preview.selected = preview.selected < #names and (preview.selected + 1) or 1
+    GameTooltip:SetOwner(preview, "ANCHOR_TOPLEFT")
+    GameTooltip:ClearLines()
+    fillGameTooltip(names, preview.selected)
     GameTooltip:Show()
-end
+end)
 
-local function btn_OnLeave(self)
-    self:EnableKeyboard(false)
-    self.focused = false
-    GameTooltip:Hide()
-end
 
-local function btn_OnKeyDown(self, key)
-    if self.focused and key == "TAB" then
-        local data = self:GetParent().appereanceData
-        local names = data[2]
-        self.selectedItem = self.selectedItem + 1
-        if self.selectedItem > #names then
-            self.selectedItem = 1
-        end
-        GameTooltip:ClearLines()
-        GameTooltip:AddLine("This appearance's provided by:", 1, 1, 1)
-        GameTooltip:AddLine(" ")
-        for i = 1, #names do
-            local prefix = self.selectedItem == i and " > " or "- "
-            GameTooltip:AddLine(prefix .. names[i])
-        end
-        GameTooltip:AddLine("|n|cff00ff00Left Click:|r try on the appearance.")
-        if #names > 1 then
-            GameTooltip:AddLine("|cff00ff00Tab:|r choose an item in the list.")
-            GameTooltip:AddLine("|cff00ff00Shift + Left Click:|r create a hyperlink for the chosen item.")
-        else
-            GameTooltip:AddLine("|cff00ff00Shift + Left Click:|r create a hyperlink for the item.")
-        end
+local function btn_OnEnter(self)
+    local preview = self:GetParent()
+    local names = preview.appereanceData[2]
+    preview.selected = 1
+    GameTooltip:SetOwner(preview, "ANCHOR_TOPLEFT")
+    GameTooltip:ClearLines()
+    fillGameTooltip(names, preview.selected)
+    GameTooltip:Show()
+    if #names> 1 then
+        onTabDummy.preview = preview
+        SetOverrideBindingClick(onTabDummy, true, "TAB", onTabDummy:GetName(), "RightButton")
     end
 end
 
+local function btn_OnLeave(self)
+    ClearOverrideBindings(onTabDummy)
+    GameTooltip:Hide()
+end
+
+local function btn_OnClick(self, button)
+    local mainFrame = self:GetParent():GetParent()
+    mainFrame.OnButtonClick(self, button)
+    if button == "LeftButton" then
+        PlaySound("gsTitleOptionOK")
+    end
+end
+
+
 function ns:CreatePreviewList(parent)
-    local frame = CreateFrame("Frame", nil, parent)
+    local frame = CreateFrame("Frame", addon.."PreviewList", parent)
     local previewRecycler = {}
+    local recyclerCounter = 0
     local previewList = {}
     local itemList = nil
     local perPage = 0
     local pageCount = 0
     local currentPage = 0
-    local onClickScript
-
     -- Updates the list of previews
     function frame:Update(previewSetup, items, page)
         local width, height = previewSetup.width, previewSetup.height
@@ -114,12 +115,14 @@ function ns:CreatePreviewList(parent)
             for i = #previewList + 1, perPage do
                 local preview = table.remove(previewRecycler)
                 if preview == nil then
-                    preview = ns:CreateDressingRoom(frame)
+                    recyclerCounter = recyclerCounter + 1
+                    preview = ns:CreateDressingRoom("$parent".."Preview"..recyclerCounter, frame)
                     preview:SetBackdrop(previewBackdrop)
                     preview:SetBackdropColor(unpack(previewBackdropColor))
                     preview:EnableDragRotation(false)
                     preview:EnableMouseWheel(false)
-                    preview.button = CreateFrame("Button", nil, preview)
+                    preview.selected = 0
+                    preview.button = CreateFrame("Button", "$parent".."Button"..recyclerCounter, preview)
                     local btn = preview.button
                     btn:SetAllPoints()
                     btn:SetHighlightTexture(previewHighlightTexture)
@@ -127,18 +130,7 @@ function ns:CreatePreviewList(parent)
                     btn:RegisterForClicks("LeftButtonUp")
                     btn:SetScript("OnEnter", btn_OnEnter)
                     btn:SetScript("OnLeave", btn_OnLeave)
-                    btn:SetScript("OnClick", function(self)
-                        if onClickScript ~= nil then
-                            local ids, names = {}, {}
-                            for i = 1, #preview.appereanceData[1] do
-                                table.insert(ids, preview.appereanceData[1][i])
-                                table.insert(names, preview.appereanceData[2][i])
-                            end
-                            onClickScript(frame, ids, names, btn.selectedItem)
-                            PlaySound("gsTitleOptionOK")
-                        end
-                    end)
-                    btn:SetScript("OnKeyDown", btn_OnKeyDown)
+                    btn:SetScript("OnClick", btn_OnClick)
                 else
                     preview:Show()
                 end
@@ -203,9 +195,9 @@ function ns:CreatePreviewList(parent)
         end
     end
 
-    function frame:OnClick(script)
+    function frame:OnButtonClick(script)
         assert(type(script) == "function", "Usage: <Unnamed>:OnClick(function)")
-        onClickScript = script
+        self.OnButtonClick = script
     end
 
     frame:SetScript("OnShow", function(self)

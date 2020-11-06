@@ -76,8 +76,8 @@ local modelZ = {
 }
 
 
-function ns:CreateDressingRoom(parent)
-    local frame = CreateFrame("Frame", nil, parent)
+function ns:CreateDressingRoom(name, parent)
+    local frame = CreateFrame("Frame", name, parent)
     frame:EnableMouseWheel(true)
     frame:SetSize(initWidth, initHeight)
     frame:SetMinResize(initWidth, initHeight)
