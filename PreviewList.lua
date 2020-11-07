@@ -24,13 +24,6 @@ local function subrange(t, first, last)
 end
 
 
--- Used to quety items only.
-local tooltip = CreateFrame("GameTooltip", nil, UIParent)
-local function queryItem(itemId)
-    tooltip:SetHyperlink("item:".. tostring(itemId) ..":0:0:0:0:0:0:0")
-end
-
-
 local function fillGameTooltip(names, selected)
     GameTooltip:AddLine("This appearance's provided by:", 1, 1, 1)
     GameTooltip:AddLine(" ")
@@ -73,10 +66,12 @@ local function btn_OnEnter(self)
     end
 end
 
+
 local function btn_OnLeave(self)
     ClearOverrideBindings(onTabDummy)
     GameTooltip:Hide()
 end
+
 
 local function btn_OnClick(self, button)
     local mainFrame = self:GetParent():GetParent()
@@ -122,6 +117,21 @@ function ns:CreatePreviewList(parent)
                     preview:EnableDragRotation(false)
                     preview:EnableMouseWheel(false)
                     preview.selected = 0
+
+                    preview.queryingLabel = preview:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+                    preview.queryingLabel:SetJustifyH("LEFT")
+                    preview.queryingLabel:SetHeight(18)
+                    preview.queryingLabel:SetPoint("CENTER", preview, "CENTER", 0, 0)
+                    preview.queryingLabel:SetText("Querying...")
+                    preview.queryingLabel:Hide()
+
+                    preview.queryFailedLabel = preview:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+                    preview.queryFailedLabel:SetJustifyH("LEFT")
+                    preview.queryFailedLabel:SetHeight(18)
+                    preview.queryFailedLabel:SetPoint("CENTER", preview, "CENTER", 0, 0)
+                    preview.queryFailedLabel:SetText("Query failed")
+                    preview.queryFailedLabel:Hide()
+
                     preview.button = CreateFrame("Button", "$parent".."Button"..recyclerCounter, preview)
                     local btn = preview.button
                     btn:SetAllPoints()
@@ -177,18 +187,34 @@ function ns:CreatePreviewList(parent)
             local preview = previewList[i]
             local data = itemList[(page - 1) * perPage + i]
             if data then
-                local itemId = data[1][1]
-                local itemName = GetItemInfo(itemId)
-                if not itemName then
-                    queryItem(itemId)
-                end
                 preview.appereanceData = data
+                preview.queriedItemId = data[1][1]
                 preview:Show()
-                local x, y, z = preview:GetPosition()
-                preview:Reset()
-                preview:SetPosition(x, y, z)
-                preview:Undress()
-                preview:TryOn(itemId)
+                preview.modelFacing = preview:GetFacing()
+                preview.modelPosition = {preview:GetPosition()}
+                preview:ClearModel()
+                preview.button:Hide()
+                preview.queryingLabel:Show()
+                preview.queryFailedLabel:Hide()
+                ns:QueryItem(preview.queriedItemId, function(itemId, success)
+                    if itemId == preview.queriedItemId then
+                        preview.queryingLabel:Hide()
+                        if success then
+                            preview.queryFailedLabel:Hide()
+                            preview:Reset()
+                            preview:Undress()
+                            preview:SetPosition(unpack(preview.modelPosition))
+                            preview:SetFacing(preview.modelFacing)
+                            preview:TryOn(itemId)
+                            preview.queriedItemId = nil
+                            preview.modelPosition = nil
+                            preview.modelFacing = nil
+                            preview.button:Show()
+                        else
+                            preview.queryFailedLabel:Show()
+                        end
+                    end
+                end)
             else
                 preview:Hide()
             end

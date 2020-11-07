@@ -206,10 +206,12 @@ function ns:CreateDressingRoom(name, parent)
         end
     end
 
+    function frame:ClearModel(...) model:ClearModel(...) end
     function frame:TryOn(...) model:TryOn(...) end
     function frame:Undress() model:Undress() end
     function frame:GetPosition(...) return model:GetPosition(...) end
     function frame:SetPosition(...) model:SetPosition(...) end
+    function frame:GetFacing(...) return model:GetFacing(...) end
     function frame:SetFacing(...) model:SetFacing(...) end
     function frame:SetSequence(...) model:SetSequence(...) end
     function frame:OnUpdateModel(...) model:SetScript("OnUpdateModel", ...) end

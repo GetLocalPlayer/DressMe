@@ -6,6 +6,8 @@
 ## SavedVariables: DressMeSettings
 ## Version: 1.0.1
 
+QueryItem.lua
+
 db\Items.lua
 db\PreviewSetup.lua
 DressingRoom.lua
