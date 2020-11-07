@@ -404,7 +404,7 @@ end
 
 local function slot_TryOn(self, itemId, shownItemId, name)
     if not (shownItemId or name) then
-        -- Don't query, find in the database.
+        -- We need only the name to display it in the tooltip.
         local ids, names, index = GetOtherAppearances(itemId, self.slotName)
         if ids ~= nil then
             shownItemId = ids[1]
@@ -412,16 +412,22 @@ local function slot_TryOn(self, itemId, shownItemId, name)
         end
     end
     if shownItemId then -- we don't need an item that doens't exist in the db
-        local _, link, quality, _, _, _, _, _, _, texture = GetItemInfo(shownItemId)
-        self.textures.empty:Hide()
-        self.textures.item:SetTexture(texture)
-        self.textures.item:Show()
         self.appearance.itemId = itemId
         self.appearance.itemName = name
         self.appearance.shownItemId = shownItemId
-        dressingRoom:TryOn(shownItemId)
+        ns:QueryItem(shownItemId, function(itemId, success)
+            if itemId == self.appearance.shownItemId and success then
+                local _, link, quality, _, _, _, _, _, _, texture = GetItemInfo(shownItemId)        
+                self.textures.empty:Hide()
+                self.textures.item:SetTexture(texture)
+                self.textures.item:Show()
+                dressingRoom:TryOn(itemId)
+            end
+        end)
     end
 end
+
+--------- Slot building
 
 for slotName, texturePath in pairs(slotTextures) do
     local slot = CreateFrame("Button", nil, mainFrame, "ItemButtonTemplate")
