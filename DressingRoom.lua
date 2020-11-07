@@ -183,7 +183,7 @@ function ns:CreateDressingRoom(name, parent)
     end
 
     function frame:SetUnit(newUnit)
-        if UnitIsPlayer(newUnit) then
+        if UnitIsPlayer(newUnit) and CheckInteractDistance(newUnit, 1) then
             local x, y, z = model:GetPosition()    
             local facing = model:GetFacing()
             model:SetPosition(0, 0, 0)
