@@ -723,8 +723,8 @@ end
 do
     local background = CreateFrame("Frame", "$parentSavedLooksBackground", savedLooksTabContent)
     background:SetPoint("TOPLEFT", 20, -46)
-    background:SetPoint("BOTTOMLEFT", dressingRoom, "BOTTOMRIGHT", 0, 60)
-    background:SetWidth(266)
+    background:SetPoint("BOTTOMLEFT", dressingRoom, "BOTTOMRIGHT", 0, 30)
+    background:SetWidth(280)
     background:SetBackdrop({
         bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -737,76 +737,19 @@ do
     scrollFrame:SetPoint("TOPLEFT", 8, -8)
     scrollFrame:SetPoint("BOTTOMLEFT", 8, 8)
     scrollFrame:SetWidth(background:GetWidth() - 12)
-    --scrollFrame:HookScript()
-
-    local editBox = CreateFrame("EditBox", nil, scrollFrame)
-    editBox:SetAutoFocus(false)
-    editBox:SetFontObject(GameFontHighlightMedium)
-    editBox:SetHeight(18)
-    editBox:SetJustifyH("LEFT")
-    editBox:EnableMouse(true)
-    editBox:SetBackdrop({
-        bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-        edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
-        tile = true, edgeSize = 1, tileSize = 5,
-    })
-    editBox:SetBackdropColor(0, 0, 0, 0.5)
-    editBox:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80)
-    editBox.text = ""
 
     local btnSave = CreateFrame("Button", "$parentButtonSave", scrollFrame, "UIPanelButtonTemplate2")
     btnSave:SetSize(90, 20)
-    btnSave:SetPoint("RIGHT", background, "BOTTOMRIGHT", 0, -32 - editBox:GetHeight())
+    btnSave:SetPoint("CENTER", background, "TOP", 0, 20)
     btnSave:SetText("Save")
     btnSave:SetScript("OnClick", function() PlaySound("gsTitleOptionOK") end)
     btnSave:Disable()
 
-    editBox:SetScript("OnEditFocusGained", function(self)
-        self:HighlightText()
-    end)
-    editBox:SetScript("OnEnterPressed", function(self)
-        self.text = self:GetText()
-        self:HighlightText(0, 0)
-        self:ClearFocus()
-        if self.text:len() > 0 then
-            btnSave:Enable()
-        else
-            btnSave:Disable()
-        end
-    end)
-    editBox:SetScript("OnEscapePressed", function(self)
-        self:SetText(self.text)
-        self:HighlightText(0, 0)
-        self:ClearFocus()
-        if self.text:len() > 0 then
-            btnSave:Enable()
-        else
-            btnSave:Disable()
-        end
-    end)
-    editBox:SetScript("OnTextChanged", function(self)
-        if self:GetText():len() > 0 then
-            btnSave:Enable()
-        else
-            btnSave:Disable()
-        end
-    end)
-
-    local label = editBox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetJustifyH("LEFT")
-    label:SetHeight(18)
-    label:SetPoint("RIGHT", label:GetParent(), "LEFT", -10, 1)
-    label:SetText("Name:")
-
-    editBox:SetPoint("TOPRIGHT", background, "BOTTOMRIGHT", -5, -10)
-    editBox:SetWidth(scrollFrame:GetWidth() - label:GetWidth() - 20)
-
-    local btnTryOn = CreateFrame("Button", "$parentButtonTryOn", scrollFrame, "UIPanelButtonTemplate2")
-    btnTryOn:SetSize(90, 20)
-    btnTryOn:SetPoint("LEFT", background, "BOTTOMLEFT", 0, -32 - editBox:GetHeight())
-    btnTryOn:SetText("Try on")
-    btnTryOn:SetScript("OnClick", function() PlaySound("gsTitleOptionOK") end)
-    btnTryOn:Disable()
+    local btnSaveAs = CreateFrame("Button", "$parentButtonSaveAs", scrollFrame, "UIPanelButtonTemplate2")
+    btnSaveAs:SetSize(90, 20)
+    btnSaveAs:SetPoint("LEFT", background, "TOPLEFT", 0, 20)
+    btnSaveAs:SetText("Save As...")
+    btnSaveAs:SetScript("OnClick", function() PlaySound("gsTitleOptionOK") end)
 
     local btnRemove = CreateFrame("Button", "$parentButtonRemove", scrollFrame, "UIPanelButtonTemplate2")
     btnRemove:SetSize(90, 20)
@@ -814,6 +757,13 @@ do
     btnRemove:SetText("Remove")
     btnRemove:SetScript("OnClick", function() PlaySound("gsTitleOptionOK") end)
     btnRemove:Disable()
+
+    local btnTryOn = CreateFrame("Button", "$parentButtonTryOn", scrollFrame, "UIPanelButtonTemplate2")
+    btnTryOn:SetSize(90, 20)
+    btnTryOn:SetPoint("LEFT", background, "BOTTOMLEFT", 0, -20)
+    btnTryOn:SetText("Try on")
+    btnTryOn:SetScript("OnClick", function() PlaySound("gsTitleOptionOK") end)
+    btnTryOn:Disable()
 
     --[[ Save looks structure 
         _G["DressMeSavedLooks"] = {
@@ -828,27 +778,40 @@ do
         }
     ]]
 
-    local list = ns:CreateListFrame("$parentSavedLooks", nil, scrollFrame)
-    list:SetWidth(scrollFrame:GetWidth())
+    local listFrame = ns:CreateListFrame("$parentSavedLooks", nil, scrollFrame)
+    listFrame:SetWidth(scrollFrame:GetWidth())
     local function list_OnClick(self)
-        list:Select(self:GetID())
+        listFrame:Select(self:GetID())
         btnTryOn:Enable()
         btnRemove:Enable()
+        btnSave:Enable()
     end
 
     local function buildList(savedLooks)
         for index, look in pairs(savedLooks) do
-            local item = list:AddItem(look.name)
-            local btn = list.buttons[item]
+            local item = listFrame:AddItem(look.name)
+            local btn = listFrame.buttons[item]
             btn:SetScript("OnClick", list_OnClick)
         end
-        scrollFrame:SetScrollChild(list)
+        scrollFrame:SetScrollChild(listFrame)
     end
 
     local savedLooks
 
-    list:RegisterEvent("ADDON_LOADED")
-    list:SetScript("OnEvent", function(self, event, addonName)
+    local function slots2ItemList()
+        local items = {}
+        for _, slotName in pairs(slotOrder) do
+            if slots[slotName].appearance.shownItemId ~= nil then
+                table.insert(items, slots[slotName].appearance.itemId)
+            else
+                table.insert(items, 0)
+            end
+        end
+        return items
+    end
+
+    listFrame:RegisterEvent("ADDON_LOADED")
+    listFrame:SetScript("OnEvent", function(self, event, addonName)
         if addonName == addon then
             if event == "ADDON_LOADED" then
                 if _G["DressMeSavedLooks"] == nil then
@@ -860,8 +823,20 @@ do
         end
     end)
 
+    listFrame:SetScript("OnShow", function(self)
+        if self.selected == nil then
+            btnTryOn:Disable()
+            btnRemove:Disable()
+            btnSave:Disable()
+        else
+            btnTryOn:Enable()
+            btnRemove:Enable()
+            btnSave:Enable()
+        end
+    end)
+
     btnTryOn:HookScript("OnClick", function(self)
-        local id = list.buttons[list:GetSelected()]:GetID()
+        local id = listFrame.buttons[listFrame:GetSelected()]:GetID()
         for index, slotName in pairs(slotOrder) do
             local itemId = savedLooks[id].items[index]
             if itemId ~= 0 then
@@ -872,71 +847,104 @@ do
         end
     end)
 
-    btnSave:HookScript("OnClick", function(self)
-        local name = editBox:GetText()
-        local items = {}
-        for _, slotName in pairs(slotOrder) do
-            if slots[slotName].appearance.shownItemId ~= nil then
-                table.insert(items, slots[slotName].appearance.itemId)
-            else
-                table.insert(items, 0)
-            end
-        end
-        local id = nil
-        for index, look in pairs(savedLooks) do
-            if look.name == name then
-                id = index
-                break
-            end
-        end
-        if id == nil then
-            table.insert(savedLooks, {["name"] = name, ["items"] = items})
-            local new = list:AddItem(name)
-            list.buttons[new]:SetScript("OnClick", list_OnClick)
-            scrollFrame:UpdateScrollChildRect()
-        else
-            StaticPopupDialogs["DressMeOverwriteConfirmDialog"] = {
-                text = ("\124cff00ff00%s\124r\124nalready exists. Overwrite?"):format(name),
-                button1 = "Yes",
-                button2 = "No",
-                timeout = 0,
-                whileDead = true,
-                hideOnEscape = true,
-                preferredIndex = 3,
-                OnAccept = function(self)
-                    savedLooks[id].items = items
-                end,
-            }
-            local dialog = StaticPopup_Show("DressMeOverwriteConfirmDialog")
-            if dialog then
-                dialog.id = id
-            end
-        end
+    btnSaveAs:HookScript("OnClick", function(self)
+        StaticPopupDialogs["DressMeSavedLooksSaveAsDialog"] = {
+            text = ("Enter the name:"),
+            button1 = "Save",
+            button2 = "Cancel",
+            timeout = 0,
+            whileDead = true,
+            hideOnEscape = true,
+            hasEditBox = true,
+            preferredIndex = 3,
+            OnShow = function(self)
+                self.button1:Disable()
+            end,
+            EditBoxOnTextChanged = function(self)
+                local text = self:GetText()
+                if text ~= "" then
+                    self:GetParent().button1:Enable()
+                else
+                    self:GetParent().button1:Disable()
+                end
+            end,
+            OnAccept = function(self)
+                local enteredName = self.editBox:GetText()
+                local items = slots2ItemList()
+                for i, look in ipairs(savedLooks) do
+                    if look.name == enteredName then
+                        StaticPopupDialogs["DressMeSavedLooksSaveAsOverwriteDialog"] = {
+                            text = ("\124cff00ff00%s\124r\124nalready exists. Overwrite?"):format(enteredName),
+                            button1 = "Yes",
+                            button2 = "No",
+                            timeout = 0,
+                            whileDead = true,
+                            hideOnEscape = true,
+                            showAlert = true,
+                            preferredIndex = 3,
+                            OnAccept = function(self)
+                                look.items = items
+                            end,
+                        }
+                        StaticPopup_Show("DressMeSavedLooksSaveAsOverwriteDialog")
+                        return
+                    end
+                end
+                table.insert(savedLooks, {name = enteredName, items = items})
+                local new = listFrame:AddItem(enteredName)
+                listFrame.buttons[new]:SetScript("OnClick", list_OnClick)
+                scrollFrame:UpdateScrollChildRect()
+            end,
+        }
+        StaticPopup_Show("DressMeSavedLooksSaveAsDialog")
     end)
 
-    btnRemove:HookScript("OnClick", function()
-        StaticPopupDialogs["DressMeRemoveConfirmDialog"] = {
-            text = ("Remove \124cff00ff00%s\124r?"):format(list.buttons[list:GetSelected()].name),
+    btnSave:HookScript("OnClick", function(self)
+        local items = slots2ItemList()
+        StaticPopupDialogs["DressMeSaveOverwritDialog"] = {
+            text = ("Overwrite \124cff00ff00%s\124r?"):format(listFrame.buttons[listFrame.selected]:GetText()),
             button1 = "Yes",
             button2 = "No",
             timeout = 0,
             whileDead = true,
             hideOnEscape = true,
+            showAlert = true,
+            preferredIndex = 3,
+            OnAccept = function(self)
+                savedLooks[self.id].items = items
+            end,
+        }
+        local dialog = StaticPopup_Show("DressMeSaveOverwritDialog")
+        if dialog then
+            dialog.id = listFrame.selected
+        end
+    end)
+
+    btnRemove:HookScript("OnClick", function()
+        StaticPopupDialogs["DressMeRemoveDialog"] = {
+            text = ("Remove \124cff00ff00%s\124r?"):format(listFrame.buttons[listFrame:GetSelected()].name),
+            button1 = "Yes",
+            button2 = "No",
+            timeout = 0,
+            whileDead = true,
+            hideOnEscape = true,
+            showAlert = true,
             preferredIndex = 3,
             OnAccept = function(self)
                 btnTryOn:Disable()
                 btnRemove:Disable()
-                for i = self.id + 1, #list.buttons do
-                    list.buttons[i].id = i - 1
+                btnSave:Disable()
+                for i = self.id + 1, #listFrame.buttons do
+                    listFrame.buttons[i].id = i - 1
                 end
-                list:RemoveItem(self.id)
+                listFrame:RemoveItem(self.id)
                 table.remove(savedLooks, self.id)
                 scrollFrame:UpdateScrollChildRect()
             end,
         }
-        local dialog = StaticPopup_Show("DressMeRemoveConfirmDialog")
+        local dialog = StaticPopup_Show("DressMeRemoveDialog")
         if dialog then
-            dialog.id = list.buttons[list:GetSelected()]:GetID()
+            dialog.id = listFrame.buttons[listFrame:GetSelected()]:GetID()
         end
     end)
 end
