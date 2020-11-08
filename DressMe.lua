@@ -142,49 +142,46 @@ end)
 
 ---------------- WOWHEAD URL MENU ----------------
 
+local wowheadURLMenu = CreateFrame("Frame", addon.."PreviewWowheadURL", mainFrame, "UIDropDownMenuTemplate")
+
+local function wowheadURL_OnClick(self, isRetail, itemId)
+    StaticPopupDialogs["DressMeWowheadURLDialog"] = {
+        text = "",
+        button1 = ACCEPT,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+        hasEditBox = true,
+        hasWideEditBox = true,
+        preferredIndex = 3,
+        OnShow = function(self)
+            self.text:SetText(("Wowhead \124cff00ff00%s\124r"):format(isRetail and "Retail" or "Classic"))
+            self.wideEditBox:SetText(("https://%s.wowhead.com/item=%s"):format((isRetail and "www" or "classic"), itemId))
+            self.wideEditBox:HighlightText()
+        end,
+    }
+    StaticPopup_Show("DressMeWowheadURLDialog")
+end
+
+local function wowheadURLMenuInitFunc(frame, level, menuList)
+    local info = UIDropDownMenu_CreateInfo()
+    info.text, info.isTitle = "Wowhead URL:", true
+    UIDropDownMenu_AddButton(info)
+    info = UIDropDownMenu_CreateInfo()
+    info.text, info.checked, info.arg1, info.arg2, info.func = "Retail", false, true, frame.itemId, wowheadURL_OnClick
+    UIDropDownMenu_AddButton(info)
+    info.text, info.checked, info.arg1, info.arg2, info.func = "Classic", false, false, frame.itemId, wowheadURL_OnClick
+    UIDropDownMenu_AddButton(info)
+    info = UIDropDownMenu_CreateInfo()
+    info.text, info.checked, info.func = "Close", false, function() end
+    UIDropDownMenu_AddButton(info)
+end
+
+UIDropDownMenu_Initialize(wowheadURLMenu, wowheadURLMenuInitFunc, "MENU")
+
 local function showWowheadURLMenu(itemId, frame)
-    local wowheadURLMenu = CreateFrame("Frame", addon.."PreviewWowheadURL", mainFrame, "UIDropDownMenuTemplate")
-    wowheadURLMenu:SetPoint("LEFT", previewTabContent, "RIGHT")
-
-    local function wowheadURL_OnClick(self, isRetail, itemId)
-        StaticPopupDialogs["DressMeWowheadURLDialog"] = {
-            text = "",
-            button1 = ACCEPT,
-            timeout = 0,
-            whileDead = true,
-            hideOnEscape = true,
-            hasEditBox = true,
-            hasWideEditBox = true,
-            preferredIndex = 3,
-            OnShow = function(self)
-                self.text:SetText(("Wowhead \124cff00ff00%s\124r"):format(isRetail and "Retail" or "Classic"))
-                self.wideEditBox:SetText(("https://%s.wowhead.com/item=%s"):format((isRetail and "www" or "classic"), itemId))
-                self.wideEditBox:HighlightText()
-            end,
-        }
-        StaticPopup_Show("DressMeWowheadURLDialog")
-    end
-
-    local function wowheadURLMenuInitFunc(frame, level, menuList)
-        local info = UIDropDownMenu_CreateInfo()
-        info.text, info.isTitle = "Wowhead URL:", true
-        UIDropDownMenu_AddButton(info)
-        info = UIDropDownMenu_CreateInfo()
-        info.text, info.checked, info.arg1, info.arg2, info.func = "Retail", false, true, frame.itemId, wowheadURL_OnClick
-        UIDropDownMenu_AddButton(info)
-        info.text, info.checked, info.arg1, info.arg2, info.func = "Classic", false, false, frame.itemId, wowheadURL_OnClick
-        UIDropDownMenu_AddButton(info)
-        info = UIDropDownMenu_CreateInfo()
-        info.text, info.checked, info.func = "Close", false, function() end
-        UIDropDownMenu_AddButton(info)
-    end
-
-    UIDropDownMenu_Initialize(wowheadURLMenu, wowheadURLMenuInitFunc, "MENU")
-
-    showWowheadURLMenu = function(itemId, frame, offsetX, offsetY)
-        wowheadURLMenu.itemId = itemId
-        ToggleDropDownMenu(1, nil, wowheadURLMenu, frame, offsetX, offsetY);
-    end
+    wowheadURLMenu.itemId = itemId
+    ToggleDropDownMenu(1, nil, wowheadURLMenu, frame, 0, 0);
 end
 
 ---------------- TABS ----------------
