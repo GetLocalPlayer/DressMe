@@ -852,6 +852,7 @@ do
             whileDead = true,
             hideOnEscape = true,
             hasEditBox = true,
+            maxLetters = 50,
             preferredIndex = 3,
             OnShow = function(self)
                 self.button1:Disable()
