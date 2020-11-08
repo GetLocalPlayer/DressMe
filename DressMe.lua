@@ -780,8 +780,18 @@ do
 
     local listFrame = ns:CreateListFrame("$parentSavedLooks", nil, scrollFrame)
     listFrame:SetWidth(scrollFrame:GetWidth())
-    local function list_OnClick(self)
-        listFrame:Select(self:GetID())
+    listFrame:SetScript("OnShow", function(self)
+        if self.selected == nil then
+            btnTryOn:Disable()
+            btnRemove:Disable()
+            btnSave:Disable()
+        else
+            btnTryOn:Enable()
+            btnRemove:Enable()
+            btnSave:Enable()
+        end
+    end)
+    listFrame.onSelect = function()
         btnTryOn:Enable()
         btnRemove:Enable()
         btnSave:Enable()
@@ -790,8 +800,6 @@ do
     local function buildList(savedLooks)
         for index, look in pairs(savedLooks) do
             local item = listFrame:AddItem(look.name)
-            local btn = listFrame.buttons[item]
-            btn:SetScript("OnClick", list_OnClick)
         end
         scrollFrame:SetScrollChild(listFrame)
     end
@@ -820,18 +828,6 @@ do
                 savedLooks = _G["DressMeSavedLooks"]
                 buildList(_G["DressMeSavedLooks"])
             end
-        end
-    end)
-
-    listFrame:SetScript("OnShow", function(self)
-        if self.selected == nil then
-            btnTryOn:Disable()
-            btnRemove:Disable()
-            btnSave:Disable()
-        else
-            btnTryOn:Enable()
-            btnRemove:Enable()
-            btnSave:Enable()
         end
     end)
 
@@ -891,8 +887,7 @@ do
                     end
                 end
                 table.insert(savedLooks, {name = enteredName, items = items})
-                local new = listFrame:AddItem(enteredName)
-                listFrame.buttons[new]:SetScript("OnClick", list_OnClick)
+                listFrame:AddItem(enteredName)
                 scrollFrame:UpdateScrollChildRect()
             end,
         }
@@ -934,11 +929,12 @@ do
                 btnTryOn:Disable()
                 btnRemove:Disable()
                 btnSave:Disable()
+                --[[ Why did I do this loop if the same was happening in :RemoveItem(...) method?
                 for i = self.id + 1, #listFrame.buttons do
                     listFrame.buttons[i].id = i - 1
-                end
-                listFrame:RemoveItem(self.id)
+                end ]]
                 table.remove(savedLooks, self.id)
+                listFrame:RemoveItem(self.id)
                 scrollFrame:UpdateScrollChildRect()
             end,
         }

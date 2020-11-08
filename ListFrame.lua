@@ -13,6 +13,7 @@ local function button_OnClick(self)
     self:GetParent():Select(self:GetID())
 end
 
+
 local function ListFrame_SetInsets(self, left, right, top, bottom)
     self.insets.left = left
     self.insets.right = right
@@ -20,6 +21,7 @@ local function ListFrame_SetInsets(self, left, right, top, bottom)
     self.insets.bottom = bottom
     self:Update()
 end
+
 
 local function ListFrame_GetListHeight(self)
     local height = 0
@@ -29,6 +31,7 @@ local function ListFrame_GetListHeight(self)
     return height
 end
 
+
 local function ListFrame_Select(self, item)
     if self.selected ~= nil then
         self.buttons[self.selected]:UnlockHighlight()
@@ -36,16 +39,24 @@ local function ListFrame_Select(self, item)
     if type(item) == "number" then
         self.buttons[item]:LockHighlight()
         self.selected = item
+        if self.onSelect ~= nil then
+            self.onSelect(self, item)
+        end
+        self.onSelect(self, item)
     elseif type(item) == "string" then
         for i = 1, #self.buttons do
             if self.buttons[i].name == item then
                 self.buttons[i]:LockHighlight()
                 self.selected = i
+                if self.onSelect ~= nil then
+                    self.onSelect(self, i)
+                end
                 break
             end
         end
     end
 end
+
 
 local function ListFrame_Deselect(self)
     if self.selected ~= nil then
@@ -56,9 +67,11 @@ local function ListFrame_Deselect(self)
     end
 end
 
+
 local function ListFrame_GetSelected(self)
     return self.selected
 end
+
 
 local function ListFrame_GetButton(self, btn)
     if type(btn) == "string" then
@@ -72,6 +85,7 @@ local function ListFrame_GetButton(self, btn)
     end
 end
 
+
 local function ListFrame_RemoveItem(self, item)
     if #self.buttons >= item and item > 0 then
         if self:GetSelected() == item then
@@ -81,7 +95,7 @@ local function ListFrame_RemoveItem(self, item)
         end
         for i = item + 1, #self.buttons do
             self.buttons[i]:SetID(i - 1)
-        end  
+        end 
         local btn = table.remove(self.buttons, item)
         btn:SetParent(nil)
         btn:ClearAllPoints()
@@ -90,6 +104,7 @@ local function ListFrame_RemoveItem(self, item)
         self:Update()
     end
 end
+
 
 local function ListFrame_Update(self)
     self:SetHeight(self:GetListHeight() + self.insets.top + self.insets.bottom)
@@ -103,6 +118,7 @@ local function ListFrame_Update(self)
         end
     end
 end
+
 
 local function ListFrame_AddItem(self, itemName)
     assert(type(itemName) == "string", "Item name must be a 'string' value.")
@@ -121,11 +137,13 @@ local function ListFrame_AddItem(self, itemName)
     return #self.buttons
 end
 
+
 function ns:CreateListFrame(name, list, parent)
     local frame = CreateFrame("Frame", name, parent)
     frame.insets = {left = 0, right = 0, top = 0, bottom = 0}
     frame.buttons = {}
     frame.selected = nil
+    frame.onSelect = nil
 
     frame.SetInsets = ListFrame_SetInsets
     frame.GetListHeight = ListFrame_GetListHeight
