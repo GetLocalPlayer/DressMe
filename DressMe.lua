@@ -140,6 +140,53 @@ btnUseTarget:SetScript("OnClick", function()
     PlaySound("gsTitleOptionOK")
 end)
 
+---------------- WOWHEAD URL MENU ----------------
+
+local function showWowheadURLMenu(itemId, frame)
+    local wowheadURLMenu = CreateFrame("Frame", addon.."PreviewWowheadURL", mainFrame, "UIDropDownMenuTemplate")
+    wowheadURLMenu:SetPoint("LEFT", previewTabContent, "RIGHT")
+
+    local function wowheadURL_OnClick(self, isRetail, itemId)
+        StaticPopupDialogs["DressMeWowheadURLDialog"] = {
+            text = "",
+            button1 = ACCEPT,
+            timeout = 0,
+            whileDead = true,
+            hideOnEscape = true,
+            hasEditBox = true,
+            hasWideEditBox = true,
+            preferredIndex = 3,
+            OnShow = function(self)
+                self.text:SetText(("Wowhead \124cff00ff00%s\124r"):format(isRetail and "Retail" or "Classic"))
+                self.wideEditBox:SetText(("https://%s.wowhead.com/item=%s"):format((isRetail and "www" or "classic"), itemId))
+                self.wideEditBox:HighlightText()
+            end,
+        }
+        StaticPopup_Show("DressMeWowheadURLDialog")
+    end
+
+    local function wowheadURLMenuInitFunc(frame, level, menuList)
+        local info = UIDropDownMenu_CreateInfo()
+        info.text, info.isTitle = "Wowhead URL:", true
+        UIDropDownMenu_AddButton(info)
+        info = UIDropDownMenu_CreateInfo()
+        info.text, info.checked, info.arg1, info.arg2, info.func = "Retail", false, true, frame.itemId, wowheadURL_OnClick
+        UIDropDownMenu_AddButton(info)
+        info.text, info.checked, info.arg1, info.arg2, info.func = "Classic", false, false, frame.itemId, wowheadURL_OnClick
+        UIDropDownMenu_AddButton(info)
+        info = UIDropDownMenu_CreateInfo()
+        info.text, info.checked, info.func = "Close", false, function() end
+        UIDropDownMenu_AddButton(info)
+    end
+
+    UIDropDownMenu_Initialize(wowheadURLMenu, wowheadURLMenuInitFunc, "MENU")
+
+    showWowheadURLMenu = function(itemId, frame, offsetX, offsetY)
+        wowheadURLMenu.itemId = itemId
+        ToggleDropDownMenu(1, nil, wowheadURLMenu, frame, offsetX, offsetY);
+    end
+end
+
 ---------------- TABS ----------------
 
 local tabFrame = CreateFrame("Frame", "$parentTabFrame", mainFrame)
@@ -272,7 +319,7 @@ local function hasValue(array, value)
     return nil
 end
 
-local function slot_OnShiftLeftCick(self)
+local function slot_OnShiftLeftClick(self)
     local itemId = self.appearance.itemId
     local itemName = self.appearance.itemName
     if itemId ~= nil then
@@ -285,6 +332,14 @@ local function slot_OnShiftLeftCick(self)
         else
             SELECTED_CHAT_FRAME:AddMessage("[DressMe]: It seems this item cannot be used for transmogrification.")
         end
+    end
+end
+
+
+local function slot_OnControlLeftClick(self)
+    local itemId = self.appearance.itemId
+    if itemId ~= nil then
+        showWowheadURLMenu(itemId, self, 0, 0)
     end
 end
 
@@ -329,7 +384,9 @@ end
 local function slot_OnClick(self, button)
     if button == "LeftButton" then
         if IsShiftKeyDown() then
-            slot_OnShiftLeftCick(self)
+            slot_OnShiftLeftClick(self)
+        elseif IsControlKeyDown() then
+            slot_OnControlLeftClick(self)
         else
             slot_OnLeftCick(self)
         end
@@ -345,6 +402,7 @@ local function slot_OnEnter(self)
         GameTooltip:AddLine(self.appearance.itemName)
         GameTooltip:AddLine("|n|cff00ff00Shift + Left Click:|r create a hyperlink for the item.")
         GameTooltip:AddLine("|cff00ff00Right Click:|r undress the slot.")
+        GameTooltip:AddLine("|cff00ff00Ctrl + Left Click:|r create a Wowhead URL for the chosen item.")
     end
     GameTooltip:Show()
 end
@@ -539,19 +597,23 @@ end)
 ---------------- PREVIEW LIST SCRIPT ----------------
 
 do
+    --[[ The hell is this for?!
     local tooltip = CreateFrame("GameTooltip", nil, UIParent)
     tooltip:Hide()
+    ]]
 
-    previewList:OnButtonClick(function(self, button)
+previewList:OnButtonClick(function(self, button)
         local preview = self:GetParent()
         local ids, names = unpack(preview.appereanceData)
         local selected = preview.selected
-        if not IsShiftKeyDown() then
-            selectedSlot:TryOn(ids[selected], ids[1],  names[selected])
-        else
+        if IsShiftKeyDown() then
             local color = names[selected]:sub(1, 10)
             local name = names[selected]:sub(11, -3)
             SELECTED_CHAT_FRAME:AddMessage("[DressMe]: "..selectedSlot.slotName.." - "..selectedSlot.selectedSubclass.." "..color.."\124Hitem:"..ids[selected]..":::::::|h["..name.."]\124h\124r".." ("..ids[selected]..")")
+        elseif IsControlKeyDown() then
+            showWowheadURLMenu(ids[selected], preview, 0, 0)
+        else
+            selectedSlot:TryOn(ids[selected], ids[1],  names[selected])
         end
     end)
 end
@@ -909,7 +971,7 @@ do
 
     btnSave:HookScript("OnClick", function(self)
         local items = slots2ItemList()
-        StaticPopupDialogs["DressMeSaveOverwritDialog"] = {
+        StaticPopupDialogs["DressMeSaveOverwriteDialog"] = {
             text = ("Overwrite \124cff00ff00%s\124r?"):format(listFrame.buttons[listFrame.selected]:GetText()),
             button1 = "Yes",
             button2 = "No",
@@ -922,7 +984,7 @@ do
                 savedLooks[self.id].items = items
             end,
         }
-        local dialog = StaticPopup_Show("DressMeSaveOverwritDialog")
+        local dialog = StaticPopup_Show("DressMeSaveOverwriteDialog")
         if dialog then
             dialog.id = listFrame.selected
         end

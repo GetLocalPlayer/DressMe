@@ -37,6 +37,7 @@ local function fillGameTooltip(names, selected)
     else
         GameTooltip:AddLine("|cff00ff00Shift + Left Click:|r create a hyperlink for the item.")
     end
+    GameTooltip:AddLine("|cff00ff00Ctrl + Left Click:|r create a Wowhead URL for the chosen item.")
 end
 
 
@@ -79,6 +80,11 @@ local function btn_OnClick(self, button)
     if button == "LeftButton" then
         PlaySound("gsTitleOptionOK")
     end
+end
+
+
+local function preview_GetSelectedItemId(self)
+    return self.appereanceData[1][self.selected]
 end
 
 
@@ -131,6 +137,8 @@ function ns:CreatePreviewList(parent)
                     preview.queryFailedLabel:SetPoint("CENTER", preview, "CENTER", 0, 0)
                     preview.queryFailedLabel:SetText("Query failed")
                     preview.queryFailedLabel:Hide()
+
+                    preview.GetSelectedItemId = preview_GetSelectedItemId
 
                     preview.button = CreateFrame("Button", "$parent".."Button"..recyclerCounter, preview)
                     local btn = preview.button
