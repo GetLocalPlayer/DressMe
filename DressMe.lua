@@ -855,19 +855,27 @@ do
             hasWideEditBox = true,
             maxLetters = 50,
             preferredIndex = 3,
+            -- EditBoxOnTextChanged, Doesn't seems to be working for wideEditBox, have to hook it.
             OnShow = function(self)
                 self.button1:Disable()
-            end,
-            EditBoxOnTextChanged = function(self)
-                local text = self:GetText()
-                if text ~= "" then
-                    self:GetParent().button1:Enable()
-                else
-                    self:GetParent().button1:Disable()
+                self.wideEditBoxOnChangeOrigin = self.wideEditBox:GetScript("OnTextChanged")
+                self.wideEditBox:SetScript("OnTextChanged", function(self, ...)
+                    if self:GetText() == "" then
+                        self:GetParent().button1:Disable()
+                    else
+                        self:GetParent().button1:Enable()
+                    end
+                    self:GetParent().wideEditBoxOnChangeOrigin(self, ...)
+                end)
+                self.RemoveWideEditBoxOnChangeHook = function(self)
+                    self.wideEditBox:SetScript("OnTextChanged", self.wideEditBoxOnChangeOrigin)
+                    self.wideEditBoxOnChangeOrigin = nil
+                    self.RemoveWideEditBoxOnChangeHook = nil
                 end
             end,
             OnAccept = function(self)
-                local enteredName = self.editBox:GetText()
+                self:RemoveWideEditBoxOnChangeHook()
+                local enteredName = self.wideEditBox:GetText()
                 local items = slots2ItemList()
                 for i, look in ipairs(savedLooks) do
                     if look.name == enteredName then
@@ -892,8 +900,11 @@ do
                 listFrame:AddItem(enteredName)
                 scrollFrame:UpdateScrollChildRect()
             end,
+            OnCancel = function(self)
+                self:RemoveWideEditBoxOnChangeHook()
+            end,
         }
-        StaticPopup_Show("DressMeSavedLooksSaveAsDialog")
+        local dialog = StaticPopup_Show("DressMeSavedLooksSaveAsDialog")
     end)
 
     btnSave:HookScript("OnClick", function(self)
