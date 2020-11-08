@@ -157,7 +157,7 @@ local function wowheadURL_OnClick(self, id, itemId)
             preferredIndex = 3,
             OnShow = function(self)
                 self.text:SetText(("Wowhead \124cff00ff00%s\124r"):format(id == 1 and "Retail" or "Classic"))
-                self.wideEditBox:SetText(("https://%s.wowhead.com/item=%s"):format((1 == 1 and "www" or "classic"), itemId))
+                self.wideEditBox:SetText(("https://%s.wowhead.com/item=%s"):format((id == 1 and "www" or "classic"), itemId))
                 self.wideEditBox:HighlightText()
             end,
         }
@@ -402,10 +402,11 @@ local function slot_OnEnter(self)
     GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
     GameTooltip:AddLine(self.slotName)
     if self.appearance.itemName ~= nil then
+        GameTooltip:AddLine(" ")
         GameTooltip:AddLine(self.appearance.itemName)
         GameTooltip:AddLine("|n|cff00ff00Shift + Left Click:|r create a hyperlink for the item.")
         GameTooltip:AddLine("|cff00ff00Right Click:|r undress the slot.")
-        GameTooltip:AddLine("|cff00ff00Ctrl + Left Click:|r create a Wowhead URL for the chosen item.")
+        GameTooltip:AddLine("|cff00ff00Ctrl + Left Click:|r create a Wowhead URL for the item.")
     end
     GameTooltip:Show()
 end
