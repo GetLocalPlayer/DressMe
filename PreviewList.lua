@@ -124,12 +124,12 @@ function ns:CreatePreviewList(parent)
                     preview:EnableMouseWheel(false)
                     preview.selected = 0
 
-                    preview.queryingLabel = preview:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-                    preview.queryingLabel:SetJustifyH("LEFT")
-                    preview.queryingLabel:SetHeight(18)
-                    preview.queryingLabel:SetPoint("CENTER", preview, "CENTER", 0, 0)
-                    preview.queryingLabel:SetText("Querying...")
-                    preview.queryingLabel:Hide()
+                    preview.queriedLabel = preview:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+                    preview.queriedLabel:SetJustifyH("LEFT")
+                    preview.queriedLabel:SetHeight(18)
+                    preview.queriedLabel:SetPoint("CENTER", preview, "CENTER", 0, 0)
+                    preview.queriedLabel:SetText("Queried...")
+                    preview.queriedLabel:Hide()
 
                     preview.queryFailedLabel = preview:CreateFontString(nil, "OVERLAY", "GameFontNormal")
                     preview.queryFailedLabel:SetJustifyH("LEFT")
@@ -202,11 +202,11 @@ function ns:CreatePreviewList(parent)
                 preview.modelPosition = {preview:GetPosition()}
                 preview:ClearModel()
                 preview.button:Hide()
-                preview.queryingLabel:Show()
+                preview.queriedLabel:Show()
                 preview.queryFailedLabel:Hide()
                 ns:QueryItem(preview.queriedItemId, function(itemId, success)
                     if itemId == preview.queriedItemId then
-                        preview.queryingLabel:Hide()
+                        preview.queriedLabel:Hide()
                         if success then
                             preview.queryFailedLabel:Hide()
                             preview:Reset()
