@@ -42,10 +42,9 @@ local function ListFrame_Select(self, item)
         if self.onSelect ~= nil then
             self.onSelect(self, item)
         end
-        self.onSelect(self, item)
     elseif type(item) == "string" then
         for i = 1, #self.buttons do
-            if self.buttons[i].name == item then
+            if self.buttons[i]:GetText() == item then
                 self.buttons[i]:LockHighlight()
                 self.selected = i
                 if self.onSelect ~= nil then

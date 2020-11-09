@@ -140,8 +140,8 @@ btnUseTarget:SetScript("OnClick", function()
     PlaySound("gsTitleOptionOK")
 end)
 
----------------- WOWHEAD URL MENU ----------------
----
+---------------- WOWHEAD URL DIALOG ----------------
+
 StaticPopupDialogs["DRESSME_WOWHEAD_URL_DIALOG"] = {
     text = "DRESSME_WOWHEAD_URL_DIALOG",
     button1 = ACCEPT,
@@ -355,13 +355,9 @@ local function slot_OnLeftCick(self)
         selectedSlot.selectedPage[selectedSlot.selectedSubclass] = previewSlider:GetValue()
     end
     selectedSlot = self
-    self:LockHighlight()
-    self.subclassList:Show()
-    self.subclassList:Select(self.selectedSubclass)
     local slotName = self.slotName
     local subclass = self.selectedSubclass
     local page = self.selectedPage[subclass]
-
     local previewSetup = GetPreviewSetup(previewSetupVersion, raceFileName, sex, slotName, subclass)
     local subclassAppearances = GetSubclassAppearances(slotName, subclass)
     previewList:Update(previewSetup, subclassAppearances, page)
@@ -378,7 +374,9 @@ local function slot_OnLeftCick(self)
             dressingRoom:TryOn(self.appearance.shownItemId)
         end
     end
-    PlaySound("gsTitleOptionOK")
+    self:LockHighlight()
+    self.subclassList:Show()
+    self.subclassList:Select(self.selectedSubclass)
 end
 
 local function slot_OnRightClick(self)
@@ -394,6 +392,7 @@ local function slot_OnClick(self, button)
         else
             slot_OnLeftCick(self)
         end
+        PlaySound("gsTitleOptionOK")
     elseif button == "RightButton" then
         slot_OnRightClick(self)
     end
@@ -636,13 +635,11 @@ function string:startswith(...)
     return  false
 end
 
-local function subclass_OnClick(self)
+local function subclass_OnSelect(self, i)
     selectedSlot.selectedPage[selectedSlot.selectedSubclass] = previewSlider:GetValue()
-
     local slotName = selectedSlot.slotName
-    local subclass = self.name
+    local subclass = self:GetButton(i):GetText()
     local page = selectedSlot.selectedPage[subclass]
-
     local previewSetup = GetPreviewSetup(previewSetupVersion, raceFileName, sex, slotName, subclass)
     local subclassAppearances = GetSubclassAppearances(slotName, subclass)
     previewList:Update(previewSetup, subclassAppearances, page)
@@ -663,11 +660,8 @@ do
     local list = ns:CreateListFrame("ArmorList", subclasses, previewTabContent)
     list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
     list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
+    list.onSelect = subclass_OnSelect
     list:Hide()
-
-    for _, btn in pairs(list.buttons) do
-        btn:HookScript("OnClick", subclass_OnClick)
-    end
     -- Classes and what they wear to select it by default.
     local subclassPerPlayerClass = {
         MAGE = "Cloth",
@@ -682,23 +676,24 @@ do
         DEATHKNIGHT = "Plate"
     }
 
-    for _, name in pairs(armorSlots) do
-        slots[name].subclassList = list
-        slots[name].selectedSubclass = subclassPerPlayerClass[classFileName]
-        for _, subclass in pairs(subclasses) do
-            slots[name].selectedPage[subclass] = 1
+    for _, slotName in pairs(armorSlots) do
+        slots[slotName].subclassList = list
+        slots[slotName].selectedSubclass = subclassPerPlayerClass[classFileName]
+        for _, subclass in ipairs(subclasses) do
+            slots[slotName].selectedPage[subclass] = 1
         end
     end
 end
 
 ---------------- BACK ----------------
+
 do
     local subclass = "Cloth"
     local list = ns:CreateListFrame("BackList", {subclass}, previewTabContent)
     list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
     list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
+    list.onSelect = subclass_OnSelect
     list:Hide()
-    list:GetButton(subclass):HookScript("OnClick", subclass_OnClick)
     slots[backSlot].subclassList = list
     slots[backSlot].selectedSubclass = subclass
     slots[backSlot].selectedPage[subclass] = 1
@@ -711,8 +706,8 @@ do
     local list = ns:CreateListFrame("MiscellaneousList", {subclass}, previewTabContent)
     list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
     list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
+    list.onSelect = subclass_OnSelect
     list:Hide()
-    list:GetButton(subclass):HookScript("OnClick", subclass_OnClick)
     for _, name in pairs(miscellaneousSlots) do
         slots[name].subclassList = list
         slots[name].selectedSubclass = subclass
@@ -731,14 +726,11 @@ do
     local list = ns:CreateListFrame("MainHandList", subclasses, previewTabContent)
     list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
     list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
+    list.onSelect = subclass_OnSelect
     list:Hide()
-
-    for _, btn in pairs(list.buttons) do
-        btn:HookScript("OnClick", subclass_OnClick)
-    end
     slots[mhSlot].subclassList = list
     slots[mhSlot].selectedSubclass = subclasses[1]
-    for _, subclass in pairs(subclasses) do
+    for _, subclass in ipairs(subclasses) do
         slots[mhSlot].selectedPage[subclass] = 1
     end
 end
@@ -754,14 +746,11 @@ do
     local list = ns:CreateListFrame("OffHandList", subclasses, previewTabContent)
     list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
     list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
+    list.onSelect = subclass_OnSelect
     list:Hide()
-
-    for _, btn in pairs(list.buttons) do
-        btn:HookScript("OnClick", subclass_OnClick)
-    end
     slots[ohSlot].subclassList = list
     slots[ohSlot].selectedSubclass = subclasses[1]
-    for _, subclass in pairs(subclasses) do
+    for _, subclass in ipairs(subclasses) do
         slots[ohSlot].selectedPage[subclass] = 1
     end
 end
@@ -773,14 +762,11 @@ do
     local list = ns:CreateListFrame("RangedList", subclasses, previewTabContent)
     list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
     list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
+    list.onSelect = subclass_OnSelect
     list:Hide()
-
-    for _, btn in pairs(list.buttons) do
-        btn:HookScript("OnClick", subclass_OnClick)
-    end
     slots[rangedSlot].subclassList = list
     slots[rangedSlot].selectedSubclass = subclasses[1]
-    for _, subclass in pairs(subclasses) do
+    for _, subclass in ipairs(subclasses) do
         slots[rangedSlot].selectedPage[subclass] = 1
     end
 end
