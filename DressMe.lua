@@ -858,6 +858,7 @@ do
             btnSave:Enable()
         end
     end)
+
     listFrame.onSelect = function()
         btnTryOn:Enable()
         btnRemove:Enable()
@@ -896,6 +897,18 @@ do
                 buildList(_G["DressMeSavedLooks"])
             end
         end
+    end)
+
+    btnTryOn:HookScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+        GameTooltip:ClearLines()
+        GameTooltip:AddLine("Try On")
+        GameTooltip:AddLine("Can be not immediate if there are items in the chosen look that  must be queried and cached.", 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+
+    btnTryOn:HookScript("OnLeave", function(self)
+        GameTooltip:Hide()
     end)
 
     btnTryOn:HookScript("OnClick", function(self)
