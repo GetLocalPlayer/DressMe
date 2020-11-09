@@ -141,54 +141,55 @@ btnUseTarget:SetScript("OnClick", function()
 end)
 
 ---------------- WOWHEAD URL MENU ----------------
-
-local wowheadURLMenu = CreateFrame("Frame", addon.."PreviewWowheadURL", mainFrame, "UIDropDownMenuTemplate")
-
-local function wowheadURL_OnClick(self, id, itemId)
-    if id ~= 3 then
-        StaticPopupDialogs["DressMeWowheadURLDialog"] = {
-            text = "",
-            button1 = ACCEPT,
-            timeout = 0,
-            whileDead = true,
-            hideOnEscape = true,
-            hasEditBox = true,
-            hasWideEditBox = true,
-            preferredIndex = 3,
-            OnShow = function(self)
-                self.text:SetText(("Wowhead \124cff00ff00%s\124r"):format(id == 1 and "Retail" or "Classic"))
-                self.wideEditBox:SetText(("https://%s.wowhead.com/item=%s"):format((id == 1 and "www" or "classic"), itemId))
-                self.wideEditBox:HighlightText()
-            end,
-        }
-        StaticPopup_Show("DressMeWowheadURLDialog")
-    else
-        CloseDropDownMenus()
+---
+StaticPopupDialogs["DRESSME_WOWHEAD_URL_DIALOG"] = {
+    text = "DRESSME_WOWHEAD_URL_DIALOG",
+    button1 = ACCEPT,
+    button2 = "Version",
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    hasEditBox = true,
+    hasWideEditBox = true,
+    preferredIndex = 3,
+    OnAccept = function(self)
     end
-end
+}
 
-local function wowheadURLMenuInitFunc(frame, level, menuList)
-    local info = UIDropDownMenu_CreateInfo()
-    info.text, info.isTitle = "Wowhead URL", true
-    UIDropDownMenu_AddButton(info)
-    info = UIDropDownMenu_CreateInfo()
-    info.text, info.checked, info.arg1, info.arg2, info.func = "Retail", false, 1, frame.itemId, wowheadURL_OnClick
-    UIDropDownMenu_AddButton(info)
-    info.text, info.checked, info.arg1, info.arg2, info.func = "Classic", false, 2, frame.itemId, wowheadURL_OnClick
-    UIDropDownMenu_AddButton(info)
-    info.text, info.checked, info.arg1, info.arg2, info.func = "Close", false, 3, frame.itemId, wowheadURL_OnClick
-    UIDropDownMenu_AddButton(info)
-end
 
-UIDropDownMenu_Initialize(wowheadURLMenu, wowheadURLMenuInitFunc, "MENU")
+local function showWowheadURLDialog(itemId)
+    local isRetail = true
+    local isCanceled = false
 
-local function showWowheadURLMenu(itemId, frame)
-    wowheadURLMenu.itemId = itemId
-    if UIDROPDOWNMENU_OPEN_MENU  == wowheadURLMenu then
-        CloseDropDownMenus()
+    StaticPopupDialogs["DRESSME_WOWHEAD_URL_DIALOG"].OnShow = function (self)
+        self.text:SetText(("Wowhead \124cff00ff00%s\124r"):format(isRetail and "Retail" or "Classic"))
+        self.wideEditBox:SetText(("https://%s.wowhead.com/item=%s"):format((isRetail and "www" or "classic"), itemId))
+        self.wideEditBox:HighlightText()
+        self.button2:SetText(isRetail and "Classic" or "Retail")
     end
-    ToggleDropDownMenu(1, nil, wowheadURLMenu, frame, 0, 0);
+
+    StaticPopupDialogs["DRESSME_WOWHEAD_URL_DIALOG"].OnCancel = function(self)
+        isRetail = not isRetail
+        isCanceled = true
+        StaticPopup_Hide("DRESSME_WOWHEAD_URL_DIALOG")
+    end
+
+    StaticPopupDialogs["DRESSME_WOWHEAD_URL_DIALOG"].OnAccept = function(self)
+        isCanceled = false
+    end
+
+    StaticPopupDialogs["DRESSME_WOWHEAD_URL_DIALOG"].OnHide = function(self)
+        if isCanceled then
+            StaticPopup_Show("DRESSME_WOWHEAD_URL_DIALOG")
+        end
+    end
+
+    if StaticPopup_Visible("DRESSME_WOWHEAD_URL_DIALOG") then
+        StaticPopup_Hide("DRESSME_WOWHEAD_URL_DIALOG")
+    end
+    StaticPopup_Show("DRESSME_WOWHEAD_URL_DIALOG")
 end
+
 
 ---------------- TABS ----------------
 
@@ -342,7 +343,7 @@ end
 local function slot_OnControlLeftClick(self)
     local itemId = self.appearance.itemId
     if itemId ~= nil then
-        showWowheadURLMenu(itemId, self, 0, 0)
+        showWowheadURLDialog(itemId)
     end
 end
 
@@ -615,7 +616,7 @@ previewList:OnButtonClick(function(self, button)
             local name = names[selected]:sub(11, -3)
             SELECTED_CHAT_FRAME:AddMessage("[DressMe]: "..selectedSlot.slotName.." - "..selectedSlot.selectedSubclass.." "..color.."\124Hitem:"..ids[selected]..":::::::|h["..name.."]\124h\124r".." ("..ids[selected]..")")
         elseif IsControlKeyDown() then
-            showWowheadURLMenu(ids[selected], preview, 0, 0)
+            showWowheadURLDialog(ids[selected])
         else
             selectedSlot:TryOn(ids[selected], ids[1],  names[selected])
         end
