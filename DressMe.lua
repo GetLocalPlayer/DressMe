@@ -139,6 +139,16 @@ btnUseTarget:SetScript("OnClick", function()
     dressingRoom:SetUnit("target")
     PlaySound("gsTitleOptionOK")
 end)
+btnUseTarget:HookScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+    GameTooltip:ClearLines()
+    GameTooltip:AddLine("Use target model")
+    GameTooltip:AddLine("The target must be a player and in range of inspection.", 1, 1, 1, 1, true)
+    GameTooltip:Show()
+end)
+btnUseTarget:HookScript("OnLeave", function(self)
+    GameTooltip:Hide()
+end)
 
 ---------------- WOWHEAD URL DIALOG ----------------
 
@@ -1169,6 +1179,17 @@ do
             btnDressMe:Hide()
             GetSettings().showDressMeButton = false
         end
+    end)
+    showDressMeButtonCheckBox:HookScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+        GameTooltip:ClearLines()
+        GameTooltip:AddLine("Show \"DressMe\" button")
+        GameTooltip:AddLine("Show or hide \"DressMe\" button in the character window.", 1, 1, 1, 1, true)
+        GameTooltip:AddLine("The addon can be still accessed via \"/dressme\" chat command.", 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    showDressMeButtonCheckBox:HookScript("OnLeave", function(self)
+        GameTooltip:Hide()
     end)
 
     local showDressMeButtonTitle = colorPicker:CreateFontString(nil, "OVERLAY", "GameFontNormal")
