@@ -911,7 +911,7 @@ do
     end)
 
     btnSaveAs:HookScript("OnClick", function(self)
-        StaticPopupDialogs["DressMeSavedLooksSaveAsDialog"] = {
+        StaticPopupDialogs["DRESSME_SAVED_LOOKS_SAVE_AS_DIALOG"] = {
             text = ("Enter the name:"),
             button1 = "Save",
             button2 = "Cancel",
@@ -946,7 +946,7 @@ do
                 local items = slots2ItemList()
                 for i, look in ipairs(savedLooks) do
                     if look.name == enteredName then
-                        StaticPopupDialogs["DressMeSavedLooksSaveAsOverwriteDialog"] = {
+                        StaticPopupDialogs["DRESSME_SAVED_LOOKS_SAVE_AS_OVERWRITE_CONFIRM_DIALOG"] = {
                             text = ("\124cff00ff00%s\124r\124nalready exists. Overwrite?"):format(enteredName),
                             button1 = "Yes",
                             button2 = "No",
@@ -959,7 +959,7 @@ do
                                 look.items = items
                             end,
                         }
-                        StaticPopup_Show("DressMeSavedLooksSaveAsOverwriteDialog")
+                        StaticPopup_Show("DRESSME_SAVED_LOOKS_SAVE_AS_OVERWRITE_CONFIRM_DIALOG")
                         return
                     end
                 end
@@ -971,12 +971,12 @@ do
                 self:RemoveWideEditBoxOnChangeHook()
             end,
         }
-        local dialog = StaticPopup_Show("DressMeSavedLooksSaveAsDialog")
+        StaticPopup_Show("DRESSME_SAVED_LOOKS_SAVE_AS_DIALOG")
     end)
 
     btnSave:HookScript("OnClick", function(self)
         local items = slots2ItemList()
-        StaticPopupDialogs["DressMeSaveOverwriteDialog"] = {
+        StaticPopupDialogs["DRESSME_SAVE_OVERWRITE_CONFIRM_DIALOG"] = {
             text = ("Overwrite \124cff00ff00%s\124r?"):format(listFrame.buttons[listFrame.selected]:GetText()),
             button1 = "Yes",
             button2 = "No",
@@ -989,14 +989,14 @@ do
                 savedLooks[self.id].items = items
             end,
         }
-        local dialog = StaticPopup_Show("DressMeSaveOverwriteDialog")
+        local dialog = StaticPopup_Show("DRESSME_SAVE_OVERWRITE_CONFIRM_DIALOG")
         if dialog then
             dialog.id = listFrame.selected
         end
     end)
 
     btnRemove:HookScript("OnClick", function()
-        StaticPopupDialogs["DressMeRemoveDialog"] = {
+        StaticPopupDialogs["DRESSME_REMOVE_CONFIRM_DIALOG"] = {
             text = ("Remove \124cff00ff00%s\124r?"):format(listFrame.buttons[listFrame:GetSelected()].name),
             button1 = "Yes",
             button2 = "No",
@@ -1018,7 +1018,7 @@ do
                 scrollFrame:UpdateScrollChildRect()
             end,
         }
-        local dialog = StaticPopup_Show("DressMeRemoveDialog")
+        local dialog = StaticPopup_Show("DRESSME_REMOVE_CONFIRM_DIALOG")
         if dialog then
             dialog.id = listFrame.buttons[listFrame:GetSelected()]:GetID()
         end
