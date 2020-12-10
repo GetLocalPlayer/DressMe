@@ -731,7 +731,12 @@ do
 
     function menu.Update(self, slotName, subclass)
         UIDropDownMenu_SetText(self, subclass)
-        UIDropDownMenu_Initialize(self, menu.initializers[slotName])
+        if menu.initializers[slotName] ~= nil then
+            UIDropDownMenu_EnableDropDown(self)
+            UIDropDownMenu_Initialize(self, menu.initializers[slotName])
+        else
+            UIDropDownMenu_DisableDropDown(self)
+        end
     end
 end
 
