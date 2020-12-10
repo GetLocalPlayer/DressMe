@@ -152,7 +152,7 @@ function InitMainFrame()
 	    tile = true, tileSize = 16, edgeSize = 16,
         insets = { left = 3, right = 3, top = 5, bottom = 3 }
     })
-    stats:SetBackdropColor(0.15, 0.15, 0.15)
+    stats:SetBackdropColor(0.1, 0.1, 0.1)
     stats:SetBackdropBorderColor(0.3, 0.3, 0.3)
     stats:SetPoint("BOTTOMLEFT", 10, 8)
     stats:SetPoint("BOTTOMRIGHT", -6, 8)
@@ -288,7 +288,7 @@ end
 ---------------- TABS ----------------
 
 local tabFrame = CreateFrame("Frame", "$parentTabFrame", mainFrame)
-tabFrame:SetPoint("TOP", 0, -72)
+tabFrame:SetPoint("TOP", 0, -74)
 tabFrame:SetPoint("BOTTOM", 0, 28)
 tabFrame:SetPoint("RIGHT", -6, 0)
 tabFrame:SetPoint("LEFT", dressingRoom, "RIGHT", 2, 0)
@@ -314,7 +314,7 @@ do
         tab:SetText(tabNames[i])
         tab:SetID(i)
         if i == 1 then
-            tab:SetPoint("BOTTOMLEFT", tab:GetParent(), "TOPLEFT", 0, 2)
+            tab:SetPoint("BOTTOMLEFT", tab:GetParent(), "TOPLEFT", 0, 4)
         else
             tab:SetPoint("LEFT", _G[tabFrame:GetName().."Tab"..(i - 1)], "RIGHT")
         end
@@ -346,7 +346,7 @@ previewListLabel:SetJustifyH("CENTER")
 previewListLabel:SetHeight(15)
 
 local previewSlider = CreateFrame("Slider", "$parentPageSlider", previewTabContent, "UIPanelScrollBarTemplateLightBorder")
-previewSlider:SetPoint("TOPRIGHT", -6, -22)
+previewSlider:SetPoint("TOPRIGHT", -6, -21)
 previewSlider:SetPoint("BOTTOMRIGHT", -6, 21)
 previewSlider:EnableMouseWheel(true)
 previewSlider:SetScript("OnMouseWheel", function(self, delta)
@@ -446,7 +446,6 @@ end
 local function slot_OnLeftCick(self)
     if selectedSlot ~= nil then
         selectedSlot:UnlockHighlight()
-        selectedSlot.subclassList:Hide()
         selectedSlot.selectedPage[selectedSlot.selectedSubclass] = previewSlider:GetValue()
     end
     selectedSlot = self
@@ -470,8 +469,7 @@ local function slot_OnLeftCick(self)
         end
     end
     self:LockHighlight()
-    self.subclassList:Show()
-    self.subclassList:Select(self.selectedSubclass)
+    previewTabContent.subclassMenu:Update(slotName, subclass)
 end
 
 local function slot_OnRightClick(self)
@@ -596,7 +594,6 @@ for slotName, texturePath in pairs(slotTextures) do
     slot.slotName = slotName
     slot.selectedSubclass = nil -- init later in subclass
     slot.selectedPage = {}      -- per subclass, filled later in subclass
-    slot.subclassList = nil     -- init later in subclass
     slot.appearance = {         -- assigned when a preview's clicked. Used to save in a collection.
         ["itemId"] = nil,
         ["itemName"] = nil,
@@ -696,11 +693,6 @@ end)
 ---------------- PREVIEW LIST SCRIPT ----------------
 
 do
-    --[[ The hell is this for?!
-    local tooltip = CreateFrame("GameTooltip", nil, UIParent)
-    tooltip:Hide()
-    ]]
-
 previewList:OnButtonClick(function(self, button)
         local preview = self:GetParent()
         local ids, names = unpack(preview.appereanceData)
@@ -730,15 +722,27 @@ function string:startswith(...)
     return  false
 end
 
-local function subclass_OnSelect(self, i)
+do
+    previewTabContent.subclassMenu = CreateFrame("Frame", "$parentSubclassMenu", previewTabContent, "UIDropDownMenuTemplate")
+    local menu = previewTabContent.subclassMenu
+    menu:SetPoint("TOPRIGHT", -120, 36)
+    menu.initializers = {} -- init func per slot
+    UIDropDownMenu_JustifyText(menu, "LEFT")
+
+    function menu.Update(self, slotName, subclass)
+        UIDropDownMenu_SetText(self, subclass)
+        UIDropDownMenu_Initialize(self, menu.initializers[slotName])
+    end
+end
+
+local function subclassMenu_OnClick(self, subclass)
     selectedSlot.selectedPage[selectedSlot.selectedSubclass] = previewSlider:GetValue()
     local slotName = selectedSlot.slotName
-    local subclass = self:GetButton(i):GetText()
     local page = selectedSlot.selectedPage[subclass]
     local previewSetup = GetPreviewSetup(previewSetupVersion, raceFileName, sex, slotName, subclass)
     local subclassAppearances = GetSubclassAppearances(slotName, subclass)
     previewList:Update(previewSetup, subclassAppearances, page)
-
+    
     selectedSlot.selectedSubclass = subclass
     previewSlider:SetMinMaxValues(1, previewList:GetPageCount())
     if previewSlider:GetValue() ~= page then
@@ -746,17 +750,14 @@ local function subclass_OnSelect(self, i)
     else
         previewSlider:GetScript("OnValueChanged")(previewSlider, page)
     end
+    UIDropDownMenu_SetText(previewTabContent.subclassMenu, subclass)
 end
+
 
 ---------------- ARMOR ----------------
 
 do
     local subclasses = {"Cloth", "Leather", "Mail", "Plate"}
-    local list = ns:CreateListFrame("ArmorList", subclasses, previewTabContent)
-    list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
-    list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
-    list.onSelect = subclass_OnSelect
-    list:Hide()
     -- Classes and what they wear to select it by default.
     local subclassPerPlayerClass = {
         MAGE = "Cloth",
@@ -771,8 +772,16 @@ do
         DEATHKNIGHT = "Plate"
     }
 
+    local function init(self)
+        local info = UIDropDownMenu_CreateInfo()
+        for i = 1, #subclasses do
+            info.text, info.checked, info.arg1, info.func = subclasses[i], subclasses[i] == UIDropDownMenu_GetText(self), subclasses[i], subclassMenu_OnClick
+            UIDropDownMenu_AddButton(info)
+        end
+    end
+
     for _, slotName in pairs(armorSlots) do
-        slots[slotName].subclassList = list
+        previewTabContent.subclassMenu.initializers[slotName] = init
         slots[slotName].selectedSubclass = subclassPerPlayerClass[classFileName]
         for _, subclass in ipairs(subclasses) do
             slots[slotName].selectedPage[subclass] = 1
@@ -784,12 +793,6 @@ end
 
 do
     local subclass = "Cloth"
-    local list = ns:CreateListFrame("BackList", {subclass}, previewTabContent)
-    list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
-    list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
-    list.onSelect = subclass_OnSelect
-    list:Hide()
-    slots[backSlot].subclassList = list
     slots[backSlot].selectedSubclass = subclass
     slots[backSlot].selectedPage[subclass] = 1
 end
@@ -798,13 +801,7 @@ end
 
 do
     local subclass = "Miscellaneous"
-    local list = ns:CreateListFrame("MiscellaneousList", {subclass}, previewTabContent)
-    list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
-    list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
-    list.onSelect = subclass_OnSelect
-    list:Hide()
     for _, name in pairs(miscellaneousSlots) do
-        slots[name].subclassList = list
         slots[name].selectedSubclass = subclass
         slots[name].selectedPage[subclass] = 1
     end
@@ -818,12 +815,14 @@ do
         "MH Axe", "MH Mace", "MH Sword", "MH Dagger", "MH Fist",
         "2H Axe", "2H Mace", "2H Sword", "Polearm", "Staff"
     }
-    local list = ns:CreateListFrame("MainHandList", subclasses, previewTabContent)
-    list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
-    list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
-    list.onSelect = subclass_OnSelect
-    list:Hide()
-    slots[mhSlot].subclassList = list
+    local function init (self)
+        local info = UIDropDownMenu_CreateInfo()
+        for i = 1, #subclasses do
+            info.text, info.checked, info.arg1, info.func = subclasses[i], subclasses[i] == UIDropDownMenu_GetText(self), subclasses[i], subclassMenu_OnClick
+            UIDropDownMenu_AddButton(info)
+        end
+    end
+    previewTabContent.subclassMenu.initializers[mhSlot] = init
     slots[mhSlot].selectedSubclass = subclasses[1]
     for _, subclass in ipairs(subclasses) do
         slots[mhSlot].selectedPage[subclass] = 1
@@ -834,16 +833,17 @@ end
 
 do
     local subclasses = {
-        -- "1H Axe", "1H Mace", "1H Sword", "1H Dagger", "1H Fist",
         "OH Axe", "OH Mace", "OH Sword", "OH Dagger", "OH Fist",
         "Shield", "Held in Off-hand"
     }
-    local list = ns:CreateListFrame("OffHandList", subclasses, previewTabContent)
-    list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
-    list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
-    list.onSelect = subclass_OnSelect
-    list:Hide()
-    slots[ohSlot].subclassList = list
+    local function init(self)
+        local info = UIDropDownMenu_CreateInfo()
+        for i = 1, #subclasses do
+            info.text, info.checked, info.arg1, info.func = subclasses[i], subclasses[i] == UIDropDownMenu_GetText(self), subclasses[i], subclassMenu_OnClick
+            UIDropDownMenu_AddButton(info)
+        end
+    end
+    previewTabContent.subclassMenu.initializers[ohSlot] = init
     slots[ohSlot].selectedSubclass = subclasses[1]
     for _, subclass in ipairs(subclasses) do
         slots[ohSlot].selectedPage[subclass] = 1
@@ -854,12 +854,14 @@ end
 
 do
     local subclasses = {"Bow", "Crossbow", "Gun", "Wand", "Thrown"}
-    local list = ns:CreateListFrame("RangedList", subclasses, previewTabContent)
-    list:SetPoint("TOPLEFT", previewList, "TOPRIGHT", previewSlider:GetWidth() + 16, 0)
-    list:SetPoint("RIGHT", mainFrame, "RIGHT", -16, 0)
-    list.onSelect = subclass_OnSelect
-    list:Hide()
-    slots[rangedSlot].subclassList = list
+    local function init(self)
+        local info = UIDropDownMenu_CreateInfo()
+        for i = 1, #subclasses do
+            info.text, info.checked, info.arg1, info.func = subclasses[i], subclasses[i] == UIDropDownMenu_GetText(self), subclasses[i], subclassMenu_OnClick
+            UIDropDownMenu_AddButton(info)
+        end
+    end
+    previewTabContent.subclassMenu.initializers[rangedSlot] = init
     slots[rangedSlot].selectedSubclass = subclasses[1]
     for _, subclass in ipairs(subclasses) do
         slots[rangedSlot].selectedPage[subclass] = 1
