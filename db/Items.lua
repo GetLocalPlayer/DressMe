@@ -24330,6 +24330,14 @@ local itemsData = {
                 },
                 {
                     {
+                        26132,
+                    },
+                    {
+                        "|cff1eff0068 TEST Green Cloth Head|r",
+                    },
+                },
+                {
+                    {
                         30271,
                     },
                     {
