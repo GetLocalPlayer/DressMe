@@ -14,4 +14,3 @@ DressingRoom.lua
 PreviewList.lua
 ListFrame.lua
 DressMe.lua
-Test.lua

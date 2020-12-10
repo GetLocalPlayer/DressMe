@@ -20,13 +20,12 @@ local defaultSettings = {
     showDressMeButton = true,
 }
 
-local backdrop = {
+local backdrop = { -- currently used for tests
     bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
 	edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
 	tile = false, tileSize = 16, edgeSize = 16,
 	insets = { left = 4, right = 4, top = 4, bottom = 4 }
 }
-local backdropColor = {0, 0, 0, 0.666666}
 
 local dressingRoomBorderBackdrop = { -- For a frame above DressingRoom
     bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
@@ -35,79 +34,164 @@ local dressingRoomBorderBackdrop = { -- For a frame above DressingRoom
 	insets = { left = 4, right = 4, top = 4, bottom = 4 }
 }
 
-local mainFrame = CreateFrame("Frame", addon, UIParent)
--- Hurry up! You must hack the main frame!
+
+function InitMainFrame()
+    local frame = CreateFrame("Frame", addon, UIParent)
+    frame:SetWidth(1045)
+    frame:SetHeight(505)
+    frame:SetPoint("CENTER")
+    frame:Hide()
+    frame:SetMovable(true)
+    frame:EnableMouse(true)
+    frame:RegisterForDrag("LeftButton")
+    frame:SetScript("OnDragStart", frame.StartMoving)
+    frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+
+    local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    title:SetPoint("TOP", 0, -9)
+    title:SetText("DressMe")
+
+    local titleBg = frame:CreateTexture(nil, "BACKGROUND")
+	titleBg:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Title-Background")
+	titleBg:SetPoint("TOPLEFT", 10, -7)
+    titleBg:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", -28, -24)
+
+	local menuBg = frame:CreateTexture(nil, "BACKGROUND")
+    menuBg:SetTexture("Interface\\WorldStateFrame\\WorldStateFinalScoreFrame-TopBackground")
+    menuBg:SetTexCoord(0, 1, 0, 0.8125) 
+	menuBg:SetPoint("TOPLEFT", 10, -26)
+    menuBg:SetPoint("RIGHT", -6, 0)
+    menuBg:SetHeight(48)
+    menuBg:SetVertexColor(0.5, 0.5, 0.5)
+
+    local frameBg = frame:CreateTexture(nil, "BACKGROUND")
+    frameBg:SetTexture("Interface\\WorldStateFrame\\WorldStateFinalScoreFrame-TopBackground")
+    frameBg:SetTexCoord(0, 0.5, 0, 0.8125) 
+    frameBg:SetPoint("TOPLEFT", menuBg, "BOTTOMLEFT")
+    frameBg:SetPoint("TOPRIGHT", menuBg, "BOTTOMRIGHT")
+    frameBg:SetPoint("BOTTOM", 0, 5)
+    frameBg:SetVertexColor(0.25, 0.25, 0.25)
+	
+	local topLeft = frame:CreateTexture(nil, "BORDER")
+    topLeft:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
+    topLeft:SetTexCoord(0.5, 0.625, 0, 1)
+	topLeft:SetWidth(64)
+	topLeft:SetHeight(64)
+	topLeft:SetPoint("TOPLEFT")
+	
+	local topRight = frame:CreateTexture(nil, "BORDER")
+    topRight:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
+    topRight:SetTexCoord(0.625, 0.75, 0, 1)
+	topRight:SetWidth(64)
+	topRight:SetHeight(64)
+    topRight:SetPoint("TOPRIGHT")
+	
+	local top = frame:CreateTexture(nil, "BORDER")
+    top:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
+    top:SetTexCoord(0.25, 0.37, 0, 1)
+	top:SetPoint("TOPLEFT", topLeft, "TOPRIGHT")
+    top:SetPoint("TOPRIGHT", topRight, "TOPLEFT")
+
+    local menuSeparatorLeft = frame:CreateTexture(nil, "BORDER")
+    menuSeparatorLeft:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
+    menuSeparatorLeft:SetTexCoord(0.5, 0.5546875, 0.25, 0.53125)
+	menuSeparatorLeft:SetPoint("TOPLEFT", topLeft, "BOTTOMLEFT")
+    menuSeparatorLeft:SetWidth(28)
+    menuSeparatorLeft:SetHeight(18)
+
+    local menuSeparatorRight = frame:CreateTexture(nil, "BORDER")
+    menuSeparatorRight:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
+    menuSeparatorRight:SetTexCoord(0.7109375, 0.75, 0.25, 0.53125)
+	menuSeparatorRight:SetPoint("TOPRIGHT", topRight, "BOTTOMRIGHT")
+    menuSeparatorRight:SetWidth(20)
+    menuSeparatorRight:SetHeight(18)
+
+    local menuSeparatorCenter = frame:CreateTexture(nil, "BORDER")
+    menuSeparatorCenter:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
+    menuSeparatorCenter:SetTexCoord(0.564453125, 0.671875, 0.25, 0.53125)
+    menuSeparatorCenter:SetPoint("TOPLEFT", menuSeparatorLeft, "TOPRIGHT")
+    menuSeparatorCenter:SetPoint("BOTTOMRIGHT", menuSeparatorRight, "BOTTOMLEFT")
+
+    local botLeft = frame:CreateTexture(nil, "BORDER")
+    botLeft:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
+    botLeft:SetTexCoord(0.75, 0.875, 0, 1)
+	botLeft:SetPoint("BOTTOMLEFT")
+    botLeft:SetWidth(64)
+    botLeft:SetHeight(64)
+
+    local left = frame:CreateTexture(nil, "BORDER")
+    left:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
+    left:SetTexCoord(0, 0.125, 0, 1)
+    left:SetPoint("TOPLEFT", menuSeparatorLeft, "BOTTOMLEFT")
+    left:SetPoint("BOTTOMRIGHT", botLeft, "TOPRIGHT")
+
+    local botRight = frame:CreateTexture(nil, "BORDER")
+    botRight:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
+    botRight:SetTexCoord(0.875, 1, 0, 1)
+	botRight:SetPoint("BOTTOMRIGHT")
+    botRight:SetWidth(64)
+    botRight:SetHeight(64)
+
+    local right = frame:CreateTexture(nil, "BORDER")
+    right:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
+    right:SetTexCoord(0.125, 0.25, 0, 1)
+    right:SetPoint("TOPRIGHT", menuSeparatorRight, "BOTTOMRIGHT", 4, 0)
+    right:SetPoint("BOTTOMLEFT", botRight, "TOPLEFT", 4, 0)
+
+    local bot = frame:CreateTexture(nil, "BORDER")
+    bot:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
+    bot:SetTexCoord(0.38, 0.45, 0, 1)
+    bot:SetPoint("BOTTOMLEFT", botLeft, "BOTTOMRIGHT")
+    bot:SetPoint("TOPRIGHT", botRight, "TOPLEFT")
+    
+    frame.stats = CreateFrame("Frame", nil, frame)
+    local stats = frame.stats
+    stats:SetBackdrop({
+        bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+	    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+	    tile = true, tileSize = 16, edgeSize = 16,
+        insets = { left = 3, right = 3, top = 5, bottom = 3 }
+    })
+    stats:SetBackdropColor(0.15, 0.15, 0.15)
+    stats:SetBackdropBorderColor(0.3, 0.3, 0.3)
+    stats:SetPoint("BOTTOMLEFT", 10, 8)
+    stats:SetPoint("BOTTOMRIGHT", -6, 8)
+    stats:SetHeight(24)
+
+	local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+	close:SetPoint("TOPRIGHT", 2, 1)
+    close:SetScript("OnClick", function(self)
+        PlaySound("gsTitleOptionOK")
+        self:GetParent():Hide()
+    end)
+    return frame
+end
+ 
+local mainFrame = InitMainFrame()
+-- "Hurry up! You must hack the main frame!"
 -- <hackerman noises>
-mainFrame:SetPoint("CENTER")
-mainFrame:SetSize(1182, 502)
-mainFrame:SetMovable(true)
-mainFrame:SetFrameStrata("HIGH")
-mainFrame:SetBackdrop(backdrop)
-mainFrame:SetBackdropColor(unpack(backdropColor))
-mainFrame:EnableMouse(true)
-mainFrame:EnableMouseWheel(true)
-mainFrame:RegisterForDrag("LeftButton")
-mainFrame:SetScript("OnDragStart", mainFrame.StartMoving)
-mainFrame:SetScript("OnDragStop", mainFrame.StopMovingOrSizing)
-mainFrame:Hide()
-
-local btnClose = CreateFrame("Button", "$parentButtonClose", mainFrame, "UIPanelButtonTemplate2")
-btnClose:SetSize(120, 20)
-btnClose:SetPoint("BOTTOMRIGHT", -16, 16)
-btnClose:SetText(CLOSE)
-btnClose:SetScript("OnClick", function()
-    mainFrame:Hide()
-    PlaySound("gsTitleOptionOK")
-end)
-
-local titleFrame = CreateFrame("Frame", nil, mainFrame)
-titleFrame:EnableMouse(true)
-titleFrame:RegisterForDrag("LeftButton")
-titleFrame:SetScript("OnDragStart", function() mainFrame:StartMoving() end)
-titleFrame:SetScript("OnDragStop", function () mainFrame:StopMovingOrSizing() end)
-
-local titleBg = titleFrame:CreateTexture(nil, "OVERLAY")
-titleBg:SetTexture("Interface\\DialogFrame\\UI-DialogBox-Header")
-titleBg:SetTexCoord(0.31, 0.67, 0, 0.63)
-titleBg:SetPoint("TOP", mainFrame, "TOP", 0, 16)
-titleBg:SetWidth(65)
-titleBg:SetHeight(40)
-
-local titleBgLeft = titleFrame:CreateTexture(nil, "OVERLAY")
-titleBgLeft:SetTexture("Interface\\DialogFrame\\UI-DialogBox-Header")
-titleBgLeft:SetTexCoord(0.21, 0.31, 0, 0.63)
-titleBgLeft:SetPoint("RIGHT", titleBg, "LEFT")
-titleBgLeft:SetWidth(30)
-titleBgLeft:SetHeight(40)
-
-local titleBgRight = titleFrame:CreateTexture(nil, "OVERLAY")
-titleBgRight:SetTexture("Interface\\DialogFrame\\UI-DialogBox-Header")
-titleBgRight:SetTexCoord(0.67, 0.77, 0, 0.63)
-titleBgRight:SetPoint("LEFT", titleBg, "RIGHT")
-titleBgRight:SetWidth(30)
-titleBgRight:SetHeight(40)
-
-local titleText = titleFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-titleText:SetPoint("TOP", titleBg, "TOP", 0, -14)
-titleText:SetText(addon)
-
-titleFrame:SetPoint("BOTTOMLEFT", titleBgLeft, "BOTTOMLEFT")
-titleFrame:SetPoint("TOPRIGHT", titleBgRight, "TOPRIGHT")
 
 local dressingRoom = ns:CreateDressingRoom(nil, mainFrame)
-dressingRoom:SetPoint("TOPLEFT", 16, -56)
+dressingRoom:SetPoint("TOPLEFT", 10, -74)
 dressingRoom:SetSize(400, 400)
 dressingRoom:SetBackdrop(backdrop)
 dressingRoom:SetBackdropColor(unpack(defaultSettings.dressingRoomBackgroundColor))
 
 do
-    local dressingRoomBorder = CreateFrame("Frame", nil, dressingRoom)
-    dressingRoomBorder:SetAllPoints()
-    dressingRoomBorder:SetBackdrop(dressingRoomBorderBackdrop)
-    dressingRoomBorder:SetBackdropColor(0, 0, 0, 0)
+    local border = CreateFrame("Frame", nil, dressingRoom)
+    border:SetAllPoints()
+    border:SetBackdrop(dressingRoomBorderBackdrop)
+    border:SetBackdropColor(0, 0, 0, 0)
+
+    local separator = dressingRoom:CreateTexture(nil, "BORDER")
+    separator:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
+    separator:SetTexCoord(0.23046875, 0.236328125, 0, 1)
+    separator:SetPoint("TOPLEFT", dressingRoom, "TOPRIGHT")
+    separator:SetPoint("BOTTOMLEFT", dressingRoom, "BOTTOMRIGHT")
+    separator:SetWidth(3)
 
     local tip = dressingRoom:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    tip:SetPoint("BOTTOM", dressingRoom, "TOP", 0, 8)
+    tip:SetPoint("BOTTOM", dressingRoom, "TOP", 0, 12)
     tip:SetJustifyH("CENTER")
     tip:SetJustifyV("BOTTOM")
     tip:SetText("\124cff00ff00Left Mouse:\124r rotate \124 \124cff00ff00Right Mouse:\124r pan\124n\124cff00ff00Wheel:\124r zoom")
@@ -204,9 +288,12 @@ end
 ---------------- TABS ----------------
 
 local tabFrame = CreateFrame("Frame", "$parentTabFrame", mainFrame)
-tabFrame:SetPoint("TOPLEFT", dressingRoom, "TOPRIGHT")
-tabFrame:SetPoint("BOTTOMRIGHT", -16, -16)
+tabFrame:SetPoint("TOP", 0, -72)
+tabFrame:SetPoint("BOTTOM", 0, 28)
+tabFrame:SetPoint("RIGHT", -6, 0)
+tabFrame:SetPoint("LEFT", dressingRoom, "RIGHT", 2, 0)
 tabFrame.content = {}
+--tabFrame:SetBackdrop(backdrop)
 
 do
     local function tab_OnClick(self)
@@ -227,9 +314,7 @@ do
         tab:SetText(tabNames[i])
         tab:SetID(i)
         if i == 1 then
-            tab:SetPoint("BOTTOMLEFT", tab:GetParent(), "TOPLEFT")
-        elseif i == #tabNames then
-            tab:SetPoint("BOTTOMRIGHT", tab:GetParent(), "TOPRIGHT")
+            tab:SetPoint("BOTTOMLEFT", tab:GetParent(), "TOPLEFT", 0, 2)
         else
             tab:SetPoint("LEFT", _G[tabFrame:GetName().."Tab"..(i - 1)], "RIGHT")
         end
@@ -256,13 +341,13 @@ previewList:SetPoint("TOPLEFT")
 previewList:SetSize(601, 401)
 
 local previewListLabel = previewList:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-previewListLabel:SetPoint("TOP", previewList, "BOTTOM")
+previewListLabel:SetPoint("TOP", previewList, "BOTTOM", 0, -4)
 previewListLabel:SetJustifyH("CENTER")
 previewListLabel:SetHeight(15)
 
 local previewSlider = CreateFrame("Slider", "$parentPageSlider", previewTabContent, "UIPanelScrollBarTemplateLightBorder")
-previewSlider:SetPoint("LEFT", previewList, "RIGHT", 4, 0)
-previewSlider:SetHeight(previewList:GetHeight() - 48)
+previewSlider:SetPoint("TOPRIGHT", -6, -22)
+previewSlider:SetPoint("BOTTOMRIGHT", -6, 21)
 previewSlider:EnableMouseWheel(true)
 previewSlider:SetScript("OnMouseWheel", function(self, delta)
     self:SetValue(self:GetValue() - delta)
@@ -270,10 +355,10 @@ end)
 previewSlider:SetScript("OnValueChanged", function(self, value)
     previewList:SetPage(value)
     local _, max = self:GetMinMaxValues()
-    previewListLabel:SetText(("%s/%s"):format(value, max))
+    previewListLabel:SetText(("Page: %s/%s"):format(value, max))
 end)
 previewSlider:SetScript("OnMinMaxChanged", function(self, min, max)
-    previewListLabel:SetText(("%s/%s"):format(self:GetValue(), max))
+    previewListLabel:SetText(("Page: %s/%s"):format(self:GetValue(), max))
 end)
 previewSlider:SetMinMaxValues(0, 0)
 previewSlider:SetValueStep(1)
