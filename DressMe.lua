@@ -35,30 +35,32 @@ local dressingRoomBorderBackdrop = { -- For a frame above DressingRoom
 }
 
 
-function InitMainFrame()
-    local frame = CreateFrame("Frame", addon, UIParent)
-    frame:SetWidth(1045)
-    frame:SetHeight(505)
-    frame:SetPoint("CENTER")
-    frame:Hide()
-    frame:SetMovable(true)
-    frame:EnableMouse(true)
-    frame:RegisterForDrag("LeftButton")
-    frame:SetScript("OnDragStart", frame.StartMoving)
-    frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
-    frame:SetScript("OnShow", function() PlaySound("igCharacterInfoOpen") end)
-    frame:SetScript("OnHide", function() PlaySound("igCharacterInfoClose") end)
+local mainFrame = CreateFrame("Frame", addon, UIParent)
+-- "Hurry up! You must hack the main frame!"
+-- <hackerman noises>
+do 
+    mainFrame:SetWidth(1045)
+    mainFrame:SetHeight(505)
+    mainFrame:SetPoint("CENTER")
+    mainFrame:Hide()
+    mainFrame:SetMovable(true)
+    mainFrame:EnableMouse(true)
+    mainFrame:RegisterForDrag("LeftButton")
+    mainFrame:SetScript("OnDragStart", mainFrame.StartMoving)
+    mainFrame:SetScript("OnDragStop", mainFrame.StopMovingOrSizing)
+    mainFrame:SetScript("OnShow", function() PlaySound("igCharacterInfoOpen") end)
+    mainFrame:SetScript("OnHide", function() PlaySound("igCharacterInfoClose") end)
 
-    local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    local title = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     title:SetPoint("TOP", 0, -9)
     title:SetText("DressMe")
 
-    local titleBg = frame:CreateTexture(nil, "BACKGROUND")
+    local titleBg = mainFrame:CreateTexture(nil, "BACKGROUND")
 	titleBg:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Title-Background")
 	titleBg:SetPoint("TOPLEFT", 10, -7)
-    titleBg:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", -28, -24)
+    titleBg:SetPoint("BOTTOMRIGHT", mainFrame, "TOPRIGHT", -28, -24)
 
-	local menuBg = frame:CreateTexture(nil, "BACKGROUND")
+	local menuBg = mainFrame:CreateTexture(nil, "BACKGROUND")
     menuBg:SetTexture("Interface\\WorldStateFrame\\WorldStateFinalScoreFrame-TopBackground")
     menuBg:SetTexCoord(0, 1, 0, 0.8125) 
 	menuBg:SetPoint("TOPLEFT", 10, -26)
@@ -66,7 +68,7 @@ function InitMainFrame()
     menuBg:SetHeight(48)
     menuBg:SetVertexColor(0.5, 0.5, 0.5)
 
-    local frameBg = frame:CreateTexture(nil, "BACKGROUND")
+    local frameBg = mainFrame:CreateTexture(nil, "BACKGROUND")
     frameBg:SetTexture("Interface\\WorldStateFrame\\WorldStateFinalScoreFrame-TopBackground")
     frameBg:SetTexCoord(0, 0.5, 0, 0.8125) 
     frameBg:SetPoint("TOPLEFT", menuBg, "BOTTOMLEFT")
@@ -74,103 +76,106 @@ function InitMainFrame()
     frameBg:SetPoint("BOTTOM", 0, 5)
     frameBg:SetVertexColor(0.25, 0.25, 0.25)
 	
-	local topLeft = frame:CreateTexture(nil, "BORDER")
+	local topLeft = mainFrame:CreateTexture(nil, "BORDER")
     topLeft:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
     topLeft:SetTexCoord(0.5, 0.625, 0, 1)
 	topLeft:SetWidth(64)
 	topLeft:SetHeight(64)
 	topLeft:SetPoint("TOPLEFT")
 	
-	local topRight = frame:CreateTexture(nil, "BORDER")
+	local topRight = mainFrame:CreateTexture(nil, "BORDER")
     topRight:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
     topRight:SetTexCoord(0.625, 0.75, 0, 1)
 	topRight:SetWidth(64)
 	topRight:SetHeight(64)
     topRight:SetPoint("TOPRIGHT")
 	
-	local top = frame:CreateTexture(nil, "BORDER")
+	local top = mainFrame:CreateTexture(nil, "BORDER")
     top:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
     top:SetTexCoord(0.25, 0.37, 0, 1)
 	top:SetPoint("TOPLEFT", topLeft, "TOPRIGHT")
     top:SetPoint("TOPRIGHT", topRight, "TOPLEFT")
 
-    local menuSeparatorLeft = frame:CreateTexture(nil, "BORDER")
+    local menuSeparatorLeft = mainFrame:CreateTexture(nil, "BORDER")
     menuSeparatorLeft:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
     menuSeparatorLeft:SetTexCoord(0.5, 0.5546875, 0.25, 0.53125)
 	menuSeparatorLeft:SetPoint("TOPLEFT", topLeft, "BOTTOMLEFT")
     menuSeparatorLeft:SetWidth(28)
     menuSeparatorLeft:SetHeight(18)
 
-    local menuSeparatorRight = frame:CreateTexture(nil, "BORDER")
+    local menuSeparatorRight = mainFrame:CreateTexture(nil, "BORDER")
     menuSeparatorRight:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
     menuSeparatorRight:SetTexCoord(0.7109375, 0.75, 0.25, 0.53125)
 	menuSeparatorRight:SetPoint("TOPRIGHT", topRight, "BOTTOMRIGHT")
     menuSeparatorRight:SetWidth(20)
     menuSeparatorRight:SetHeight(18)
 
-    local menuSeparatorCenter = frame:CreateTexture(nil, "BORDER")
+    local menuSeparatorCenter = mainFrame:CreateTexture(nil, "BORDER")
     menuSeparatorCenter:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
     menuSeparatorCenter:SetTexCoord(0.564453125, 0.671875, 0.25, 0.53125)
     menuSeparatorCenter:SetPoint("TOPLEFT", menuSeparatorLeft, "TOPRIGHT")
     menuSeparatorCenter:SetPoint("BOTTOMRIGHT", menuSeparatorRight, "BOTTOMLEFT")
 
-    local botLeft = frame:CreateTexture(nil, "BORDER")
+    local botLeft = mainFrame:CreateTexture(nil, "BORDER")
     botLeft:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
     botLeft:SetTexCoord(0.75, 0.875, 0, 1)
 	botLeft:SetPoint("BOTTOMLEFT")
     botLeft:SetWidth(64)
     botLeft:SetHeight(64)
 
-    local left = frame:CreateTexture(nil, "BORDER")
+    local left = mainFrame:CreateTexture(nil, "BORDER")
     left:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
     left:SetTexCoord(0, 0.125, 0, 1)
     left:SetPoint("TOPLEFT", menuSeparatorLeft, "BOTTOMLEFT")
     left:SetPoint("BOTTOMRIGHT", botLeft, "TOPRIGHT")
 
-    local botRight = frame:CreateTexture(nil, "BORDER")
+    local botRight = mainFrame:CreateTexture(nil, "BORDER")
     botRight:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
     botRight:SetTexCoord(0.875, 1, 0, 1)
 	botRight:SetPoint("BOTTOMRIGHT")
     botRight:SetWidth(64)
     botRight:SetHeight(64)
 
-    local right = frame:CreateTexture(nil, "BORDER")
+    local right = mainFrame:CreateTexture(nil, "BORDER")
     right:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
     right:SetTexCoord(0.125, 0.25, 0, 1)
     right:SetPoint("TOPRIGHT", menuSeparatorRight, "BOTTOMRIGHT", 4, 0)
     right:SetPoint("BOTTOMLEFT", botRight, "TOPLEFT", 4, 0)
 
-    local bot = frame:CreateTexture(nil, "BORDER")
+    local bot = mainFrame:CreateTexture(nil, "BORDER")
     bot:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
     bot:SetTexCoord(0.38, 0.45, 0, 1)
     bot:SetPoint("BOTTOMLEFT", botLeft, "BOTTOMRIGHT")
     bot:SetPoint("TOPRIGHT", botRight, "TOPLEFT")
+
+    local separatorV = mainFrame:CreateTexture(nil, "BORDER")
+    separatorV:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
+    separatorV:SetTexCoord(0.23046875, 0.236328125, 0, 1)
+    separatorV:SetPoint("TOPLEFT", 410, -72)
+    separatorV:SetPoint("BOTTOM", 0, 32)
+    separatorV:SetWidth(3)
+    separatorV:SetVertexColor(0.5, 0.5, 0.5)
     
-    frame.stats = CreateFrame("Frame", nil, frame)
-    local stats = frame.stats
+    mainFrame.stats = CreateFrame("Frame", nil, mainFrame)
+    local stats = mainFrame.stats
     stats:SetBackdrop({
         bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
 	    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
 	    tile = true, tileSize = 16, edgeSize = 16,
         insets = { left = 3, right = 3, top = 5, bottom = 3 }
     })
-    stats:SetBackdropColor(0.1, 0.1, 0.1)
-    stats:SetBackdropBorderColor(0.3, 0.3, 0.3)
-    stats:SetPoint("BOTTOMLEFT", 10, 8)
+    stats:SetBackdropColor(0.12, 0.12, 0.12)
+    stats:SetBackdropBorderColor(0.25, 0.25, 0.25)
+    stats:SetPoint("BOTTOMLEFT", 410, 8)
     stats:SetPoint("BOTTOMRIGHT", -6, 8)
     stats:SetHeight(24)
 
-	local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+	local close = CreateFrame("Button", nil, mainFrame, "UIPanelCloseButton")
 	close:SetPoint("TOPRIGHT", 2, 1)
     close:SetScript("OnClick", function(self)
         self:GetParent():Hide()
     end)
-    return frame
 end
- 
-local mainFrame = InitMainFrame()
--- "Hurry up! You must hack the main frame!"
--- <hackerman noises>
 
 local dressingRoom = ns:CreateDressingRoom(nil, mainFrame)
 dressingRoom:SetPoint("TOPLEFT", 10, -74)
@@ -184,22 +189,12 @@ do
     border:SetBackdrop(dressingRoomBorderBackdrop)
     border:SetBackdropColor(0, 0, 0, 0)
 
-    local separator = dressingRoom:CreateTexture(nil, "BORDER")
-    separator:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Border")
-    separator:SetTexCoord(0.23046875, 0.236328125, 0, 1)
-    separator:SetPoint("TOPLEFT", dressingRoom, "TOPRIGHT")
-    separator:SetPoint("BOTTOMLEFT", dressingRoom, "BOTTOMRIGHT")
-    separator:SetWidth(3)
-    separator:SetVertexColor(0.5, 0.5, 0.5)
-
     local tip = dressingRoom:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     tip:SetPoint("BOTTOM", dressingRoom, "TOP", 0, 12)
     tip:SetJustifyH("CENTER")
     tip:SetJustifyV("BOTTOM")
     tip:SetText("\124cff00ff00Left Mouse:\124r rotate \124 \124cff00ff00Right Mouse:\124r pan\124n\124cff00ff00Wheel:\124r zoom")
 end
-
-mainFrame.stats:SetPoint("LEFT", dressingRoom, "RIGHT")
 
 local btnReset = CreateFrame("Button", "$parentButtonReset", dressingRoom, "UIPanelButtonTemplate2")
 btnReset:SetPoint("TOPRIGHT", dressingRoom, "BOTTOMRIGHT")
