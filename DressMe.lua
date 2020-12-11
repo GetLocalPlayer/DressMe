@@ -160,7 +160,7 @@ do
     local stats = mainFrame.stats
     stats:SetBackdrop({
         bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-	    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
 	    tile = true, tileSize = 16, edgeSize = 16,
         insets = { left = 3, right = 3, top = 5, bottom = 3 }
     })
@@ -236,57 +236,6 @@ btnUseTarget:HookScript("OnLeave", function(self)
     GameTooltip:Hide()
 end)
 
----------------- WOWHEAD URL DIALOG ----------------
-
-StaticPopupDialogs["DRESSME_WOWHEAD_URL_DIALOG"] = {
-    text = "DRESSME_WOWHEAD_URL_DIALOG",
-    button1 = "Version",
-    button2 = CLOSE,
-    timeout = 0,
-    whileDead = true,
-    hideOnEscape = true,
-    hasEditBox = true,
-    hasWideEditBox = true,
-    preferredIndex = 3,
-    OnAccept = function(self)
-    end
-}
-
-
-local function showWowheadURLDialog(itemId)
-    local isRetail = true
-    local isCanceled = false
-
-    StaticPopupDialogs["DRESSME_WOWHEAD_URL_DIALOG"].OnShow = function (self)
-        self.text:SetText(("Wowhead \124cff00ff00%s\124r"):format(isRetail and "Retail" or "Classic"))
-        self.wideEditBox:SetText(("https://%s.wowhead.com/item=%s"):format((isRetail and "www" or "classic"), itemId))
-        self.wideEditBox:HighlightText()
-        self.button1:SetText(isRetail and "Classic" or "Retail")
-    end
-
-    StaticPopupDialogs["DRESSME_WOWHEAD_URL_DIALOG"].OnAccept = function(self)
-        isRetail = not isRetail
-        isCanceled = true
-        StaticPopup_Hide("DRESSME_WOWHEAD_URL_DIALOG")
-    end
-
-    StaticPopupDialogs["DRESSME_WOWHEAD_URL_DIALOG"].OnCancel = function(self)
-        isCanceled = false
-    end
-
-    StaticPopupDialogs["DRESSME_WOWHEAD_URL_DIALOG"].OnHide = function(self)
-        if isCanceled then
-            StaticPopup_Show("DRESSME_WOWHEAD_URL_DIALOG")
-        end
-    end
-
-    if StaticPopup_Visible("DRESSME_WOWHEAD_URL_DIALOG") then
-        StaticPopup_Hide("DRESSME_WOWHEAD_URL_DIALOG")
-    end
-    StaticPopup_Show("DRESSME_WOWHEAD_URL_DIALOG")
-end
-
-
 ---------------- TABS ----------------
 
 local tabFrame = CreateFrame("Frame", "$parentTabFrame", mainFrame)
@@ -309,7 +258,7 @@ do
         PlaySound("gsTitleOptionOK")
     end
 
-    local tabNames = {"Items Preview", "Saved Looks", "Settings"}
+    local tabNames = {"Items Preview", "Appearances", "Settings"}
 
     for i = 1, #tabNames do
         local tab = CreateFrame("Button", "$parentTab"..i, tabFrame, "OptionsFrameTabButtonTemplate")
@@ -440,7 +389,7 @@ end
 local function slot_OnControlLeftClick(self)
     local itemId = self.appearance.itemId
     if itemId ~= nil then
-        showWowheadURLDialog(itemId)
+        ns:ShowWowheadURLDialog(itemId)
     end
 end
 
@@ -704,7 +653,7 @@ previewList:OnButtonClick(function(self, button)
             local name = names[selected]:sub(11, -3)
             SELECTED_CHAT_FRAME:AddMessage("[DressMe]: "..selectedSlot.slotName.." - "..selectedSlot.selectedSubclass.." "..color.."\124Hitem:"..ids[selected]..":::::::|h["..name.."]\124h\124r".." ("..ids[selected]..")")
         elseif IsControlKeyDown() then
-            showWowheadURLDialog(ids[selected])
+            ns:ShowWowheadURLDialog(ids[selected])
         else
             selectedSlot:TryOn(ids[selected], ids[1],  names[selected])
         end
@@ -955,15 +904,6 @@ do
         btnSave:Enable()
     end
 
-    local function buildList(savedLooks)
-        for index, look in pairs(savedLooks) do
-            local item = listFrame:AddItem(look.name)
-        end
-        scrollFrame:SetScrollChild(listFrame)
-    end
-
-    local savedLooks
-
     local function slots2ItemList()
         local items = {}
         for _, slotName in pairs(slotOrder) do
@@ -976,6 +916,22 @@ do
         return items
     end
 
+    local function buildList()
+        local savedLooks = _G["DressMeSavedLooks"]
+        _G["DressMeSavedLooks"] = {}
+        local names = {}
+        local items = {} -- by name
+        for index, look in pairs(savedLooks) do
+            table.insert(names, look.name)
+            items[look.name] = look.items
+        end
+        table.sort(names)
+        for i, name in ipairs(names) do
+            listFrame:AddItem(name)
+            table.insert(_G["DressMeSavedLooks"], {["name"] = name, ["items"] = items[name]})
+        end
+    end
+
     listFrame:RegisterEvent("ADDON_LOADED")
     listFrame:SetScript("OnEvent", function(self, event, addonName)
         if addonName == addon then
@@ -983,8 +939,8 @@ do
                 if _G["DressMeSavedLooks"] == nil then
                     _G["DressMeSavedLooks"] = {}
                 end
-                savedLooks = _G["DressMeSavedLooks"]
-                buildList(_G["DressMeSavedLooks"])
+                buildList()
+                scrollFrame:SetScrollChild(listFrame)
             end
         end
     end)
@@ -1002,6 +958,7 @@ do
     end)
 
     btnTryOn:HookScript("OnClick", function(self)
+        local savedLooks = _G["DressMeSavedLooks"]
         local id = listFrame.buttons[listFrame:GetSelected()]:GetID()
         for index, slotName in pairs(slotOrder) do
             local itemId = savedLooks[id].items[index]
@@ -1047,6 +1004,7 @@ do
                 self:RemoveWideEditBoxOnChangeHook()
                 local enteredName = self.wideEditBox:GetText()
                 local items = slots2ItemList()
+                local savedLooks = _G["DressMeSavedLooks"]
                 for i, look in ipairs(savedLooks) do
                     if look.name == enteredName then
                         StaticPopupDialogs["DRESSME_SAVED_LOOKS_SAVE_AS_OVERWRITE_CONFIRM_DIALOG"] = {
@@ -1067,7 +1025,8 @@ do
                     end
                 end
                 table.insert(savedLooks, {name = enteredName, items = items})
-                listFrame:AddItem(enteredName)
+                listFrame:Clear()
+                buildList()
                 scrollFrame:UpdateScrollChildRect()
             end,
             OnCancel = function(self)
@@ -1089,7 +1048,7 @@ do
             showAlert = true,
             preferredIndex = 3,
             OnAccept = function(self)
-                savedLooks[self.id].items = items
+                _G["DressMeSavedLooks"][self.id].items = items
             end,
         }
         local dialog = StaticPopup_Show("DRESSME_SAVE_OVERWRITE_CONFIRM_DIALOG")
@@ -1116,7 +1075,7 @@ do
                 for i = self.id + 1, #listFrame.buttons do
                     listFrame.buttons[i].id = i - 1
                 end ]]
-                table.remove(savedLooks, self.id)
+                table.remove(_G["DressMeSavedLooks"], self.id)
                 listFrame:RemoveItem(self.id)
                 scrollFrame:UpdateScrollChildRect()
             end,

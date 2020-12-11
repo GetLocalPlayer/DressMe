@@ -105,6 +105,22 @@ local function ListFrame_RemoveItem(self, item)
 end
 
 
+local function ListFrame_Clear(self)
+    if self:GetSelected() ~= nil then
+        self:Deselect()
+    end
+    while #self.buttons > 0 do
+        local btn = table.remove(self.buttons, #self.buttons)
+        btn:SetParent(nil)
+        btn:ClearAllPoints()
+        btn:Hide()
+        btn:SetID(0)
+        table.insert(recycler, btn)
+    end
+    self:Update()
+end
+
+
 local function ListFrame_Update(self)
     self:SetHeight(self:GetListHeight() + self.insets.top + self.insets.bottom)
     if #self.buttons > 0 then
@@ -152,6 +168,7 @@ function ns:CreateListFrame(name, list, parent)
     frame.Deselect = ListFrame_Deselect
     frame.AddItem = ListFrame_AddItem
     frame.RemoveItem = ListFrame_RemoveItem
+    frame.Clear = ListFrame_Clear
     frame.Update = ListFrame_Update
 
     if list ~= nil then
