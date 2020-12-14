@@ -340,11 +340,11 @@ do
     slider.buttons.down = _G[slider:GetName() .. "ScrollDownButton"]
 
     slider.buttons.up:SetScript("OnClick", function(self)
-        self:GetParent():SetValue(parent:GetValue() - 1)
+        slider:SetValue(slider:GetValue() - 1)
         PlaySound("gsTitleOptionOK")
     end)
     slider.buttons.down:SetScript("OnClick", function(self)
-        self:GetParent():SetValue(parent:GetValue() + 1)
+        slider:SetValue(slider:GetValue() + 1)
         PlaySound("gsTitleOptionOK")
     end)
 
