@@ -170,20 +170,27 @@ do
     stats:SetPoint("BOTTOMRIGHT", -6, 8)
     stats:SetHeight(24)
 
+    mainFrame.buttons = {}
+
 	local close = CreateFrame("Button", nil, mainFrame, "UIPanelCloseButton")
 	close:SetPoint("TOPRIGHT", 2, 1)
     close:SetScript("OnClick", function(self)
         self:GetParent():Hide()
     end)
+
+    mainFrame.buttons.close = close
 end
 
-local dressingRoom = ns:CreateDressingRoom(nil, mainFrame)
-dressingRoom:SetPoint("TOPLEFT", 10, -74)
-dressingRoom:SetSize(400, 400)
-dressingRoom:SetBackdrop(backdrop)
-dressingRoom:SetBackdropColor(unpack(defaultSettings.dressingRoomBackgroundColor))
+
+mainFrame.dressingRoom = ns:CreateDressingRoom(nil, mainFrame)
 
 do
+    local dressingRoom = mainFrame.dressingRoom
+    dressingRoom:SetPoint("TOPLEFT", 10, -74)
+    dressingRoom:SetSize(400, 400)
+    dressingRoom:SetBackdrop(backdrop)
+    dressingRoom:SetBackdropColor(unpack(defaultSettings.dressingRoomBackgroundColor))
+
     local border = CreateFrame("Frame", nil, dressingRoom)
     border:SetAllPoints()
     border:SetBackdrop(dressingRoomBorderBackdrop)
@@ -196,146 +203,163 @@ do
     tip:SetText("\124cff00ff00Left Mouse:\124r rotate \124 \124cff00ff00Right Mouse:\124r pan\124n\124cff00ff00Wheel:\124r zoom")
 end
 
-local btnReset = CreateFrame("Button", "$parentButtonReset", dressingRoom, "UIPanelButtonTemplate2")
-btnReset:SetPoint("TOPRIGHT", dressingRoom, "BOTTOMRIGHT")
-btnReset:SetPoint("BOTTOM", mainFrame.stats, "BOTTOM", 0, 1)
-btnReset:SetWidth(dressingRoom:GetWidth()/3)
-btnReset:SetText("Reset")
-btnReset:SetScript("OnClick", function()
-    PlaySound("gsTitleOptionOK")
-    dressingRoom:Reset()
-end)
+mainFrame.buttons.reset = CreateFrame("Button", "$parentButtonReset", mainFrame, "UIPanelButtonTemplate2")
 
-local btnUndress = CreateFrame("Button", "$parentButtonUndress", dressingRoom, "UIPanelButtonTemplate2")
-btnUndress:SetPoint("TOPRIGHT", btnReset, "TOPLEFT")
-btnUndress:SetPoint("BOTTOMRIGHT", btnReset, "BOTTOMLEFT")
-btnUndress:SetWidth(dressingRoom:GetWidth()/3)
-btnUndress:SetText("Undress")
-btnUndress:SetScript("OnClick", function()
-    dressingRoom:Undress()
-    PlaySound("gsTitleOptionOK")
-end)
+do
+    local btn = mainFrame.buttons.reset
+    btn:SetPoint("TOPRIGHT", mainFrame.dressingRoom, "BOTTOMRIGHT")
+    btn:SetPoint("BOTTOM", mainFrame.stats, "BOTTOM", 0, 1)
+    btn:SetWidth(mainFrame.dressingRoom:GetWidth()/3)
+    btn:SetText("Reset")
+    btn:SetScript("OnClick", function()
+        mainFrame.dressingRoom:Reset()
+        PlaySound("gsTitleOptionOK")
+    end)
+end
 
-local btnUseTarget = CreateFrame("Button", "$parentButtonUseTarget", dressingRoom, "UIPanelButtonTemplate2")
-btnUseTarget:SetPoint("TOPRIGHT", btnUndress, "TOPLEFT")
-btnUseTarget:SetPoint("BOTTOMRIGHT", btnUndress, "BOTTOMLEFT")
-btnUseTarget:SetPoint("LEFT")
-btnUseTarget:SetText("Use Target")
-btnUseTarget:SetScript("OnClick", function()
-    dressingRoom:SetUnit("target")
-    PlaySound("gsTitleOptionOK")
-end)
-btnUseTarget:HookScript("OnEnter", function(self)
-    GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
-    GameTooltip:ClearLines()
-    GameTooltip:AddLine("Use Target")
-    GameTooltip:AddLine("The target must be a player in range of inspection.", 1, 1, 1, 1, true)
-    GameTooltip:Show()
-end)
-btnUseTarget:HookScript("OnLeave", function(self)
-    GameTooltip:Hide()
-end)
+mainFrame.buttons.undress = CreateFrame("Button", "$parentButtonUndress", mainFrame, "UIPanelButtonTemplate2")
+
+do
+    local btn = mainFrame.buttons.undress
+    btn:SetPoint("TOPRIGHT", mainFrame.buttons.reset, "TOPLEFT")
+    btn:SetPoint("BOTTOMRIGHT", mainFrame.buttons.reset, "BOTTOMLEFT")
+    btn:SetWidth(mainFrame.buttons.reset:GetWidth())
+    btn:SetText("Undress")
+    btn:SetScript("OnClick", function()
+        mainFrame.dressingRoom:Undress()
+        PlaySound("gsTitleOptionOK")
+    end)
+end
+
+mainFrame.buttons.useTarget = CreateFrame("Button", "$parentButtonUseTarget", mainFrame, "UIPanelButtonTemplate2")
+
+do
+    local btn = mainFrame.buttons.useTarget
+    btn:SetPoint("TOPRIGHT", mainFrame.buttons.undress, "TOPLEFT")
+    btn:SetWidth(mainFrame.buttons.undress:GetWidth())
+    btn:SetText("Use Target")
+    btn:SetScript("OnClick", function()
+        mainFrame.dressingRoom:SetUnit("target")
+        PlaySound("gsTitleOptionOK")
+    end)
+    btn:HookScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+        GameTooltip:ClearLines()
+        GameTooltip:AddLine("Use Target")
+        GameTooltip:AddLine("The target must be a player in range of inspection.", 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    btn:HookScript("OnLeave", function(self)
+        GameTooltip:Hide()
+    end)
+end
 
 ---------------- TABS ----------------
 
-local tabFrame = CreateFrame("Frame", "$parentTabFrame", mainFrame)
-tabFrame:SetPoint("TOP", 0, -74)
-tabFrame:SetPoint("BOTTOM", 0, 28)
-tabFrame:SetPoint("RIGHT", -6, 0)
-tabFrame:SetPoint("LEFT", dressingRoom, "RIGHT", 2, 0)
-tabFrame.content = {}
---tabFrame:SetBackdrop(backdrop)
+local TAB_NAMES = {"Items Preview", "Appearances", "Settings"}
+
+mainFrame.tabs = {}
 
 do
+    local tabs = {}
+
     local function tab_OnClick(self)
         local selectedTab = PanelTemplates_GetSelectedTab(self:GetParent())
-        local content = self:GetParent().content[selectedTab]
-        if content ~= nil then
-            content:Hide()
+        local tab = tabs[selectedTab]
+        if tab ~= nil then
+            tab:Hide()
         end
         PanelTemplates_SetTab(self:GetParent(), self:GetID())
-        self:GetParent().content[self:GetID()]:Show()
+        tabs[self:GetID()]:Show()
         PlaySound("gsTitleOptionOK")
     end
 
-    local tabNames = {"Items Preview", "Appearances", "Settings"}
-
-    for i = 1, #tabNames do
-        local tab = CreateFrame("Button", "$parentTab"..i, tabFrame, "OptionsFrameTabButtonTemplate")
-        tab:SetText(tabNames[i])
-        tab:SetID(i)
+    for i = 1, #TAB_NAMES do
+        mainFrame.buttons["tab"..i] = CreateFrame("Button", "$parentTab"..i, mainFrame, "OptionsFrameTabButtonTemplate")
+        local btn = mainFrame.buttons["tab"..i]
+        btn:SetText(TAB_NAMES[i])
+        btn:SetID(i)
         if i == 1 then
-            tab:SetPoint("BOTTOMLEFT", tab:GetParent(), "TOPLEFT", 0, 4)
+            btn:SetPoint("BOTTOMLEFT", btn:GetParent(), "TOPLEFT", 410, -70)
         else
-            tab:SetPoint("LEFT", _G[tabFrame:GetName().."Tab"..(i - 1)], "RIGHT")
+            btn:SetPoint("LEFT", _G[mainFrame:GetName().."Tab"..(i - 1)], "RIGHT")
         end
-        tab:SetScript("OnClick", tab_OnClick)
+        btn:SetScript("OnClick", tab_OnClick)
 
-        local tabContent = CreateFrame("Frame", "$parentTab"..i.."Content", tabFrame)
-        tabContent:SetAllPoints()
-        tabContent:Hide()
-        table.insert(tabFrame.content, tabContent)
+        local frame = CreateFrame("Frame", "$parentTab"..i.."Content", mainFrame)
+        frame:SetPoint("TOPLEFT", 410, -73)
+        frame:SetPoint("BOTTOMRIGHT", -8, 28)
+        frame:Hide()
+        table.insert(tabs, frame)
     end
     
-    PanelTemplates_SetNumTabs(tabFrame, #tabNames)
-    tab_OnClick(_G[tabFrame:GetName().."Tab1"])
-end
+    PanelTemplates_SetNumTabs(mainFrame, #TAB_NAMES)
+    tab_OnClick(_G[mainFrame:GetName().."Tab1"])
 
-local previewTabContent = tabFrame.content[1]
-local savedLooksTabContent = tabFrame.content[2]
-local settingsTabContent = tabFrame.content[#tabFrame.content]
+    mainFrame.tabs.preview = tabs[1]
+    mainFrame.tabs.appearances = tabs[2]
+    mainFrame.tabs.settings = tabs[3]
+end
 
 ---------------- PREVIEW LIST ----------------
 
-local previewList = ns:CreatePreviewList(previewTabContent)
-previewList:SetPoint("TOPLEFT")
-previewList:SetSize(601, 401)
+mainFrame.tabs.preview.list = ns:CreatePreviewList(mainFrame.tabs.preview)
+mainFrame.tabs.preview.slider = CreateFrame("Slider", "$parentSlider", mainFrame.tabs.preview, "UIPanelScrollBarTemplateLightBorder")
 
-local previewListLabel = previewList:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-previewListLabel:SetPoint("TOP", previewList, "BOTTOM", 0, -5)
-previewListLabel:SetJustifyH("CENTER")
-previewListLabel:SetHeight(10)
+do
+    local list = mainFrame.tabs.preview.list
+    list:SetPoint("TOPLEFT")
+    list:SetSize(601, 401)
 
-local previewSlider = CreateFrame("Slider", "$parentPageSlider", previewTabContent, "UIPanelScrollBarTemplateLightBorder")
-previewSlider:SetPoint("TOPRIGHT", -6, -21)
-previewSlider:SetPoint("BOTTOMRIGHT", -6, 21)
-previewSlider:EnableMouseWheel(true)
-previewSlider:SetScript("OnMouseWheel", function(self, delta)
-    self:SetValue(self:GetValue() - delta)
-end)
-previewSlider:SetScript("OnValueChanged", function(self, value)
-    previewList:SetPage(value)
-    local _, max = self:GetMinMaxValues()
-    previewListLabel:SetText(("Page: %s/%s"):format(value, max))
-end)
-previewSlider:SetScript("OnMinMaxChanged", function(self, min, max)
-    previewListLabel:SetText(("Page: %s/%s"):format(self:GetValue(), max))
-end)
-previewSlider:SetMinMaxValues(0, 0)
-previewSlider:SetValueStep(1)
-previewSlider:SetValue(1)
-_G[previewSlider:GetName() .. "ScrollUpButton"]:SetScript("OnClick", function(self)
-    local parent = self:GetParent()
-    parent:SetValue(parent:GetValue() - 1)
-    PlaySound("gsTitleOptionOK")
-end)
-_G[previewSlider:GetName() .. "ScrollDownButton"]:SetScript("OnClick", function(self)
-    local parent = self:GetParent()
-    parent:SetValue(parent:GetValue() + 1)
-    PlaySound("gsTitleOptionOK")
-end)
+    local label = list:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("TOP", list, "BOTTOM", 0, -5)
+    label:SetJustifyH("CENTER")
+    label:SetHeight(10)
 
-previewList:EnableMouseWheel(true)
-previewList:SetScript("OnMouseWheel", function(self, delta)
-    previewSlider:SetValue(previewSlider:GetValue() - delta)
-end)
+    local slider = mainFrame.tabs.preview.slider
+    slider:SetPoint("TOPRIGHT", -6, -21)
+    slider:SetPoint("BOTTOMRIGHT", -6, 21)
+    slider:EnableMouseWheel(true)
+    slider:SetScript("OnMouseWheel", function(self, delta)
+        self:SetValue(self:GetValue() - delta)
+    end)
+    slider:SetScript("OnValueChanged", function(self, value)
+        list:SetPage(value)
+        local _, max = self:GetMinMaxValues()
+        label:SetText(("Page: %s/%s"):format(value, max))
+    end)
+    slider:SetScript("OnMinMaxChanged", function(self, min, max)
+        label:SetText(("Page: %s/%s"):format(self:GetValue(), max))
+    end)
+    slider:SetMinMaxValues(0, 0)
+    slider:SetValueStep(1)
+    slider:SetValue(1)
+    
+    slider.buttons = {}
+    slider.buttons.up = _G[slider:GetName() .. "ScrollUpButton"]
+    slider.buttons.down = _G[slider:GetName() .. "ScrollDownButton"]
+
+    slider.buttons.up:SetScript("OnClick", function(self)
+        self:GetParent():SetValue(parent:GetValue() - 1)
+        PlaySound("gsTitleOptionOK")
+    end)
+    slider.buttons.down:SetScript("OnClick", function(self)
+        self:GetParent():SetValue(parent:GetValue() + 1)
+        PlaySound("gsTitleOptionOK")
+    end)
+
+    list:EnableMouseWheel(true)
+    list:SetScript("OnMouseWheel", function(self, delta)
+        slider:SetValue(slider:GetValue() - delta)
+    end)
+end
 
 ---------------- SLOTS ----------------
 
-local slots = {}
-local selectedSlot = nil
+mainFrame.slots = {}
+mainFrame.selectedSlot = nil
 
-local slotTextures = {
+local SLOT_TEXTURES = {
     ["Head"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-head",
     ["Shoulder"] =  "Interface\\Paperdoll\\ui-paperdoll-slot-shoulder",
     ["Back"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-chest",
@@ -352,13 +376,12 @@ local slotTextures = {
     ["Ranged"] =    "Interface\\Paperdoll\\ui-paperdoll-slot-ranged",
 }
 
-local armorSlots = {"Head", "Shoulder", "Chest", "Wrist", "Hands", "Waist", "Legs", "Feet"}
-local backSlot = "Back"
-local miscellaneousSlots = {"Tabard", "Shirt"}
-local mhSlot = "Main Hand"
-local ohSlot = "Off-hand"
-local rangedSlot = "Ranged"
-
+local ARMOR_SLOTS = {"Head", "Shoulder", "Chest", "Wrist", "Hands", "Waist", "Legs", "Feet"}
+local BACK_SLOT = "Back"
+local MISCELLANEOUS_SLOTS = {"Tabard", "Shirt"}
+local MAIN_HAND_SLOT = "Main Hand"
+local OFF_HAND_SLOT = "Off-hand"
+local RANGED_SLOT = "Ranged"
 
 local function hasValue(array, value)
     for i = 1, #array do
@@ -395,32 +418,34 @@ end
 
 
 local function slot_OnLeftCick(self)
+    local selectedSlot = mainFrame.selectedSlot
     if selectedSlot ~= nil then
         selectedSlot:UnlockHighlight()
-        selectedSlot.selectedPage[selectedSlot.selectedSubclass] = previewSlider:GetValue()
+        selectedSlot.selectedPage[selectedSlot.selectedSubclass] = mainFrame.tabs.preview.slider:GetValue()
     end
-    selectedSlot = self
+    mainFrame.selectedSlot = self
     local slotName = self.slotName
     local subclass = self.selectedSubclass
     local page = self.selectedPage[subclass]
     local previewSetup = GetPreviewSetup(previewSetupVersion, raceFileName, sex, slotName, subclass)
     local subclassAppearances = GetSubclassAppearances(slotName, subclass)
-    previewList:Update(previewSetup, subclassAppearances, page)
-
-    previewSlider:SetMinMaxValues(1, previewList:GetPageCount())
-    if previewSlider:GetValue() ~= page then
-        previewSlider:SetValue(page)
+    local list = mainFrame.tabs.preview.list
+    list:Update(previewSetup, subclassAppearances, page)
+    local slider = mainFrame.tabs.preview.slider
+    slider:SetMinMaxValues(1, list:GetPageCount())
+    if slider:GetValue() ~= page then
+        slider:SetValue(page)
     else
-        previewSlider:GetScript("OnValueChanged")(previewSlider, page)
+        slider:GetScript("OnValueChanged")(slider, page)
     end
     -- Need to reTryOn weapon for proper look.
-    if hasValue({mhSlot, ohSlot, rangedSlot}, self.slotName) then
-        if self.appearance.shownItemId ~= nil then
-            dressingRoom:TryOn(self.appearance.shownItemId)
+    if hasValue({MAIN_HAND_SLOT, OFF_HAND_SLOT, RANGED_SLOT}, self.slotName) then
+        if self.appearance.displayedItemId ~= nil then
+            mainFrame.dressingRoom:TryOn(self.appearance.displayedItemId)
         end
     end
     self:LockHighlight()
-    previewTabContent.subclassMenu:Update(slotName, subclass)
+    mainFrame.tabs.preview.subclassMenu:Update(slotName, subclass)
 end
 
 local function slot_OnRightClick(self)
@@ -461,15 +486,15 @@ end
 
 local function slot_Reset(self)
     local slotName = self.slotName
-    if slotName == mhSlot       then slotName = "MainHand"      end
-    if slotName == ohSlot       then slotName = "SecondaryHand" end
-    if slotName == rangedSlot   then slotName = "Ranged"        end
-    if slotName == backSlot     then slotName = "Back"        end
+    if slotName == MAIN_HAND_SLOT       then slotName = "MainHand"      end
+    if slotName == OFF_HAND_SLOT       then slotName = "SecondaryHand" end
+    if slotName == RANGED_SLOT   then slotName = "Ranged"        end
+    if slotName == BACK_SLOT     then slotName = "Back"        end
     local slotId = GetInventorySlotInfo(slotName.."Slot")
     local itemId = GetInventoryItemID("player", slotId)
     local name, link, quality, _, _, _, _, _, _, texture = GetItemInfo(itemId ~= nil and itemId or 0)
-    if name ~= nil and (quality >= 2 or hasValue(miscellaneousSlots, self.slotName))then
-        self.appearance.shownItemId = itemId
+    if name ~= nil and (quality >= 2 or hasValue(MISCELLANEOUS_SLOTS, self.slotName))then
+        self.appearance.displayedItemId = itemId
         self.appearance.itemId = itemId
         self.appearance.itemName = link:sub(1, 10)..name.."\124r"
         self.textures.empty:Hide()
@@ -477,7 +502,7 @@ local function slot_Reset(self)
         self.textures.item:SetTexture(texture)
         self:TryOn(itemId)
     else
-        self.appearance.shownItemId = nil
+        self.appearance.displayedItemId = nil
         self.appearance.itemId = nil
         self.appearance.itemName = nil
         self.textures.empty:Show()
@@ -489,7 +514,7 @@ local function slot_Undress(self)
     if self.appearance.itemId ~= nil then
         self.appearance.itemId = nil
         self.appearance.itemName = nil
-        self.appearance.shownItemId = nil
+        self.appearance.displayedItemId = nil
         self.textures.empty:Show()
         self.textures.item:Hide()
         self:GetScript("OnEnter")(self)
@@ -497,37 +522,37 @@ local function slot_Undress(self)
         the game's API we're undressing the whole
         model and dress it up again but without the
         current slot. ]]
-        dressingRoom:Undress()
-        for _, slot in pairs(slots) do
+        mainFrame.dressingRoom:Undress()
+        for _, slot in pairs(mainFrame.slots) do
             if slot ~= self then
-                if slot.appearance.shownItemId ~= nil then
-                    dressingRoom:TryOn(slot.appearance.shownItemId)
+                if slot.appearance.displayedItemId ~= nil then
+                    mainFrame.dressingRoom:TryOn(slot.appearance.displayedItemId)
                 end
             end
         end
     end
 end
 
-local function slot_TryOn(self, itemId, shownItemId, name)
-    if not (shownItemId or name) then
+local function slot_TryOn(self, itemId, displayedItemId, name)
+    if not (displayedItemId or name) then
         -- We need only the name to display it in the tooltip.
         local ids, names, index = GetOtherAppearances(itemId, self.slotName)
         if ids ~= nil then
-            shownItemId = ids[1]
+            displayedItemId = ids[1]
             name = names[index]
         end
     end
-    if shownItemId then -- we don't need an item that doens't exist in the db
+    if displayedItemId then -- we don't need an item that doens't exist in the db
         self.appearance.itemId = itemId
         self.appearance.itemName = name
-        self.appearance.shownItemId = shownItemId
-        ns:QueryItem(shownItemId, function(itemId, success)
-            if itemId == self.appearance.shownItemId and success then
-                local _, link, quality, _, _, _, _, _, _, texture = GetItemInfo(shownItemId)        
+        self.appearance.displayedItemId = displayedItemId
+        ns:QueryItem(displayedItemId, function(itemId, success)
+            if itemId == self.appearance.displayedItemId and success then
+                local _, link, quality, _, _, _, _, _, _, texture = GetItemInfo(displayedItemId)        
                 self.textures.empty:Hide()
                 self.textures.item:SetTexture(texture)
                 self.textures.item:Show()
-                dressingRoom:TryOn(itemId)
+                mainFrame.dressingRoom:TryOn(itemId)
             end
         end)
     end
@@ -535,73 +560,77 @@ end
 
 --------- Slot building
 
-for slotName, texturePath in pairs(slotTextures) do
-    local slot = CreateFrame("Button", nil, mainFrame, "ItemButtonTemplate")
-    slot:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-    slot:SetFrameLevel(dressingRoom:GetFrameLevel() + 1)
-    slot:SetScript("OnClick", slot_OnClick)
-    slot:SetScript("OnEnter", slot_OnEnter)
-    slot:SetScript("OnLeave", slot_OnLeave)
-    slot.slotName = slotName
-    slot.selectedSubclass = nil -- init later in subclass
-    slot.selectedPage = {}      -- per subclass, filled later in subclass
-    slot.appearance = {         -- assigned when a preview's clicked. Used to save in a collection.
-        ["itemId"] = nil,
-        ["itemName"] = nil,
-        ["shownItemId"] = nil,      -- To avoid overquerying, we TryOn only the first
-                                    -- item from according preview.
-    } 
-    slots[slotName] = slot
-    slot.textures = {}
-    slot.textures.empty = slot:CreateTexture(nil, "BACKGROUND")
-    slot.textures.empty:SetTexture(texturePath)
-    slot.textures.empty:SetAllPoints()
-    slot.textures.item = slot:CreateTexture(nil, "BACKGROUND")
-    slot.textures.item:SetAllPoints()
-    slot.textures.item:Hide()
-    slot.Reset = slot_Reset
-    slot.TryOn = slot_TryOn
-    slot.Undress = slot_Undress
-end
+do
+    for slotName, texturePath in pairs(SLOT_TEXTURES) do
+        local slot = CreateFrame("Button", "$parentSlot"..slotName, mainFrame, "ItemButtonTemplate")
+        slot:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+        slot:SetFrameLevel(mainFrame.dressingRoom:GetFrameLevel() + 1)
+        slot:SetScript("OnClick", slot_OnClick)
+        slot:SetScript("OnEnter", slot_OnEnter)
+        slot:SetScript("OnLeave", slot_OnLeave)
+        slot.slotName = slotName
+        slot.selectedPage = {}      -- per subclass, filled later in subclass
+        -- Empty declarations just as reminder
+        slot.selectedSubclass = nil -- init later in subclass
+        slot.appearance = {         -- assigned when a preview's clicked. Used to save in a collection.
+            ["itemId"] = nil,
+            ["itemName"] = nil,
+            ["displayedItemId"] = nil,      -- To avoid overquerying, we TryOn only the first
+                                        -- item from according preview.
+        } 
+        mainFrame.slots[slotName] = slot
+        slot.textures = {}
+        slot.textures.empty = slot:CreateTexture(nil, "BACKGROUND")
+        slot.textures.empty:SetTexture(texturePath)
+        slot.textures.empty:SetAllPoints()
+        slot.textures.item = slot:CreateTexture(nil, "BACKGROUND")
+        slot.textures.item:SetAllPoints()
+        slot.textures.item:Hide()
+        slot.Reset = slot_Reset
+        slot.TryOn = slot_TryOn
+        slot.Undress = slot_Undress
+    end
 
-slots["Head"]:SetPoint("TOPLEFT", dressingRoom, "TOPLEFT", 16, -16)
-slots["Shoulder"]:SetPoint("TOP", slots["Head"], "BOTTOM", 0, -4)
-slots["Back"]:SetPoint("TOP", slots["Shoulder"], "BOTTOM", 0, -4)
-slots["Chest"]:SetPoint("TOP", slots["Back"], "BOTTOM", 0, -4)
-slots["Shirt"]:SetPoint("TOP", slots["Chest"], "BOTTOM", 0, -36)
-slots["Tabard"]:SetPoint("TOP", slots["Shirt"], "BOTTOM", 0, -4)
-slots["Wrist"]:SetPoint("TOP", slots["Tabard"], "BOTTOM", 0, -36)
-slots["Hands"]:SetPoint("TOPRIGHT", dressingRoom, "TOPRIGHT", -16, -16)
-slots["Waist"]:SetPoint("TOP", slots["Hands"], "BOTTOM", 0, -4)
-slots["Legs"]:SetPoint("TOP", slots["Waist"], "BOTTOM", 0, -4)
-slots["Feet"]:SetPoint("TOP", slots["Legs"], "BOTTOM", 0, -4)
-slots["Off-hand"]:SetPoint("BOTTOM", dressingRoom, "BOTTOM", 0, 16)
-slots["Main Hand"]:SetPoint("RIGHT", slots["Off-hand"], "LEFT", -4, 0)
-slots["Ranged"]:SetPoint("LEFT", slots["Off-hand"], "RIGHT", 4, 0)
+    local slots = mainFrame.slots
+    slots["Head"]:SetPoint("TOPLEFT", mainFrame.dressingRoom, "TOPLEFT", 16, -16)
+    slots["Shoulder"]:SetPoint("TOP", slots["Head"], "BOTTOM", 0, -4)
+    slots["Back"]:SetPoint("TOP", slots["Shoulder"], "BOTTOM", 0, -4)
+    slots["Chest"]:SetPoint("TOP", slots["Back"], "BOTTOM", 0, -4)
+    slots["Shirt"]:SetPoint("TOP", slots["Chest"], "BOTTOM", 0, -36)
+    slots["Tabard"]:SetPoint("TOP", slots["Shirt"], "BOTTOM", 0, -4)
+    slots["Wrist"]:SetPoint("TOP", slots["Tabard"], "BOTTOM", 0, -36)
+    slots["Hands"]:SetPoint("TOPRIGHT", mainFrame.dressingRoom, "TOPRIGHT", -16, -16)
+    slots["Waist"]:SetPoint("TOP", slots["Hands"], "BOTTOM", 0, -4)
+    slots["Legs"]:SetPoint("TOP", slots["Waist"], "BOTTOM", 0, -4)
+    slots["Feet"]:SetPoint("TOP", slots["Legs"], "BOTTOM", 0, -4)
+    slots["Off-hand"]:SetPoint("BOTTOM", mainFrame.dressingRoom, "BOTTOM", 0, 16)
+    slots["Main Hand"]:SetPoint("RIGHT", slots["Off-hand"], "LEFT", -4, 0)
+    slots["Ranged"]:SetPoint("LEFT", slots["Off-hand"], "RIGHT", 4, 0)
+end
 
 ------- Tricks and hooks with slots and provided appearances. -------
 
 local function btnReset_Hook()
-    dressingRoom:Undress()
-    for _, slot in pairs(slots) do
+    mainFrame.dressingRoom:Undress()
+    for _, slot in pairs(mainFrame.slots) do
         slot:Reset()
     end
 end
 
 local function btnUndress_Hook()
-    for _, slot in pairs(slots) do
+    for _, slot in pairs(mainFrame.slots) do
         slot.appearance.itemId = nil
         slot.appearance.itemName = nil
-        slot.appearance.shownItemId = nil
+        slot.appearance.displayedItemId = nil
         slot.textures.empty:Show()
         slot.textures.item:Hide()
     end
 end
 
 local function tryOnSlots(dressUpModel)
-    for _, slot in pairs(slots) do
-        if slot.appearance.shownItemId ~= nil then
-            dressUpModel:TryOn(slot.appearance.shownItemId)
+    for _, slot in pairs(mainFrame.slots) do
+        if slot.appearance.displayedItemId ~= nil then
+            dressUpModel:TryOn(slot.appearance.displayedItemId)
         end
     end
 end
@@ -613,7 +642,7 @@ end
 --[[
     After half of a year I don't remeber anymore
     why I do it, but showing/hiding a DressUpModel
-    brokes positioning.
+    brokes the model's positioning.
 ]]
 local function dressingRoom_OnShow(self)
     self:Reset()
@@ -625,40 +654,39 @@ end
     Need to TryOn items in the slots if we changed
     displayed model.
 ]]
-btnUseTarget:HookScript("OnClick", function(slef)
-    dressingRoom:Undress()
-    tryOnSlots(dressingRoom)
+mainFrame.buttons.useTarget:HookScript("OnClick", function(slef)
+    mainFrame.dressingRoom:Undress()
+    tryOnSlots(mainFrame.dressingRoom)
 end)
 
 -- At first time it's shown.
-slots["Head"]:SetScript("OnShow", function(self)
+mainFrame.slots["Head"]:SetScript("OnShow", function(self)
     self:SetScript("OnShow", nil)
     self:Click("LeftButton")
-    btnReset:HookScript("OnClick", btnReset_Hook)
-    dressingRoom:HookScript("OnShow", dressingRoom_OnShow)
-    dressingRoom_OnShow(dressingRoom)
+    mainFrame.buttons.reset:HookScript("OnClick", btnReset_Hook)
+    mainFrame.dressingRoom:HookScript("OnShow", dressingRoom_OnShow)
+    dressingRoom_OnShow(mainFrame.dressingRoom)
     btnReset_Hook()
-    btnUndress:HookScript("OnClick", btnUndress_Hook)
+    mainFrame.buttons.undress:HookScript("OnClick", btnUndress_Hook)
 end)
 
 ---------------- PREVIEW LIST SCRIPT ----------------
 
-do
-previewList:OnButtonClick(function(self, button)
-        local preview = self:GetParent()
-        local ids, names = unpack(preview.appereanceData)
-        local selected = preview.selected
-        if IsShiftKeyDown() then
-            local color = names[selected]:sub(1, 10)
-            local name = names[selected]:sub(11, -3)
-            SELECTED_CHAT_FRAME:AddMessage("[DressMe]: "..selectedSlot.slotName.." - "..selectedSlot.selectedSubclass.." "..color.."\124Hitem:"..ids[selected]..":::::::|h["..name.."]\124h\124r".." ("..ids[selected]..")")
-        elseif IsControlKeyDown() then
-            ns:ShowWowheadURLDialog(ids[selected])
-        else
-            selectedSlot:TryOn(ids[selected], ids[1],  names[selected])
-        end
-    end)
-end
+mainFrame.tabs.preview.list:OnButtonClick(function(self, button)
+    local preview = self:GetParent()
+    local ids, names = unpack(preview.appereanceData)
+    local selectedPreview = preview.selected
+    local selectedSlot = mainFrame.selectedSlot
+    if IsShiftKeyDown() then
+        local color = names[selectedPreview]:sub(1, 10)
+        local name = names[selectedPreview]:sub(11, -3)
+        SELECTED_CHAT_FRAME:AddMessage("[DressMe]: "..selectedSlot.slotName.." - "..selectedSlot.selectedSubclass.." "..color.."\124Hitem:"..ids[selectedPreview]..":::::::|h["..name.."]\124h\124r".." ("..ids[selectedPreview]..")")
+    elseif IsControlKeyDown() then
+        ns:ShowWowheadURLDialog(ids[selectedPreview])
+    else
+        selectedSlot:TryOn(ids[selectedPreview], ids[1],  names[selectedPreview])
+    end
+end)
 
 ---------------- SBUCLASS FRAMES ----------------
 
@@ -673,9 +701,10 @@ function string:startswith(...)
     return  false
 end
 
+mainFrame.tabs.preview.subclassMenu = CreateFrame("Frame", "$parentSubclassMenu", mainFrame.tabs.preview, "UIDropDownMenuTemplate")
+
 do
-    previewTabContent.subclassMenu = CreateFrame("Frame", "$parentSubclassMenu", previewTabContent, "UIDropDownMenuTemplate")
-    local menu = previewTabContent.subclassMenu
+    local menu = mainFrame.tabs.preview.subclassMenu
     menu:SetPoint("TOPRIGHT", -120, 38)
     menu.initializers = {} -- init func per slot
     UIDropDownMenu_JustifyText(menu, "LEFT")
@@ -689,145 +718,149 @@ do
             UIDropDownMenu_DisableDropDown(self)
         end
     end
-end
 
-local function subclassMenu_OnClick(self, subclass)
-    selectedSlot.selectedPage[selectedSlot.selectedSubclass] = previewSlider:GetValue()
-    local slotName = selectedSlot.slotName
-    local page = selectedSlot.selectedPage[subclass]
-    local previewSetup = GetPreviewSetup(previewSetupVersion, raceFileName, sex, slotName, subclass)
-    local subclassAppearances = GetSubclassAppearances(slotName, subclass)
-    previewList:Update(previewSetup, subclassAppearances, page)
-    
-    selectedSlot.selectedSubclass = subclass
-    previewSlider:SetMinMaxValues(1, previewList:GetPageCount())
-    if previewSlider:GetValue() ~= page then
-        previewSlider:SetValue(page)
-    else
-        previewSlider:GetScript("OnValueChanged")(previewSlider, page)
+    local previewTab = mainFrame.tabs.preview
+    local slots = mainFrame.slots
+
+    local function subclassMenu_OnClick(self, subclass)
+        local selectedSlot = mainFrame.selectedSlot
+        selectedSlot.selectedPage[selectedSlot.selectedSubclass] = previewTab.slider:GetValue()
+        local slotName = selectedSlot.slotName
+        local page = selectedSlot.selectedPage[subclass]
+        local previewSetup = GetPreviewSetup(previewSetupVersion, raceFileName, sex, slotName, subclass)
+        local subclassAppearances = GetSubclassAppearances(slotName, subclass)
+        previewTab.list:Update(previewSetup, subclassAppearances, page)
+        selectedSlot.selectedSubclass = subclass
+        previewTab.slider:SetMinMaxValues(1, previewTab.list:GetPageCount())
+        if previewTab.slider:GetValue() ~= page then
+            previewTab.slider:SetValue(page)
+        else
+            previewTab.slider:GetScript("OnValueChanged")(previewTab.slider, page)
+        end
+        UIDropDownMenu_SetText(mainFrame.tabs.preview.subclassMenu, subclass)
     end
-    UIDropDownMenu_SetText(previewTabContent.subclassMenu, subclass)
-end
 
+    ---------------- ARMOR ----------------
 
----------------- ARMOR ----------------
+    do
+        local subclasses = {"Cloth", "Leather", "Mail", "Plate"}
+        -- Classes and what they wear to select it by default.
+        local subclassPerPlayerClass = {
+            MAGE = "Cloth",
+            PRIEST = "Cloth",
+            WARLOCK = "Cloth",
+            DRUID = "Leather",
+            ROGUE = "Leather",
+            HUNTER = "Mail",
+            SHAMAN = "Mail",
+            PALADIN = "Plate",
+            WARRIOR = "Plate",
+            DEATHKNIGHT = "Plate"
+        }
 
-do
-    local subclasses = {"Cloth", "Leather", "Mail", "Plate"}
-    -- Classes and what they wear to select it by default.
-    local subclassPerPlayerClass = {
-        MAGE = "Cloth",
-        PRIEST = "Cloth",
-        WARLOCK = "Cloth",
-        DRUID = "Leather",
-        ROGUE = "Leather",
-        HUNTER = "Mail",
-        SHAMAN = "Mail",
-        PALADIN = "Plate",
-        WARRIOR = "Plate",
-        DEATHKNIGHT = "Plate"
-    }
+        local function init(self)
+            local info = UIDropDownMenu_CreateInfo()
+            for i = 1, #subclasses do
+                info.text, info.checked, info.arg1, info.func = subclasses[i], subclasses[i] == UIDropDownMenu_GetText(self), subclasses[i], subclassMenu_OnClick
+                UIDropDownMenu_AddButton(info)
+            end
+        end
 
-    local function init(self)
-        local info = UIDropDownMenu_CreateInfo()
-        for i = 1, #subclasses do
-            info.text, info.checked, info.arg1, info.func = subclasses[i], subclasses[i] == UIDropDownMenu_GetText(self), subclasses[i], subclassMenu_OnClick
-            UIDropDownMenu_AddButton(info)
+        for _, slotName in pairs(ARMOR_SLOTS) do
+            previewTab.subclassMenu.initializers[slotName] = init
+            slots[slotName].selectedSubclass = subclassPerPlayerClass[classFileName]
+            for _, subclass in ipairs(subclasses) do
+                slots[slotName].selectedPage[subclass] = 1
+            end
         end
     end
 
-    for _, slotName in pairs(armorSlots) do
-        previewTabContent.subclassMenu.initializers[slotName] = init
-        slots[slotName].selectedSubclass = subclassPerPlayerClass[classFileName]
+    ---------------- BACK ----------------
+
+    do
+        local subclass = "Cloth"
+        slots[BACK_SLOT].selectedSubclass = subclass
+        slots[BACK_SLOT].selectedPage[subclass] = 1
+    end
+
+    ---------------- SHIRT / TABARD ----------------
+
+    do
+        local subclass = "Miscellaneous"
+        for _, name in pairs(MISCELLANEOUS_SLOTS) do
+            slots[name].selectedSubclass = subclass
+            slots[name].selectedPage[subclass] = 1
+        end
+    end
+
+    ---------------- MAIN HAND ----------------
+
+    do
+        local subclasses = {
+            "1H Axe", "1H Mace", "1H Sword", "1H Dagger", "1H Fist",
+            "MH Axe", "MH Mace", "MH Sword", "MH Dagger", "MH Fist",
+            "2H Axe", "2H Mace", "2H Sword", "Polearm", "Staff"
+        }
+        local function init (self)
+            local info = UIDropDownMenu_CreateInfo()
+            for i = 1, #subclasses do
+                info.text, info.checked, info.arg1, info.func = subclasses[i], subclasses[i] == UIDropDownMenu_GetText(self), subclasses[i], subclassMenu_OnClick
+                UIDropDownMenu_AddButton(info)
+            end
+        end
+        previewTab.subclassMenu.initializers[MAIN_HAND_SLOT] = init
+        slots[MAIN_HAND_SLOT].selectedSubclass = subclasses[1]
         for _, subclass in ipairs(subclasses) do
-            slots[slotName].selectedPage[subclass] = 1
+            slots[MAIN_HAND_SLOT].selectedPage[subclass] = 1
+        end
+    end
+
+    ---------------- OFF-HAND ----------------
+
+    do
+        local subclasses = {
+            "OH Axe", "OH Mace", "OH Sword", "OH Dagger", "OH Fist",
+            "Shield", "Held in Off-hand"
+        }
+        local function init(self)
+            local info = UIDropDownMenu_CreateInfo()
+            for i = 1, #subclasses do
+                info.text, info.checked, info.arg1, info.func = subclasses[i], subclasses[i] == UIDropDownMenu_GetText(self), subclasses[i], subclassMenu_OnClick
+                UIDropDownMenu_AddButton(info)
+            end
+        end
+        previewTab.subclassMenu.initializers[OFF_HAND_SLOT] = init
+        slots[OFF_HAND_SLOT].selectedSubclass = subclasses[1]
+        for _, subclass in ipairs(subclasses) do
+            slots[OFF_HAND_SLOT].selectedPage[subclass] = 1
+        end
+    end
+
+    ---------------- RANGED ----------------
+
+    do
+        local subclasses = {"Bow", "Crossbow", "Gun", "Wand", "Thrown"}
+        local function init(self)
+            local info = UIDropDownMenu_CreateInfo()
+            for i = 1, #subclasses do
+                info.text, info.checked, info.arg1, info.func = subclasses[i], subclasses[i] == UIDropDownMenu_GetText(self), subclasses[i], subclassMenu_OnClick
+                UIDropDownMenu_AddButton(info)
+            end
+        end
+        previewTab.subclassMenu.initializers[RANGED_SLOT] = init
+        slots[RANGED_SLOT].selectedSubclass = subclasses[1]
+        for _, subclass in ipairs(subclasses) do
+            slots[RANGED_SLOT].selectedPage[subclass] = 1
         end
     end
 end
 
----------------- BACK ----------------
+---------------- APPEARANCES ----------------
 
 do
-    local subclass = "Cloth"
-    slots[backSlot].selectedSubclass = subclass
-    slots[backSlot].selectedPage[subclass] = 1
-end
+    local appearancesTab = mainFrame.tabs.appearances
 
----------------- SHIRT / TABARD ----------------
-
-do
-    local subclass = "Miscellaneous"
-    for _, name in pairs(miscellaneousSlots) do
-        slots[name].selectedSubclass = subclass
-        slots[name].selectedPage[subclass] = 1
-    end
-end
-
----------------- MAIN HAND ----------------
-
-do
-    local subclasses = {
-        "1H Axe", "1H Mace", "1H Sword", "1H Dagger", "1H Fist",
-        "MH Axe", "MH Mace", "MH Sword", "MH Dagger", "MH Fist",
-        "2H Axe", "2H Mace", "2H Sword", "Polearm", "Staff"
-    }
-    local function init (self)
-        local info = UIDropDownMenu_CreateInfo()
-        for i = 1, #subclasses do
-            info.text, info.checked, info.arg1, info.func = subclasses[i], subclasses[i] == UIDropDownMenu_GetText(self), subclasses[i], subclassMenu_OnClick
-            UIDropDownMenu_AddButton(info)
-        end
-    end
-    previewTabContent.subclassMenu.initializers[mhSlot] = init
-    slots[mhSlot].selectedSubclass = subclasses[1]
-    for _, subclass in ipairs(subclasses) do
-        slots[mhSlot].selectedPage[subclass] = 1
-    end
-end
-
----------------- OFF-HAND ----------------
-
-do
-    local subclasses = {
-        "OH Axe", "OH Mace", "OH Sword", "OH Dagger", "OH Fist",
-        "Shield", "Held in Off-hand"
-    }
-    local function init(self)
-        local info = UIDropDownMenu_CreateInfo()
-        for i = 1, #subclasses do
-            info.text, info.checked, info.arg1, info.func = subclasses[i], subclasses[i] == UIDropDownMenu_GetText(self), subclasses[i], subclassMenu_OnClick
-            UIDropDownMenu_AddButton(info)
-        end
-    end
-    previewTabContent.subclassMenu.initializers[ohSlot] = init
-    slots[ohSlot].selectedSubclass = subclasses[1]
-    for _, subclass in ipairs(subclasses) do
-        slots[ohSlot].selectedPage[subclass] = 1
-    end
-end
-
----------------- RANGED ----------------
-
-do
-    local subclasses = {"Bow", "Crossbow", "Gun", "Wand", "Thrown"}
-    local function init(self)
-        local info = UIDropDownMenu_CreateInfo()
-        for i = 1, #subclasses do
-            info.text, info.checked, info.arg1, info.func = subclasses[i], subclasses[i] == UIDropDownMenu_GetText(self), subclasses[i], subclassMenu_OnClick
-            UIDropDownMenu_AddButton(info)
-        end
-    end
-    previewTabContent.subclassMenu.initializers[rangedSlot] = init
-    slots[rangedSlot].selectedSubclass = subclasses[1]
-    for _, subclass in ipairs(subclasses) do
-        slots[rangedSlot].selectedPage[subclass] = 1
-    end
-end
-
----------------- SAVED LOOKS ----------------
-
-do
-    local background = CreateFrame("Frame", "$parentSavedLooksBackground", savedLooksTabContent)
+    local background = CreateFrame("Frame", "$parentSavedListBackground", appearancesTab)
     background:SetPoint("TOPLEFT", 5, -30)
     background:SetPoint("BOTTOM", 0, 30)
     background:SetWidth(280)
@@ -907,8 +940,8 @@ do
     local function slots2ItemList()
         local items = {}
         for _, slotName in pairs(slotOrder) do
-            if slots[slotName].appearance.shownItemId ~= nil then
-                table.insert(items, slots[slotName].appearance.itemId)
+            if mainFrame.slots[slotName].appearance.displayedItemId ~= nil then
+                table.insert(items, mainFrame.slots[slotName].appearance.itemId)
             else
                 table.insert(items, 0)
             end
@@ -963,9 +996,9 @@ do
         for index, slotName in pairs(slotOrder) do
             local itemId = savedLooks[id].items[index]
             if itemId ~= 0 then
-                slots[slotName]:TryOn(itemId)
+                mainFrame.slots[slotName]:TryOn(itemId)
             else
-                slots[slotName]:Undress()
+                mainFrame.slots[slotName]:Undress()
             end
         end
     end)
@@ -1104,6 +1137,8 @@ end)
 ---------------- SETTINGS TAB ----------------
 
 do
+    local settingsTab = mainFrame.tabs.settings
+
     local function GetSettings()
         if _G["DressMeSettings"] == nil then
             local function copyTable(tableFrom)
@@ -1124,13 +1159,13 @@ do
     
     --------- Preview Setup
 
-    local menu = CreateFrame("Frame", addon.."PreviewSetupDropDownMenu", settingsTabContent, "UIDropDownMenuTemplate")
+    local menu = CreateFrame("Frame", addon.."PreviewSetupDropDownMenu", settingsTab, "UIDropDownMenuTemplate")
 
     local function menu_OnClick(self, arg1, arg2, checked)
         GetSettings().previewSetup = arg1
         UIDropDownMenu_SetText(menu, arg1)
         previewSetupVersion = arg1
-        selectedSlot:Click("LeftButton")
+        mainFrame.selectedSlot:Click("LeftButton")
     end
 
     UIDropDownMenu_Initialize(menu, function(frame, level, menuList)
@@ -1143,10 +1178,10 @@ do
     end)
 
     local menuTitle = menu:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    menuTitle:SetPoint("TOPLEFT", settingsTabContent, "TOPLEFT", 16, -24)
+    menuTitle:SetPoint("TOPLEFT", settingsTab, "TOPLEFT", 16, -24)
     menuTitle:SetText("Used models:")
 
-    local menuTip = CreateFrame("Frame", addon.."PreviewSetupDropDownMenuTip", settingsTabContent)
+    local menuTip = CreateFrame("Frame", addon.."PreviewSetupDropDownMenuTip", settingsTab)
     menuTip:SetPoint("LEFT", menuTitle, "LEFT")
     menuTip:SetPoint("RIGHT", menu:GetChildren(), "LEFT")
     menuTip:SetHeight(menu:GetChildren():GetHeight())
@@ -1166,7 +1201,7 @@ do
 
     --------- Character background color
 
-    local colorPicker = CreateFrame("Frame", addon.."BorderDressingRoomBackgroundColorPicker", settingsTabContent)
+    local colorPicker = CreateFrame("Frame", addon.."BorderDressingRoomBackgroundColorPicker", settingsTab)
     colorPicker:SetSize(24, 24)
     colorPicker:SetBackdrop({bgFile = "Interface\\ChatFrame\\ChatFrameBackground"})
     colorPicker:SetBackdropColor(0.15, 0.15, 0.15, 1)
@@ -1179,20 +1214,20 @@ do
     btnColorPicker:SetBackdropColor(unpack(defaultSettings.dressingRoomBackgroundColor))
 
     local colorPickerTitle = colorPicker:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    colorPickerTitle:SetPoint("TOPLEFT", settingsTabContent, "TOPLEFT", 16, -80)
+    colorPickerTitle:SetPoint("TOPLEFT", settingsTab, "TOPLEFT", 16, -80)
     colorPickerTitle:SetText("Character background color:")
 
     colorPicker:SetPoint("LEFT", colorPickerTitle, "RIGHT", 8, 0)
 
     local function colorPicker_OnAccept(a, b, c)
         local r, g, b = ColorPickerFrame:GetColorRGB() 
-        dressingRoom:SetBackdropColor(r, g, b)
+        mainFrame.dressingRoom:SetBackdropColor(r, g, b)
         btnColorPicker:SetBackdropColor(r, g, b)
         GetSettings().dressingRoomBackgroundColor = {r, g, b}
     end
 
     local function colorPicker_OnCancel(previousValues)
-        dressingRoom:SetBackdropColor(unpack(previousValues))
+        mainFrame.dressingRoom:SetBackdropColor(unpack(previousValues))
         btnColorPicker:SetBackdropColor(unpack(previousValues))
         GetSettings().dressingRoomBackgroundColor = {unpack(previousValues)}
     end
@@ -1215,14 +1250,14 @@ do
         local settings = GetSettings()
         local color = {unpack(defaultSettings.dressingRoomBackgroundColor)}
         settings.dressingRoomBackgroundColor = color
-        dressingRoom:SetBackdropColor(unpack(color))
+        mainFrame.dressingRoom:SetBackdropColor(unpack(color))
         btnColorPicker:SetBackdropColor(unpack(color))
         PlaySound("gsTitleOptionOK")
     end)
 
     --------- Show/hide "DressMe" button
     
-    local showDressMeButtonCheckBox = CreateFrame("CheckButton", addon.."ShowDressMeButtonCheckBox", settingsTabContent, "ChatConfigCheckButtonTemplate")
+    local showDressMeButtonCheckBox = CreateFrame("CheckButton", addon.."ShowDressMeButtonCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
     showDressMeButtonCheckBox:SetScript("OnClick", function(self)
         if self:GetChecked() then
             btnDressMe:Show()
@@ -1248,13 +1283,13 @@ do
     showDressMeButtonTitle:SetText("Show \"DressMe\" button:")
     showDressMeButtonTitle:SetPoint("TOPRIGHT", showDressMeButtonCheckBox, "TOPLEFT", -4, -4)
 
-    showDressMeButtonCheckBox:SetPoint("TOPLEFT", settingsTabContent, "TOPLEFT", showDressMeButtonTitle:GetWidth() + 28, -150)
+    showDressMeButtonCheckBox:SetPoint("TOPLEFT", settingsTab, "TOPLEFT", showDressMeButtonTitle:GetWidth() + 28, -150)
 
     --------- Apply settings on addon loaded
 
     local function applySettings(settings)
         -- Dressing room background color
-        dressingRoom:SetBackdropColor(unpack(settings.dressingRoomBackgroundColor))
+        mainFrame.dressingRoom:SetBackdropColor(unpack(settings.dressingRoomBackgroundColor))
         btnColorPicker:SetBackdropColor(unpack(settings.dressingRoomBackgroundColor))
         -- Preview setup popup menu
         previewSetupVersion = settings.previewSetup
@@ -1268,8 +1303,8 @@ do
         UIDropDownMenu_SetText(menu, settings.previewSetup)
     end
 
-    settingsTabContent:RegisterEvent("ADDON_LOADED")
-    settingsTabContent:SetScript("OnEvent", function(self, event, addonName)
+    settingsTab:RegisterEvent("ADDON_LOADED")
+    settingsTab:SetScript("OnEvent", function(self, event, addonName)
         if addonName == addon then
             if event == "ADDON_LOADED" then
                 local settings = GetSettings()
@@ -1287,6 +1322,6 @@ SlashCmdList["DRESSME"] = function(msg)
     if msg == "" then
         if mainFrame:IsShown() then mainFrame:Hide() else mainFrame:Show() end
     elseif msg == "debug" then
-        if dressingRoom:IsDebugInfoShown() then dressingRoom:HideDebugInfo() else dressingRoom:ShowDebugInfo() end
+        if mainFrame.dressingRoom:IsDebugInfoShown() then mainFrame.dressingRoom:HideDebugInfo() else mainFrame.dressingRoom:ShowDebugInfo() end
     end
 end
