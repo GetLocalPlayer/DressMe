@@ -11,40 +11,40 @@ StaticPopupDialogs["DRESSME_WOWHEAD_URL_DIALOG"] = {
     hasEditBox = true,
     hasWideEditBox = true,
     preferredIndex = 3,
+
     OnAccept = function(self)
-    end
+        self.data.isRetail = not self.data.isRetail
+        StaticPopup_Hide("DRESSME_WOWHEAD_URL_DIALOG")
+    end,
+
+    OnCancel = function(self)
+        self.data.isClosed = true
+    end,
+
+    OnHide = function(self)
+        if not self.data.isClosed then
+            StaticPopup_Show("DRESSME_WOWHEAD_URL_DIALOG", nil, nil, self.data)
+        end
+    end,
+
+    OnShow = function(self)
+        local data = self.data
+        self.text:SetText(("Wowhead \124cff00ff00%s\124r"):format(data.isRetail and "Retail" or "Classic"))
+        self.wideEditBox:SetText(("https://%s.wowhead.com/item=%s"):format((data.isRetail and "www" or "classic"), data.itemId))
+        self.wideEditBox:HighlightText()
+        self.button1:SetText(data.isRetail and "Classic" or "Retail")
+    end,
 }
 
 
 function ns:ShowWowheadURLDialog(itemId)
-    local isRetail = true
-    local isCanceled = false
-
-    StaticPopupDialogs["DRESSME_WOWHEAD_URL_DIALOG"].OnShow = function (self)
-        self.text:SetText(("Wowhead \124cff00ff00%s\124r"):format(isRetail and "Retail" or "Classic"))
-        self.wideEditBox:SetText(("https://%s.wowhead.com/item=%s"):format((isRetail and "www" or "classic"), itemId))
-        self.wideEditBox:HighlightText()
-        self.button1:SetText(isRetail and "Classic" or "Retail")
-    end
-
-    StaticPopupDialogs["DRESSME_WOWHEAD_URL_DIALOG"].OnAccept = function(self)
-        isRetail = not isRetail
-        isCanceled = true
-        StaticPopup_Hide("DRESSME_WOWHEAD_URL_DIALOG")
-    end
-
-    StaticPopupDialogs["DRESSME_WOWHEAD_URL_DIALOG"].OnCancel = function(self)
-        isCanceled = false
-    end
-
-    StaticPopupDialogs["DRESSME_WOWHEAD_URL_DIALOG"].OnHide = function(self)
-        if isCanceled then
-            StaticPopup_Show("DRESSME_WOWHEAD_URL_DIALOG")
-        end
-    end
-
     if StaticPopup_Visible("DRESSME_WOWHEAD_URL_DIALOG") then
         StaticPopup_Hide("DRESSME_WOWHEAD_URL_DIALOG")
     end
-    StaticPopup_Show("DRESSME_WOWHEAD_URL_DIALOG")
+    local data = {
+        ["isRetail"] = true,
+        ["itemId"] = itemId,
+        ["isClosed"] = false,
+    }
+    local dialog = StaticPopup_Show("DRESSME_WOWHEAD_URL_DIALOG", nil, nil, data)
 end

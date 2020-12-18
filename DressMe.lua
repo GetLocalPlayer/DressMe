@@ -38,6 +38,7 @@ local dressingRoomBorderBackdrop = { -- For a frame above DressingRoom
 local mainFrame = CreateFrame("Frame", addon, UIParent)
 -- "Hurry up! You must hack the main frame!"
 -- <hackerman noises>
+table.insert(UISpecialFrames, mainFrame:GetName())
 do 
     mainFrame:SetWidth(1045)
     mainFrame:SetHeight(505)

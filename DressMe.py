@@ -4,7 +4,7 @@ from collections import namedtuple, OrderedDict, Iterable
 from pprint import pprint
 
 """
-    TODO: must add exclude items list in SQL commands
+    TODO: must add excluded items list in SQL commands
     to remove unobtainable items, like 26132 that was
     removed manually from the database.
 """
