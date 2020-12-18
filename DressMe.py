@@ -13,7 +13,7 @@ db = mysql.connector.connect(
   host="localhost",
   user="root",
   passwd="root",
-  database="world"
+  database="acore_world"
 )
 
 cursor = db.cursor()
