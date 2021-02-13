@@ -7,6 +7,9 @@ from pprint import pprint
     TODO: must add excluded items list in SQL commands
     to remove unobtainable items, like 26132 that was
     removed manually from the database.
+    Currently removed items:
+        26180
+        26132
 """
 
 db = mysql.connector.connect(

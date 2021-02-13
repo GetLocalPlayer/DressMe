@@ -21274,11 +21274,9 @@ local itemsData = {
                 },
                 {
                     {
-                        26180,
                         24794,
                     },
                     {
-                        "|cff1eff0060 TEST Green Rogue Head|r",
                         "|cff1eff00Expedition Hood|r",
                     },
                 },
