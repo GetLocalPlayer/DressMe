@@ -1,10 +1,10 @@
 ## Interface: 30300
 ## Author: GetLocalPlayer
 ## Title: DressMe
-## Notes: Create your look and save it.
+## Notes: Transmog addon for WotLK 3.3.5
 ## SavedVariables: DressMeSavedLooks
 ## SavedVariables: DressMeSettings
-## Version: 1.2.0
+## Version: 1.2.1
 
 QueryItem.lua
 WowheadURL.lua
