@@ -201,7 +201,7 @@ do
     tip:SetPoint("BOTTOM", dressingRoom, "TOP", 0, 12)
     tip:SetJustifyH("CENTER")
     tip:SetJustifyV("BOTTOM")
-    tip:SetText("\124cff00ff00Left Mouse:\124r rotate \124 \124cff00ff00Right Mouse:\124r pan\124n\124cff00ff00Wheel:\124r zoom")
+    tip:SetText("\124cff00ff00Left Mouse:\124r rotate \124 \124cff00ff00Right Mouse:\124r pan\124n\124cff00ff00Wheel\124r or \124cff00ff00Alt + Right Mouse:\124r zoom")
 end
 
 mainFrame.buttons.reset = CreateFrame("Button", "$parentButtonReset", mainFrame, "UIPanelButtonTemplate2")

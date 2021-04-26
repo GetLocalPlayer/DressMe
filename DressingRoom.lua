@@ -101,15 +101,19 @@ function ns:CreateDressingRoom(name, parent)
         self:StartMoving()
         local cursorX, cursorY = GetCursorPosition()
         if button == "LeftButton" then
-            dragDummy:RegisterForDrag("LeftButton")
             self:SetScript("OnUpdate", function(self, elapsed)
                 local newX, newY = GetCursorPosition()
                 local deltaX = newX - cursorX
                 model:SetFacing(model:GetFacing() + deltaX * facingStep)
                 cursorX, cursorY = newX, newY
             end)
+        elseif button == "RightButton" and IsAltKeyDown() then
+            self:SetScript("OnUpdate", function(self, elapsed)
+                local newX, newY = GetCursorPosition()
+                frame:GetScript("OnMouseWheel")(frame, (newY - cursorY) * 0.05)
+                cursorX, cursorY = newX, newY
+            end)
         elseif button == "RightButton" then
-            dragDummy:RegisterForDrag("RightButton")
             self:SetScript("OnUpdate", function(self, elapsed)
                 local newX, newY = GetCursorPosition()
                 local deltaY = newY - cursorY
