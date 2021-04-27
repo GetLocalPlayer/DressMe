@@ -1,14 +1,15 @@
 local addon, ns = ...
 
+local GetOtherAppearances = ns.GetOtherAppearances
+local GetSubclassAppearances = ns.GetSubclassAppearances
+local GetPreviewSetup = ns.GetPreviewSetup
+
 local sex = UnitSex("player")
 local _, raceFileName = UnitRace("player")
 local _, classFileName = UnitClass("player")
 
 local previewSetupVersion = "classic"
 
-local GetPreviewSetup = ns.GetPreviewSetup
-local GetSubclassAppearances = ns.GetSubclassAppearances
-local GetOtherAppearances = ns.GetOtherAppearances
 
 -- Used in look saving/sending. Chenging wil breack compatibility.
 local slotOrder = { "Head", "Shoulder", "Back", "Chest", "Shirt", "Tabard", "Wrist", "Hands", "Waist", "Legs", "Feet", "Main Hand", "Off-hand", "Ranged",}
@@ -355,6 +356,7 @@ do
     end)
 end
 
+
 ---------------- SLOTS ----------------
 
 mainFrame.slots = {}
@@ -384,15 +386,6 @@ local MAIN_HAND_SLOT = "Main Hand"
 local OFF_HAND_SLOT = "Off-hand"
 local RANGED_SLOT = "Ranged"
 
-local function hasValue(array, value)
-    for i = 1, #array do
-        if array[i] == value then
-            return i
-        end
-    end
-    return nil
-end
-
 local function slot_OnShiftLeftClick(self)
     local itemId = self.appearance.itemId
     local itemName = self.appearance.itemName
@@ -409,6 +402,14 @@ local function slot_OnShiftLeftClick(self)
     end
 end
 
+local function hasValue(array, value)
+    for i = 1, #array do
+        if array[i] == value then
+            return i
+        end
+    end
+    return nil
+end
 
 local function slot_OnControlLeftClick(self)
     local itemId = self.appearance.itemId
@@ -494,6 +495,13 @@ local function slot_Reset(self)
     local slotId = GetInventorySlotInfo(slotName.."Slot")
     local itemId = GetInventoryItemID("player", slotId)
     local name, link, quality, _, _, _, _, _, _, texture = GetItemInfo(itemId ~= nil and itemId or 0)
+    if name ~= nil then
+        local ids, names, index, subclass = GetOtherAppearances(itemId, self.slotName)
+        if ids ~= nil then
+        else
+            name = nil
+        end
+    end
     if name ~= nil and (quality >= 2 or hasValue(MISCELLANEOUS_SLOTS, self.slotName))then
         self.appearance.displayedItemId = itemId
         self.appearance.itemId = itemId
@@ -575,9 +583,10 @@ do
         slot.selectedSubclass = nil -- init later in subclass
         slot.appearance = {         -- assigned when a preview's clicked. Used to save in a collection.
             ["itemId"] = nil,
-            ["itemName"] = nil,
-            ["displayedItemId"] = nil,      -- To avoid overquerying, we TryOn only the first
-                                        -- item from according preview.
+            ["itemName"] = nil,     -- is used int tooltip
+            ["itemSubclass"] = nil, -- is used in tooltip
+            ["displayedItemId"] = nil,  --[[ To avoid overquerying, we TryOn only the first
+                                             item from according preview. ]]
         } 
         mainFrame.slots[slotName] = slot
         slot.textures = {}
@@ -641,7 +650,7 @@ end
     the model's reset each time it's shown.
 ]]
 --[[
-    After half of a year I don't remeber anymore
+    After half a year I don't remeber anymore
     why I do it, but showing/hiding a DressUpModel
     brokes the model's positioning.
 ]]

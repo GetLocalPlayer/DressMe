@@ -9,9 +9,13 @@
 QueryItem.lua
 WowheadURL.lua
 
-db\Items.lua
-db\PreviewSetup.lua
+db\ItemsDB.lua
+db\ItemsAPI.lua
+db\PreviewSetupDB.lua
+db\PreviewSetupAPI.lua
+
 DressingRoom.lua
 PreviewList.lua
 ListFrame.lua
+
 DressMe.lua
