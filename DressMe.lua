@@ -387,9 +387,9 @@ local OFF_HAND_SLOT = "Off-hand"
 local RANGED_SLOT = "Ranged"
 
 local function slot_OnShiftLeftClick(self)
-    local itemId = self.appearance.itemId
-    local itemName = self.appearance.itemName
-    if itemId ~= nil then
+    if self.appearance ~= nil then
+        local itemId = self.appearance.itemId
+        local itemName = self.appearance.itemName
         local slotName = self.slotName
         local ids, names, index, subclassName = GetOtherAppearances(itemId, slotName)
         if ids ~= nil then
@@ -405,16 +405,15 @@ end
 local function hasValue(array, value)
     for i = 1, #array do
         if array[i] == value then
-            return i
+            return i    
         end
     end
     return nil
 end
 
 local function slot_OnControlLeftClick(self)
-    local itemId = self.appearance.itemId
-    if itemId ~= nil then
-        ns:ShowWowheadURLDialog(itemId)
+    if self.appearance ~= nil then
+        ns:ShowWowheadURLDialog(self.appearance.itemId)
     end
 end
 
@@ -442,7 +441,7 @@ local function slot_OnLeftCick(self)
     end
     -- Need to reTryOn weapon for proper look.
     if hasValue({MAIN_HAND_SLOT, OFF_HAND_SLOT, RANGED_SLOT}, self.slotName) then
-        if self.appearance.displayedItemId ~= nil then
+        if self.appearance ~= nil then
             mainFrame.dressingRoom:TryOn(self.appearance.displayedItemId)
         end
     end
@@ -472,7 +471,7 @@ end
 local function slot_OnEnter(self)
     GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
     GameTooltip:AddLine(self.slotName)
-    if self.appearance.itemName ~= nil then
+    if self.appearance ~= nil then
         GameTooltip:AddLine(" ")
         GameTooltip:AddLine(self.appearance.itemName)
         GameTooltip:AddLine("|n|cff00ff00Shift + Left Click:|r create a hyperlink for the item.")
@@ -503,27 +502,25 @@ local function slot_Reset(self)
         end
     end
     if name ~= nil and (quality >= 2 or hasValue(MISCELLANEOUS_SLOTS, self.slotName))then
-        self.appearance.displayedItemId = itemId
-        self.appearance.itemId = itemId
-        self.appearance.itemName = link:sub(1, 10)..name.."\124r"
+        self.appearance = {
+            ["displayedItemId"] = itemId,
+            ["itemId"] = itemId,
+            ["itemName"] = link:sub(1, 10)..name.."\124r"
+        }
         self.textures.empty:Hide()
         self.textures.item:Show()
         self.textures.item:SetTexture(texture)
         self:TryOn(itemId)
     else
-        self.appearance.displayedItemId = nil
-        self.appearance.itemId = nil
-        self.appearance.itemName = nil
+        self.appearance = nil
         self.textures.empty:Show()
         self.textures.item:Hide()
     end
 end
 
 local function slot_Undress(self)
-    if self.appearance.itemId ~= nil then
-        self.appearance.itemId = nil
-        self.appearance.itemName = nil
-        self.appearance.displayedItemId = nil
+    if self.appearance ~= nil then
+        self.appearance = nil
         self.textures.empty:Show()
         self.textures.item:Hide()
         self:GetScript("OnEnter")(self)
@@ -533,7 +530,7 @@ local function slot_Undress(self)
         current slot. ]]
         mainFrame.dressingRoom:Undress()
         for _, slot in pairs(mainFrame.slots) do
-            if slot ~= self then
+            if slot.appearance ~= nil then
                 if slot.appearance.displayedItemId ~= nil then
                     mainFrame.dressingRoom:TryOn(slot.appearance.displayedItemId)
                 end
@@ -552,9 +549,11 @@ local function slot_TryOn(self, itemId, displayedItemId, name)
         end
     end
     if displayedItemId then -- we don't need an item that doens't exist in the db
-        self.appearance.itemId = itemId
-        self.appearance.itemName = name
-        self.appearance.displayedItemId = displayedItemId
+        self.appearance = {
+            ["itemId"] = itemId,
+            ["itemName"] = name,
+            ["displayedItemId"] = displayedItemId,
+        }
         ns:QueryItem(displayedItemId, function(itemId, success)
             if itemId == self.appearance.displayedItemId and success then
                 local _, link, quality, _, _, _, _, _, _, texture = GetItemInfo(displayedItemId)        
@@ -581,13 +580,14 @@ do
         slot.selectedPage = {}      -- per subclass, filled later in subclass
         -- Empty declarations just as reminder
         slot.selectedSubclass = nil -- init later in subclass
+        --[[
         slot.appearance = {         -- assigned when a preview's clicked. Used to save in a collection.
             ["itemId"] = nil,
             ["itemName"] = nil,     -- is used int tooltip
             ["itemSubclass"] = nil, -- is used in tooltip
-            ["displayedItemId"] = nil,  --[[ To avoid overquerying, we TryOn only the first
-                                             item from according preview. ]]
-        } 
+            ["displayedItemId"] = nil,  -- To avoid overquerying, we TryOn only the first
+                                        -- item from according preview. 
+        } ]]
         mainFrame.slots[slotName] = slot
         slot.textures = {}
         slot.textures.empty = slot:CreateTexture(nil, "BACKGROUND")
@@ -629,17 +629,15 @@ end
 
 local function btnUndress_Hook()
     for _, slot in pairs(mainFrame.slots) do
-        slot.appearance.itemId = nil
-        slot.appearance.itemName = nil
-        slot.appearance.displayedItemId = nil
+        slot.appearance = nil
         slot.textures.empty:Show()
         slot.textures.item:Hide()
     end
 end
 
-local function tryOnSlots(dressUpModel)
+local function tryOnFromSlots(dressUpModel)
     for _, slot in pairs(mainFrame.slots) do
-        if slot.appearance.displayedItemId ~= nil then
+        if slot.appearance ~= nil then
             dressUpModel:TryOn(slot.appearance.displayedItemId)
         end
     end
@@ -657,7 +655,7 @@ end
 local function dressingRoom_OnShow(self)
     self:Reset()
     self:Undress()
-    tryOnSlots(self)
+    tryOnFromSlots(self)
 end
 
 --[[
@@ -666,7 +664,7 @@ end
 ]]
 mainFrame.buttons.useTarget:HookScript("OnClick", function(slef)
     mainFrame.dressingRoom:Undress()
-    tryOnSlots(mainFrame.dressingRoom)
+    tryOnFromSlots(mainFrame.dressingRoom)
 end)
 
 -- At first time it's shown.
@@ -950,7 +948,7 @@ do
     local function slots2ItemList()
         local items = {}
         for _, slotName in pairs(slotOrder) do
-            if mainFrame.slots[slotName].appearance.displayedItemId ~= nil then
+            if mainFrame.slots[slotName].appearance ~= nil then
                 table.insert(items, mainFrame.slots[slotName].appearance.itemId)
             else
                 table.insert(items, 0)
