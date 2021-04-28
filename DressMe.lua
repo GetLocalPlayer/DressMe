@@ -450,7 +450,7 @@ local function slot_OnLeftCick(self)
 end
 
 local function slot_OnRightClick(self)
-    self:Undress()
+    self:RemoveItem()
 end
 
 local function slot_OnClick(self, button)
@@ -510,7 +510,7 @@ local function slot_Reset(self)
         self.textures.empty:Hide()
         self.textures.item:Show()
         self.textures.item:SetTexture(texture)
-        self:TryOn(itemId)
+        self:SetItem(itemId)
     else
         self.appearance = nil
         self.textures.empty:Show()
@@ -518,13 +518,13 @@ local function slot_Reset(self)
     end
 end
 
-local function slot_Undress(self)
+local function slot_RemoveItem(self)
     if self.appearance ~= nil then
         self.appearance = nil
         self.textures.empty:Show()
         self.textures.item:Hide()
         self:GetScript("OnEnter")(self)
-        --[[ Undress only current slot. In lack of 
+        --[[ Remove item only from current slot. In lack of 
         the game's API we're undressing the whole
         model and dress it up again but without the
         current slot. ]]
@@ -539,7 +539,7 @@ local function slot_Undress(self)
     end
 end
 
-local function slot_TryOn(self, itemId, displayedItemId, name)
+local function slot_SetItem(self, itemId, displayedItemId, name)
     if not (displayedItemId or name) then
         -- We need only the name to display it in the tooltip.
         local ids, names, index = GetOtherAppearances(itemId, self.slotName)
@@ -597,8 +597,8 @@ do
         slot.textures.item:SetAllPoints()
         slot.textures.item:Hide()
         slot.Reset = slot_Reset
-        slot.TryOn = slot_TryOn
-        slot.Undress = slot_Undress
+        slot.SetItem = slot_SetItem
+        slot.RemoveItem = slot_RemoveItem
     end
 
     local slots = mainFrame.slots
@@ -692,7 +692,7 @@ mainFrame.tabs.preview.list:OnButtonClick(function(self, button)
     elseif IsControlKeyDown() then
         ns:ShowWowheadURLDialog(ids[selectedPreview])
     else
-        selectedSlot:TryOn(ids[selectedPreview], ids[1],  names[selectedPreview])
+        selectedSlot:SetItem(ids[selectedPreview], ids[1],  names[selectedPreview])
     end
 end)
 
@@ -1004,9 +1004,9 @@ do
         for index, slotName in pairs(slotOrder) do
             local itemId = savedLooks[id].items[index]
             if itemId ~= 0 then
-                mainFrame.slots[slotName]:TryOn(itemId)
+                mainFrame.slots[slotName]:SetItem(itemId)
             else
-                mainFrame.slots[slotName]:Undress()
+                mainFrame.slots[slotName]:RemoveItem()
             end
         end
     end)
