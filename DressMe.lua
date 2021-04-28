@@ -1,9 +1,5 @@
 local addon, ns = ...
 
-local GetOtherAppearances = ns.GetOtherAppearances
-local GetSubclassAppearances = ns.GetSubclassAppearances
-local GetPreviewSetup = ns.GetPreviewSetup
-
 local sex = UnitSex("player")
 local _, raceFileName = UnitRace("player")
 local _, classFileName = UnitClass("player")
@@ -391,7 +387,7 @@ local function slot_OnShiftLeftClick(self)
         local itemId = self.appearance.itemId
         local itemName = self.appearance.itemName
         local slotName = self.slotName
-        local ids, names, index, subclassName = GetOtherAppearances(itemId, slotName)
+        local ids, names, index, subclassName = ns.FindRecord(slotName, itemId)
         if ids ~= nil then
             local color = itemName:sub(1, 10)
             local name = itemName:sub(11, -3)
@@ -402,7 +398,7 @@ local function slot_OnShiftLeftClick(self)
     end
 end
 
-local function hasValue(array, value)
+local function getIndex(array, value)
     for i = 1, #array do
         if array[i] == value then
             return i    
@@ -428,8 +424,8 @@ local function slot_OnLeftCick(self)
     local slotName = self.slotName
     local subclass = self.selectedSubclass
     local page = self.selectedPage[subclass]
-    local previewSetup = GetPreviewSetup(previewSetupVersion, raceFileName, sex, slotName, subclass)
-    local subclassAppearances = GetSubclassAppearances(slotName, subclass)
+    local previewSetup = ns.GetPreviewSetup(previewSetupVersion, raceFileName, sex, slotName, subclass)
+    local subclassAppearances = ns.GetSubclassRecords(slotName, subclass)
     local list = mainFrame.tabs.preview.list
     list:Update(previewSetup, subclassAppearances, page)
     local slider = mainFrame.tabs.preview.slider
@@ -440,7 +436,7 @@ local function slot_OnLeftCick(self)
         slider:GetScript("OnValueChanged")(slider, page)
     end
     -- Need to reTryOn weapon for proper look.
-    if hasValue({MAIN_HAND_SLOT, OFF_HAND_SLOT, RANGED_SLOT}, self.slotName) then
+    if getIndex({MAIN_HAND_SLOT, OFF_HAND_SLOT, RANGED_SLOT}, self.slotName) then
         if self.appearance ~= nil then
             mainFrame.dressingRoom:TryOn(self.appearance.displayedItemId)
         end
@@ -487,21 +483,21 @@ end
 
 local function slot_Reset(self)
     local slotName = self.slotName
-    if slotName == MAIN_HAND_SLOT       then slotName = "MainHand"      end
-    if slotName == OFF_HAND_SLOT       then slotName = "SecondaryHand" end
-    if slotName == RANGED_SLOT   then slotName = "Ranged"        end
-    if slotName == BACK_SLOT     then slotName = "Back"        end
+    if slotName == MAIN_HAND_SLOT then slotName = "MainHand" end
+    if slotName == OFF_HAND_SLOT then slotName = "SecondaryHand" end
+    if slotName == RANGED_SLOT then slotName = "Ranged" end
+    if slotName == BACK_SLOT then slotName = "Back" end
     local slotId = GetInventorySlotInfo(slotName.."Slot")
     local itemId = GetInventoryItemID("player", slotId)
     local name, link, quality, _, _, _, _, _, _, texture = GetItemInfo(itemId ~= nil and itemId or 0)
     if name ~= nil then
-        local ids, names, index, subclass = GetOtherAppearances(itemId, self.slotName)
+        local ids, names, index, subclass = ns.FindRecord(self.slotName, itemId)
         if ids ~= nil then
         else
             name = nil
         end
     end
-    if name ~= nil and (quality >= 2 or hasValue(MISCELLANEOUS_SLOTS, self.slotName))then
+    if name ~= nil and (quality >= 2 or getIndex(MISCELLANEOUS_SLOTS, self.slotName))then
         self.appearance = {
             ["displayedItemId"] = itemId,
             ["itemId"] = itemId,
@@ -542,7 +538,7 @@ end
 local function slot_SetItem(self, itemId, displayedItemId, name)
     if not (displayedItemId or name) then
         -- We need only the name to display it in the tooltip.
-        local ids, names, index = GetOtherAppearances(itemId, self.slotName)
+        local ids, names, index = ns.FindRecord(self.slotName, itemId)
         if ids ~= nil then
             displayedItemId = ids[1]
             name = names[index]
@@ -735,8 +731,8 @@ do
         selectedSlot.selectedPage[selectedSlot.selectedSubclass] = previewTab.slider:GetValue()
         local slotName = selectedSlot.slotName
         local page = selectedSlot.selectedPage[subclass]
-        local previewSetup = GetPreviewSetup(previewSetupVersion, raceFileName, sex, slotName, subclass)
-        local subclassAppearances = GetSubclassAppearances(slotName, subclass)
+        local previewSetup = ns.GetPreviewSetup(previewSetupVersion, raceFileName, sex, slotName, subclass)
+        local subclassAppearances = ns.GetSubclassRecords(slotName, subclass)
         previewTab.list:Update(previewSetup, subclassAppearances, page)
         selectedSlot.selectedSubclass = subclass
         previewTab.slider:SetMinMaxValues(1, previewTab.list:GetPageCount())
