@@ -10,7 +10,7 @@ local previewSetupVersion = "classic"
 -- Used in look saving/sending. Chenging wil breack compatibility.
 local slotOrder = { "Head", "Shoulder", "Back", "Chest", "Shirt", "Tabard", "Wrist", "Hands", "Waist", "Legs", "Feet", "Main Hand", "Off-hand", "Ranged",}
 
--- 
+
 local classSubclas = {
     ["MAGE"] = "Cloth",
     ["PRIEST"] = "Cloth",
@@ -215,13 +215,25 @@ do
     tip:SetText("\124cff00ff00Left Mouse:\124r rotate \124 \124cff00ff00Right Mouse:\124r pan\124n\124cff00ff00Wheel\124r or \124cff00ff00Alt + Right Mouse:\124r zoom")
 end
 
+mainFrame.buttons.send = CreateFrame("Button", "$parentButtonSend", mainFrame, "UIPanelButtonTemplate2")
+
+do
+    local btn = mainFrame.buttons.send
+    btn:SetPoint("TOPRIGHT", mainFrame.dressingRoom, "BOTTOMRIGHT")
+    btn:SetPoint("BOTTOM", mainFrame.stats, "BOTTOM", 0, 1)
+    btn:SetWidth(mainFrame.dressingRoom:GetWidth()/4)
+    btn:SetText("Send")
+    btn:SetScript("OnClick", function()
+        PlaySound("gsTitleOptionOK")
+    end)
+end
+
 mainFrame.buttons.reset = CreateFrame("Button", "$parentButtonReset", mainFrame, "UIPanelButtonTemplate2")
 
 do
     local btn = mainFrame.buttons.reset
-    btn:SetPoint("TOPRIGHT", mainFrame.dressingRoom, "BOTTOMRIGHT")
-    btn:SetPoint("BOTTOM", mainFrame.stats, "BOTTOM", 0, 1)
-    btn:SetWidth(mainFrame.dressingRoom:GetWidth()/3)
+    btn:SetPoint("TOPRIGHT", mainFrame.buttons.send, "TOPLEFT")
+    btn:SetWidth(mainFrame.buttons.send:GetWidth())
     btn:SetText("Reset")
     btn:SetScript("OnClick", function()
         mainFrame.dressingRoom:Reset()
@@ -473,7 +485,7 @@ local function slot_OnClick(self, button)
 end
 
 local function slot_OnEnter(self)
-    GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
     if self.itemId == nil then
         GameTooltip:AddLine(self.slotName)
     else
