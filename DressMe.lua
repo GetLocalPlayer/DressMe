@@ -10,6 +10,20 @@ local previewSetupVersion = "classic"
 -- Used in look saving/sending. Chenging wil breack compatibility.
 local slotOrder = { "Head", "Shoulder", "Back", "Chest", "Shirt", "Tabard", "Wrist", "Hands", "Waist", "Legs", "Feet", "Main Hand", "Off-hand", "Ranged",}
 
+-- 
+local classSubclas = {
+    ["MAGE"] = "Cloth",
+    ["PRIEST"] = "Cloth",
+    ["WARLOCK"] = "Cloth",
+    ["DRUID"] = "Leather",
+    ["ROGUE"] = "Leather",
+    ["HUNTER"] = "Mail",
+    ["SHAMAN"] = "Mail",
+    ["PALADIN"] = "Plate",
+    ["WARRIOR"] = "Plate",
+    ["DEATHKNIGHT"] = "Plate"
+}
+
 
 local defaultSettings = {
     dressingRoomBackgroundColor = {0.055, 0.055, 0.055, 1},
@@ -386,9 +400,9 @@ local function slot_OnShiftLeftClick(self)
     if self.itemId ~= nil then
         local _, link = GetItemInfo(self.itemId)
         if link ~= nil then
-            SELECTED_CHAT_FRAME:AddMessage("[DressMe]: "..link)
+            SELECTED_CHAT_FRAME:AddMessage("<DressMe>: "..link)
         else
-            SELECTED_CHAT_FRAME:AddMessage("[DressMe]: It seems this item cannot be used for transmogrification.")
+            SELECTED_CHAT_FRAME:AddMessage("<DressMe>: It seems this item cannot be used for transmogrification.")
         end
     end
 end
@@ -478,15 +492,15 @@ local function slot_OnLeave(self)
 end
 
 local function slot_Reset(self)
-    local slotName = self.slotName
-    if slotName == MAIN_HAND_SLOT then slotName = "MainHand" end
-    if slotName == OFF_HAND_SLOT then slotName = "SecondaryHand" end
-    if slotName == RANGED_SLOT then slotName = "Ranged" end
-    if slotName == BACK_SLOT then slotName = "Back" end
-    local slotId = GetInventorySlotInfo(slotName.."Slot")
+    local characterSlotName = self.slotName
+    if characterSlotName == MAIN_HAND_SLOT then characterSlotName = "MainHand" end
+    if characterSlotName == OFF_HAND_SLOT then characterSlotName = "SecondaryHand" end
+    if characterSlotName == RANGED_SLOT then characterSlotName = "Ranged" end
+    if characterSlotName == BACK_SLOT then characterSlotName = "Back" end
+    local slotId = GetInventorySlotInfo(characterSlotName.."Slot")
     local itemId = GetInventoryItemID("player", slotId)
     local name, link, quality, _, _, _, _, _, _, texture = GetItemInfo(itemId ~= nil and itemId or 0)
-    if name ~= nil and (quality >= 2 or getIndex(MISCELLANEOUS_SLOTS, slotName)) then
+    if name ~= nil and (quality >= 2 or getIndex(MISCELLANEOUS_SLOTS, self.slotName)) then
         self:SetItem(itemId)
     else
         self:RemoveItem()
@@ -571,10 +585,15 @@ end
 
 ------- Tricks and hooks with slots and provided appearances. -------
 
+
 local function btnReset_Hook()
     mainFrame.dressingRoom:Undress()
     for _, slot in pairs(mainFrame.slots) do
-        slot:Reset()
+        if slot.slotName == RANGED_SLOT and ("DRUIDSHAMANPALADINDEATHKNIGHT"):find(classFileName) then
+            slot:RemoveItem()
+        else
+            slot:Reset()
+        end
     end
 end
 
@@ -639,7 +658,7 @@ mainFrame.tabs.preview.list:OnButtonClick(function(self, button)
     if IsShiftKeyDown() then
         local color = names[selectedPreview]:sub(1, 10)
         local name = names[selectedPreview]:sub(11, -3)
-        SELECTED_CHAT_FRAME:AddMessage("[DressMe]: "..selectedSlot.slotName.." - "..selectedSlot.selectedSubclass.." "..color.."\124Hitem:"..ids[selectedPreview]..":::::::|h["..name.."]\124h\124r".." ("..ids[selectedPreview]..")")
+        SELECTED_CHAT_FRAME:AddMessage("<DressMe>: "..selectedSlot.slotName.." - "..selectedSlot.selectedSubclass.." "..color.."\124Hitem:"..ids[selectedPreview]..":::::::|h["..name.."]\124h\124r".." ("..ids[selectedPreview]..")")
     elseif IsControlKeyDown() then
         ns:ShowWowheadURLDialog(ids[selectedPreview])
     else
@@ -703,19 +722,6 @@ do
 
     do
         local subclasses = {"Cloth", "Leather", "Mail", "Plate"}
-        -- Classes and what they wear to select it by default.
-        local subclassPerPlayerClass = {
-            MAGE = "Cloth",
-            PRIEST = "Cloth",
-            WARLOCK = "Cloth",
-            DRUID = "Leather",
-            ROGUE = "Leather",
-            HUNTER = "Mail",
-            SHAMAN = "Mail",
-            PALADIN = "Plate",
-            WARRIOR = "Plate",
-            DEATHKNIGHT = "Plate"
-        }
 
         local function init(self)
             local info = UIDropDownMenu_CreateInfo()
@@ -727,7 +733,7 @@ do
 
         for _, slotName in pairs(ARMOR_SLOTS) do
             previewTab.subclassMenu.initializers[slotName] = init
-            slots[slotName].selectedSubclass = subclassPerPlayerClass[classFileName]
+            slots[slotName].selectedSubclass = classSubclas[classFileName]
             for _, subclass in ipairs(subclasses) do
                 slots[slotName].selectedPage[subclass] = 1
             end
