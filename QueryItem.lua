@@ -40,7 +40,7 @@ local function dummy_OnUpdate(self, elapsed)
 end
 
 
-function ns:QueryItem(itemId, handler)
+function ns.QueryItem(itemId, handler)
     assert(type(itemId) == "number", "`itemId` must be a number.")
     assert(type(handler) == "function", "'handler' must be a function.")
     local itemName, itemLink = GetItemInfo(itemId)

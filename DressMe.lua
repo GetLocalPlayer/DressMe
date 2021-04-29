@@ -383,15 +383,10 @@ local OFF_HAND_SLOT = "Off-hand"
 local RANGED_SLOT = "Ranged"
 
 local function slot_OnShiftLeftClick(self)
-    if self.appearance ~= nil then
-        local itemId = self.appearance.itemId
-        local itemName = self.appearance.itemName
-        local slotName = self.slotName
-        local ids, names, index, subclassName = ns.FindRecord(slotName, itemId)
-        if ids ~= nil then
-            local color = itemName:sub(1, 10)
-            local name = itemName:sub(11, -3)
-            SELECTED_CHAT_FRAME:AddMessage("[DressMe]: "..self.slotName.." - "..subclassName.." "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r".." ("..itemId..")")
+    if self.itemId ~= nil then
+        local _, link = GetItemInfo(self.itemId)
+        if link ~= nil then
+            SELECTED_CHAT_FRAME:AddMessage("[DressMe]: "..link)
         else
             SELECTED_CHAT_FRAME:AddMessage("[DressMe]: It seems this item cannot be used for transmogrification.")
         end
@@ -408,8 +403,8 @@ local function getIndex(array, value)
 end
 
 local function slot_OnControlLeftClick(self)
-    if self.appearance ~= nil then
-        ns:ShowWowheadURLDialog(self.appearance.itemId)
+    if self.itemId ~= nil then
+        ns:ShowWowheadURLDialog(self.itemId)
     end
 end
 
@@ -435,11 +430,10 @@ local function slot_OnLeftCick(self)
     else
         slider:GetScript("OnValueChanged")(slider, page)
     end
-    -- Need to reTryOn weapon for proper look.
-    if getIndex({MAIN_HAND_SLOT, OFF_HAND_SLOT, RANGED_SLOT}, self.slotName) then
-        if self.appearance ~= nil then
-            mainFrame.dressingRoom:TryOn(self.appearance.displayedItemId)
-        end
+    --[[ ReTryOn weapon so the model displays
+    the weapon of the clicked (selected) slot. ]]
+    if self.itemId ~= nil and getIndex({MAIN_HAND_SLOT, OFF_HAND_SLOT, RANGED_SLOT}, self.slotName) then
+        mainFrame.dressingRoom:TryOn(self.itemId)
     end
     self:LockHighlight()
     mainFrame.tabs.preview.subclassMenu:Update(slotName, subclass)
@@ -466,10 +460,12 @@ end
 
 local function slot_OnEnter(self)
     GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
-    GameTooltip:AddLine(self.slotName)
-    if self.appearance ~= nil then
+    if self.itemId == nil then
+        GameTooltip:AddLine(self.slotName)
+    else
+        local _, link = GetItemInfo(self.itemId)
+        GameTooltip:SetHyperlink(link)
         GameTooltip:AddLine(" ")
-        GameTooltip:AddLine(self.appearance.itemName)
         GameTooltip:AddLine("|n|cff00ff00Shift + Left Click:|r create a hyperlink for the item.")
         GameTooltip:AddLine("|cff00ff00Right Click:|r undress the slot.")
         GameTooltip:AddLine("|cff00ff00Ctrl + Left Click:|r create a Wowhead URL for the item.")
@@ -490,76 +486,43 @@ local function slot_Reset(self)
     local slotId = GetInventorySlotInfo(slotName.."Slot")
     local itemId = GetInventoryItemID("player", slotId)
     local name, link, quality, _, _, _, _, _, _, texture = GetItemInfo(itemId ~= nil and itemId or 0)
-    if name ~= nil then
-        local ids, names, index, subclass = ns.FindRecord(self.slotName, itemId)
-        if ids ~= nil then
-        else
-            name = nil
-        end
-    end
-    if name ~= nil and (quality >= 2 or getIndex(MISCELLANEOUS_SLOTS, self.slotName))then
-        self.appearance = {
-            ["displayedItemId"] = itemId,
-            ["itemId"] = itemId,
-            ["itemName"] = link:sub(1, 10)..name.."\124r"
-        }
-        self.textures.empty:Hide()
-        self.textures.item:Show()
-        self.textures.item:SetTexture(texture)
+    if name ~= nil and (quality >= 2 or getIndex(MISCELLANEOUS_SLOTS, slotName)) then
         self:SetItem(itemId)
     else
-        self.appearance = nil
-        self.textures.empty:Show()
-        self.textures.item:Hide()
+        self:RemoveItem()
     end
 end
 
 local function slot_RemoveItem(self)
-    if self.appearance ~= nil then
-        self.appearance = nil
+    if self.itemId ~= nil then
+        self.itemId = nil
         self.textures.empty:Show()
         self.textures.item:Hide()
         self:GetScript("OnEnter")(self)
-        --[[ Remove item only from current slot. In lack of 
-        the game's API we're undressing the whole
-        model and dress it up again but without the
-        current slot. ]]
+        --[[ We cannot undress a specific slot
+        of a DressUpModel in WotLK. Instead,
+        we're undressing the whole model and
+        dressing it up again without the slot. ]]
         mainFrame.dressingRoom:Undress()
         for _, slot in pairs(mainFrame.slots) do
-            if slot.appearance ~= nil then
-                if slot.appearance.displayedItemId ~= nil then
-                    mainFrame.dressingRoom:TryOn(slot.appearance.displayedItemId)
-                end
+            if slot.itemId ~= nil then
+                mainFrame.dressingRoom:TryOn(slot.itemId)
             end
         end
     end
 end
 
-local function slot_SetItem(self, itemId, displayedItemId, name)
-    if not (displayedItemId or name) then
-        -- We need only the name to display it in the tooltip.
-        local ids, names, index = ns.FindRecord(self.slotName, itemId)
-        if ids ~= nil then
-            displayedItemId = ids[1]
-            name = names[index]
+local function slot_SetItem(self, itemId)
+    self.itemId = itemId
+    ns.QueryItem(itemId, function(queriedItemId, success)
+        if queriedItemId == self.itemId and success then
+            local _, _, _, _, _, _, _, _, _, texture = GetItemInfo(queriedItemId)
+            self.textures.empty:Hide()
+            self.textures.item:SetTexture(texture)
+            self.textures.item:Show()
+            mainFrame.dressingRoom:TryOn(queriedItemId)
         end
-    end
-    if displayedItemId then -- we don't need an item that doens't exist in the db
-        self.appearance = {
-            ["itemId"] = itemId,
-            ["itemName"] = name,
-            ["displayedItemId"] = displayedItemId,
-        }
-        ns:QueryItem(displayedItemId, function(itemId, success)
-            if itemId == self.appearance.displayedItemId and success then
-                local _, link, quality, _, _, _, _, _, _, texture = GetItemInfo(displayedItemId)        
-                self.textures.empty:Hide()
-                self.textures.item:SetTexture(texture)
-                self.textures.item:Show()
-                mainFrame.dressingRoom:TryOn(itemId)
-            end
-        end)
-    end
+    end)
 end
 
 --------- Slot building
@@ -576,14 +539,6 @@ do
         slot.selectedPage = {}      -- per subclass, filled later in subclass
         -- Empty declarations just as reminder
         slot.selectedSubclass = nil -- init later in subclass
-        --[[
-        slot.appearance = {         -- assigned when a preview's clicked. Used to save in a collection.
-            ["itemId"] = nil,
-            ["itemName"] = nil,     -- is used int tooltip
-            ["itemSubclass"] = nil, -- is used in tooltip
-            ["displayedItemId"] = nil,  -- To avoid overquerying, we TryOn only the first
-                                        -- item from according preview. 
-        } ]]
         mainFrame.slots[slotName] = slot
         slot.textures = {}
         slot.textures.empty = slot:CreateTexture(nil, "BACKGROUND")
@@ -625,7 +580,7 @@ end
 
 local function btnUndress_Hook()
     for _, slot in pairs(mainFrame.slots) do
-        slot.appearance = nil
+        slot.itemId = nil
         slot.textures.empty:Show()
         slot.textures.item:Hide()
     end
@@ -633,8 +588,8 @@ end
 
 local function tryOnFromSlots(dressUpModel)
     for _, slot in pairs(mainFrame.slots) do
-        if slot.appearance ~= nil then
-            dressUpModel:TryOn(slot.appearance.displayedItemId)
+        if slot.itemId ~= nil then
+            dressUpModel:TryOn(slot.itemId)
         end
     end
 end
@@ -688,7 +643,7 @@ mainFrame.tabs.preview.list:OnButtonClick(function(self, button)
     elseif IsControlKeyDown() then
         ns:ShowWowheadURLDialog(ids[selectedPreview])
     else
-        selectedSlot:SetItem(ids[selectedPreview], ids[1],  names[selectedPreview])
+        selectedSlot:SetItem(ids[selectedPreview])
     end
 end)
 
@@ -944,8 +899,8 @@ do
     local function slots2ItemList()
         local items = {}
         for _, slotName in pairs(slotOrder) do
-            if mainFrame.slots[slotName].appearance ~= nil then
-                table.insert(items, mainFrame.slots[slotName].appearance.itemId)
+            if mainFrame.slots[slotName].itemId ~= nil then
+                table.insert(items, mainFrame.slots[slotName].itemId)
             else
                 table.insert(items, 0)
             end
@@ -999,7 +954,7 @@ do
         local id = listFrame.buttons[listFrame:GetSelected()]:GetID()
         for index, slotName in pairs(slotOrder) do
             local itemId = savedLooks[id].items[index]
-            if itemId ~= 0 then
+            if itemId ~= 0 and ns.FindRecord(slotName, itemId) ~= nil then
                 mainFrame.slots[slotName]:SetItem(itemId)
             else
                 mainFrame.slots[slotName]:RemoveItem()

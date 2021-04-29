@@ -204,7 +204,7 @@ function ns:CreatePreviewList(parent)
                 preview.button:Hide()
                 preview.queriedLabel:Show()
                 preview.queryFailedLabel:Hide()
-                ns:QueryItem(preview.queriedItemId, function(itemId, success)
+                ns.QueryItem(preview.queriedItemId, function(itemId, success)
                     if itemId == preview.queriedItemId then
                         preview.queriedLabel:Hide()
                         if success then
