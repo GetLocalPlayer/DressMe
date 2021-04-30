@@ -29,7 +29,26 @@ local defaultSettings = {
     dressingRoomBackgroundColor = {0.055, 0.055, 0.055, 1},
     previewSetup = "classic", -- possible values are "classic" and "modern",
     showDressMeButton = true,
+    showShortcutsInTooltip = true,
 }
+
+local function GetSettings()
+    if _G["DressMeSettings"] == nil then
+        local function copyTable(tableFrom)
+            local result = {}
+            for k, v in pairs(tableFrom) do
+                if type(v) == "table" then
+                    result[k] = copyTable(v)
+                else
+                    result[k] = v
+                end
+            end
+            return result
+        end
+        _G["DressMeSettings"] = copyTable(defaultSettings)
+    end
+    return _G["DressMeSettings"]
+end
 
 local backdrop = { -- currently used for tests
     bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
@@ -194,7 +213,7 @@ do
 end
 
 
-mainFrame.dressingRoom = ns:CreateDressingRoom(nil, mainFrame)
+mainFrame.dressingRoom = ns.CreateDressingRoom(nil, mainFrame)
 
 do
     local dressingRoom = mainFrame.dressingRoom
@@ -327,7 +346,7 @@ end
 
 ---------------- PREVIEW LIST ----------------
 
-mainFrame.tabs.preview.list = ns:CreatePreviewList(mainFrame.tabs.preview)
+mainFrame.tabs.preview.list = ns.CreatePreviewList(mainFrame.tabs.preview)
 mainFrame.tabs.preview.slider = CreateFrame("Slider", "$parentSlider", mainFrame.tabs.preview, "UIPanelScrollBarTemplateLightBorder")
 
 do
@@ -446,9 +465,15 @@ local function slot_OnLeftCick(self)
     local subclass = self.selectedSubclass
     local page = self.selectedPage[subclass]
     local previewSetup = ns.GetPreviewSetup(previewSetupVersion, raceFileName, sex, slotName, subclass)
-    local subclassAppearances = ns.GetSubclassRecords(slotName, subclass)
+    local subclassRecords = ns.GetSubclassRecords(slotName, subclass)
     local list = mainFrame.tabs.preview.list
-    list:Update(previewSetup, subclassAppearances, page)
+    list:SetupModel(previewSetup.width, previewSetup.height, previewSetup.x, previewSetup.y, previewSetup.z, previewSetup.facing, previewSetup.sequence)
+    local itemIds = {}
+    for i, record in ipairs(subclassRecords) do
+        table.insert(itemIds, record[1][1])
+    end
+    list:SetItems(itemIds)
+    --list:Update(previewSetup, subclassRecords, page)
     local slider = mainFrame.tabs.preview.slider
     slider:SetMinMaxValues(1, list:GetPageCount())
     if slider:GetValue() ~= page then
@@ -491,10 +516,12 @@ local function slot_OnEnter(self)
     else
         local _, link = GetItemInfo(self.itemId)
         GameTooltip:SetHyperlink(link)
-        GameTooltip:AddLine(" ")
-        GameTooltip:AddLine("|n|cff00ff00Shift + Left Click:|r create a hyperlink for the item.")
-        GameTooltip:AddLine("|cff00ff00Right Click:|r undress the slot.")
-        GameTooltip:AddLine("|cff00ff00Ctrl + Left Click:|r create a Wowhead URL for the item.")
+        if GetSettings().showShortcutsInTooltip then
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine("|n|cff00ff00Shift + Left Click:|r create a hyperlink for the item.")
+            GameTooltip:AddLine("|cff00ff00Right Click:|r undress the slot.")
+            GameTooltip:AddLine("|cff00ff00Ctrl + Left Click:|r create a Wowhead URL for the item.")
+        end
     end
     GameTooltip:Show()
 end
@@ -662,21 +689,37 @@ end)
 
 ---------------- PREVIEW LIST SCRIPT ----------------
 
-mainFrame.tabs.preview.list:OnButtonClick(function(self, button)
-    local preview = self:GetParent()
-    local ids, names = unpack(preview.appereanceData)
-    local selectedPreview = preview.selected
-    local selectedSlot = mainFrame.selectedSlot
-    if IsShiftKeyDown() then
-        local color = names[selectedPreview]:sub(1, 10)
-        local name = names[selectedPreview]:sub(11, -3)
-        SELECTED_CHAT_FRAME:AddMessage("<DressMe>: "..selectedSlot.slotName.." - "..selectedSlot.selectedSubclass.." "..color.."\124Hitem:"..ids[selectedPreview]..":::::::|h["..name.."]\124h\124r".." ("..ids[selectedPreview]..")")
-    elseif IsControlKeyDown() then
-        ns:ShowWowheadURLDialog(ids[selectedPreview])
-    else
-        selectedSlot:SetItem(ids[selectedPreview])
+do
+    local previewList = mainFrame.tabs.preview.list
+--[[
+    previewList.onItemClick = function(self, button)
+        local preview = self:GetParent()
+        local ids, names = unpack(preview.appereanceData)
+        local selectedPreview = preview.selected
+        local selectedSlot = mainFrame.selectedSlot
+        if IsShiftKeyDown() then
+            local color = names[selectedPreview]:sub(1, 10)
+            local name = names[selectedPreview]:sub(11, -3)
+            SELECTED_CHAT_FRAME:AddMessage("<DressMe>: "..selectedSlot.slotName.." - "..selectedSlot.selectedSubclass.." "..color.."\124Hitem:"..ids[selectedPreview]..":::::::|h["..name.."]\124h\124r".." ("..ids[selectedPreview]..")")
+        elseif IsControlKeyDown() then
+            ns:ShowWowheadURLDialog(ids[selectedPreview])
+        else
+            selectedSlot:SetItem(ids[selectedPreview])
+        end
     end
-end)
+
+    local onTabDummy = CreateFrame("Button", addon.."PreviewListOnTabDummy")
+    onTabDummy:SetScript("OnClick", function(self)
+        local preview = self.preview
+        local names = preview.appereanceData[2]
+        preview.selected = preview.selected < #names and (preview.selected + 1) or 1
+        GameTooltip:SetOwner(preview, "ANCHOR_TOPLEFT")
+        GameTooltip:ClearLines()
+        fillGameTooltip(names, preview.selected)
+        GameTooltip:Show()
+    end)
+    ]]
+end
 
 ---------------- SBUCLASS FRAMES ----------------
 
@@ -1115,24 +1158,6 @@ end)
 
 do
     local settingsTab = mainFrame.tabs.settings
-
-    local function GetSettings()
-        if _G["DressMeSettings"] == nil then
-            local function copyTable(tableFrom)
-                local result = {}
-                for k, v in pairs(tableFrom) do
-                    if type(v) == "table" then
-                        result[k] = copyTable(v)
-                    else
-                        result[k] = v
-                    end
-                end
-                return result
-            end
-            _G["DressMeSettings"] = copyTable(defaultSettings)
-        end
-        return _G["DressMeSettings"]
-    end
     
     --------- Preview Setup
 
@@ -1235,32 +1260,50 @@ do
     --------- Show/hide "DressMe" button
     
     local showDressMeButtonCheckBox = CreateFrame("CheckButton", addon.."ShowDressMeButtonCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
-    showDressMeButtonCheckBox:SetScript("OnClick", function(self)
-        if self:GetChecked() then
-            btnDressMe:Show()
-            GetSettings().showDressMeButton = true
-        else
-            btnDressMe:Hide()
-            GetSettings().showDressMeButton = false
-        end
-    end)
-    showDressMeButtonCheckBox:HookScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
-        GameTooltip:ClearLines()
-        GameTooltip:AddLine("Show \"DressMe\" button")
-        GameTooltip:AddLine("Show or hide \"DressMe\" button in the character window.", 1, 1, 1, 1, true)
-        GameTooltip:AddLine("The addon can be still accessed via \"/dressme\" chat command.", 1, 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    showDressMeButtonCheckBox:HookScript("OnLeave", function(self)
-        GameTooltip:Hide()
-    end)
 
-    local showDressMeButtonTitle = colorPicker:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    showDressMeButtonTitle:SetText("Show \"DressMe\" button:")
-    showDressMeButtonTitle:SetPoint("TOPRIGHT", showDressMeButtonCheckBox, "TOPLEFT", -4, -4)
+    do
+        local checkbox = showDressMeButtonCheckBox
+        checkbox:SetPoint("TOPLEFT", settingsTab, "TOPLEFT", 15, -150)
+        checkbox:SetScript("OnClick", function(self)
+            if self:GetChecked() then
+                btnDressMe:Show()
+                GetSettings().showDressMeButton = true
+            else
+                btnDressMe:Hide()
+                GetSettings().showDressMeButton = false
+            end
+        end)
+        checkbox:HookScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+            GameTooltip:ClearLines()
+            GameTooltip:AddLine("Show \"DressMe\" button")
+            GameTooltip:AddLine("Show or hide \"DressMe\" button in the character window.", 1, 1, 1, 1, true)
+            GameTooltip:AddLine("The addon can be still accessed via \"/dressme\" chat command.", 1, 1, 1, 1, true)
+            GameTooltip:Show()
+        end)
+        checkbox:HookScript("OnLeave", function(self)
+            GameTooltip:Hide()
+        end)
 
-    showDressMeButtonCheckBox:SetPoint("TOPLEFT", settingsTab, "TOPLEFT", showDressMeButtonTitle:GetWidth() + 28, -150)
+        local text = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        text:SetText("Show \"DressMe\" button")
+        text:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
+    end
+
+    --------- Show shortcuts in tooltips
+    
+    local showShortcutsInTooltipCheckBox = CreateFrame("CheckButton", addon.."ShowShortcutsInTooltipCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
+    
+    do
+        local checkbox = showShortcutsInTooltipCheckBox
+        checkbox:SetPoint("TOP", showDressMeButtonCheckBox, "BOTTOM", 0, -10)
+        checkbox:SetScript("OnClick", function(self)
+            GetSettings().showShortcutsInTooltip = self:GetChecked() ~= nil
+        end)
+        local text = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        text:SetText("Show shortcuts in tooltip")
+        text:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
+    end
 
     --------- Apply settings on addon loaded
 
@@ -1277,6 +1320,8 @@ do
         else
             btnDressMe:Hide()
         end
+        -- Show shortcuts in tooltip
+        showShortcutsInTooltipCheckBox:SetChecked(settings.showShortcutsInTooltip)
         UIDropDownMenu_SetText(menu, settings.previewSetup)
     end
 
