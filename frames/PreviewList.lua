@@ -41,6 +41,20 @@ local function fillGameTooltip(names, selected)
 end
 ]]
 
+--[[
+    Methods:
+        GetPage
+        SetPage
+        GetPageCount
+        SetItems(itemIds) // takes a list of integers
+        SetupModel(self, width, height, x, y, z, facing, sequence)
+        Update
+        
+
+    To update must be called manually after Set functions and SetupModel call
+    just because DressUpModel will not be updated twice in the same frame.
+]]
+
 local function DressingRoom_OnUpdateModel(self)
     self:SetSequence(self:GetParent():GetParent().dressingRoomSetup.sequence)
 end
@@ -148,13 +162,11 @@ local function PreviewList_SetupModel(self, width, height, x, y, z, facing, sequ
         ["facing"] = facing,
         ["sequence"] = sequence,
     }
-    self:Update()
 end
 
 
 local function PreviewList_SetPage(self, page)
     self.currentPage = page
-    self:Update()
 end
 
 
@@ -255,7 +267,7 @@ function ns.CreatePreviewList(parent)
 
     frame.itemIds = {}
     frame.dressingRooms = {}
-    frame.currenPage = 0
+    frame.currentPage = 1
     frame.dressingRoomSetup = nil
     --[[
     frame.dressingRoomSetup = {
