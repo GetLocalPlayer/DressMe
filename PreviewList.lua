@@ -41,15 +41,8 @@ local function fillGameTooltip(names, selected)
 end
 
 
-
-
-local function preview_GetSelectedItemId(self)
-    return self.appereanceData[1][self.selected]
-end
-
-
 local function DressingRoom_OnUpdateModel(self)
-    self:SetSequence(self:GetParent().dressingRoomSetup.sequence)
+    self:SetSequence(self:GetParent():GetParent().dressingRoomSetup.sequence)
 end
 
 
@@ -84,14 +77,16 @@ local dressingRoomRecycler = {
     ["recycled"] = {},
     ["counter"] = 0,
 
-    ["get"] = function(self, number)
+    ["get"] = function(self, frame, number)
         local result = {}
         while #result < number do
+            if self.recycled[frame] == nil then self.recycled[frame] = {} end
+            local recycled = self.recycled[frame]
             if #self.recycled > 0 then
-                table.insert(result, table.remove(self.recycled))
+                table.insert(result, table.remove(recycled))
             else
                 self.counter = self.counter + 1
-                local dr = ns.CreateDressingRoom("PreviewList_RecycledModel"..self.counter)
+                local dr = ns.CreateDressingRoom("$parentDressingRoom"..self.counter, frame)
                 dr:SetBackdrop(previewBackdrop)
                 dr:SetBackdropColor(unpack(previewBackdropColor))
                 dr:EnableDragRotation(false)
@@ -117,19 +112,20 @@ local dressingRoomRecycler = {
                 btn:SetScript("OnEnter", button_OnEnter)
                 btn:SetScript("OnLeave", button_OnLeave)
                 btn:SetScript("OnClick", button_OnClick)
+                dr.button = btn
                 table.insert(result, dr)
             end
         end
         return result
     end,
 
-    ["recycle"] = function(self, dr)
-        for i=1, #self.recycled do
-            if self.recycled[i] == dr then
-                return
-            end
+    ["recycle"] = function(self, frame, dr)
+        if self.recycled[frame] == nil then self.recycled[frame] = {} end
+        local recycled = self.recycled[frame]
+        for i=1, #recycled do
+            if recycled[i] == dr then return end
         end
-        table.insert(self.recycled, dr)
+        table.insert(recycled, dr)
     end,
 }
 
@@ -172,7 +168,7 @@ local function PreviewList_GetPageCount(self)
     local height = setup.height and setup.height or self:GetHeight()
     local countW = math.floor(self:GetWidth() / width)
     local countH = math.floor(self:GetHeight() / height)
-    return countW * countH 
+    return math.ceil(#self.itemIds/(countW * countH))
 end
 
 
@@ -187,18 +183,20 @@ local function PreviewList_Update(self)
     local perPage = countW * countH
     if #self.itemIds > 0 and perPage > 0 then
         if #self.dressingRooms < perPage then
-            local dr = dressingRoomRecycler:get(perPage - #self.dressingRooms)
-            --dr:SetParent(self)
-            dr:SetWidth(width)
-            dr:SetHeight(height)
+            local list = dressingRoomRecycler:get(self, perPage - #self.dressingRooms)
+            while #list > 0 do
+                local dr = table.remove(list)
+                dr:SetWidth(width)
+                dr:SetHeight(height)
+                table.insert(self.dressingRooms, dr)
+            end
         elseif #self.dressingRooms > perPage then
             while #self.dressingRooms > perPage do
                 local dr = table.remove(self.dressingRooms)
-                dr:SetParent(nil)
                 dr:Hide()
-                dr.itemId = nil
                 dr:OnUpdateModel(nil)
-                dressingRoomRecycler:recycleModel(dr)
+                dr.itemId = nil
+                dressingRoomRecycler:recycle(self, dr)
             end
         end
         local gapW = (self:GetWidth() - countW * width) / 2
@@ -206,7 +204,7 @@ local function PreviewList_Update(self)
         for h = 1, countH do
             for w = 1, countW do
                 local dr = self.dressingRooms[(h - 1) * countW + w]
-                dr:SetPoint("TOPLEFT", width * (w - 1) + gapW , -height * (h - 1) - gapH)
+                dr:SetPoint("TOPLEFT", self, "TOPLEFT", width * (w - 1) + gapW , -height * (h - 1) - gapH)
             end
         end
         for i, dr in ipairs(self.dressingRooms) do
@@ -216,6 +214,9 @@ local function PreviewList_Update(self)
                 dr:OnUpdateModel(nil)
                 dr:Hide()
             else
+                dr.itemId = itemId
+                dr:SetWidth(width)
+                dr:SetHeight(height)
                 dr:Show()
                 dr:ClearModel()
                 dr.button:Hide()
@@ -231,10 +232,8 @@ local function PreviewList_Update(self)
                             dr:SetPosition(x, y, z)
                             dr:SetFacing(facing)
                             dr:TryOn(itemId)
-                            dr.queriedItemId = nil
-                            dr.modelPosition = nil
-                            dr.modelFacing = nil
                             dr.button:Show()
+                            dr:OnUpdateModel(DressingRoom_OnUpdateModel)
                         else
                             dr.queryFailedLabel:Show()
                         end
@@ -248,13 +247,6 @@ end
 
 function ns.CreatePreviewList(parent)
     local frame = CreateFrame("Frame", addon.."PreviewList", parent)
-    local previewRecycler = {}
-    local recyclerCounter = 0
-    local previewList = {}
-    local itemList = nil
-    local perPage = 0
-    local pageCount = 0
-    local currentPage = 0
 
     frame.itemIds = {}
     frame.dressingRooms = {}
@@ -281,7 +273,13 @@ function ns.CreatePreviewList(parent)
     frame.GetPageCount = PreviewList_GetPageCount
 
     frame:SetScript("OnShow", function(self)
-        self:SetPage(currentPage)
+        self:SetPage(self.currentPage)
+    end)
+
+    frame:SetScript("OnHide", function(self)
+        for i, dr in ipairs(self.dressingRooms) do
+            dr:Hide()
+        end
     end)
 
     return frame

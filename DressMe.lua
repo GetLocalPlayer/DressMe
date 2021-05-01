@@ -467,7 +467,9 @@ local function slot_OnLeftCick(self)
     local previewSetup = ns.GetPreviewSetup(previewSetupVersion, raceFileName, sex, slotName, subclass)
     local subclassRecords = ns.GetSubclassRecords(slotName, subclass)
     local list = mainFrame.tabs.preview.list
-    list:SetupModel(previewSetup.width, previewSetup.height, previewSetup.x, previewSetup.y, previewSetup.z, previewSetup.facing, previewSetup.sequence)
+    list:SetupModel(previewSetup.width, previewSetup.height,
+                    previewSetup.x, previewSetup.y, previewSetup.z,
+                    previewSetup.facing, previewSetup.sequence)
     local itemIds = {}
     for i, record in ipairs(subclassRecords) do
         table.insert(itemIds, record[1][1])
