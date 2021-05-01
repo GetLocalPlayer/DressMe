@@ -10,7 +10,7 @@ local previewBackdrop = { -- small "DressingRoom"s
 local previewBackdropColor = {0.25, 0.25, 0.25, 1}
 local previewHighlightTexture = "Interface\\Buttons\\ButtonHilight-Square"
 
-
+--[[
 local function subrange(t, first, last)
     local result = {}
     for i = first, last do
@@ -39,7 +39,7 @@ local function fillGameTooltip(names, selected)
     end
     GameTooltip:AddLine("|cff00ff00Ctrl + Left Click:|r create a Wowhead URL for the chosen item.")
 end
-
+]]
 
 local function DressingRoom_OnUpdateModel(self)
     self:SetSequence(self:GetParent():GetParent().dressingRoomSetup.sequence)
@@ -135,18 +135,19 @@ local function PreviewList_SetItems(self, itemIds)
     for i=1, #itemIds do
         table.insert(self.itemIds, itemIds[i])
     end
-    self:SetPage(1)
 end
 
 
 local function PreviewList_SetupModel(self, width, height, x, y, z, facing, sequence)
-    self.dressingRoomSetup.width = width
-    self.dressingRoomSetup.height = height
-    self.dressingRoomSetup.x = x
-    self.dressingRoomSetup.y = y
-    self.dressingRoomSetup.z = z
-    self.dressingRoomSetup.facing = facing
-    self.dressingRoomSetup.sequence = sequence
+    self.dressingRoomSetup = {
+        ["width"] = width,
+        ["height"] = height,
+        ["x"] = x,
+        ["y"] = y,
+        ["z"] = z,
+        ["facing"] = facing,
+        ["sequence"] = sequence,
+    }
     self:Update()
 end
 
@@ -173,6 +174,7 @@ end
 
 
 local function PreviewList_Update(self)
+    assert(self.dressingRoomSetup ~= nil, "`SetupModel` first.")
     local setup = self.dressingRoomSetup
     local width = setup.width > 0 and setup.width or self:GetWidth()
     local height = setup.height and setup.height or self:GetHeight()
@@ -196,6 +198,7 @@ local function PreviewList_Update(self)
                 dr:Hide()
                 dr:OnUpdateModel(nil)
                 dr.itemId = nil
+                dr.itemIndex = nil
                 dressingRoomRecycler:recycle(self, dr)
             end
         end
@@ -207,7 +210,8 @@ local function PreviewList_Update(self)
                 dr:SetPoint("TOPLEFT", self, "TOPLEFT", width * (w - 1) + gapW , -height * (h - 1) - gapH)
             end
         end
-        for i, dr in ipairs(self.dressingRooms) do
+        for i=#self.dressingRooms, 1, -1 do
+            local dr = self.dressingRooms[i]
             local index = (self.currentPage - 1) * perPage + i
             local itemId = self.itemIds[index]
             if itemId == nil then
@@ -215,6 +219,7 @@ local function PreviewList_Update(self)
                 dr:Hide()
             else
                 dr.itemId = itemId
+                dr.itemIndex = index
                 dr:SetWidth(width)
                 dr:SetHeight(height)
                 dr:Show()
@@ -251,6 +256,8 @@ function ns.CreatePreviewList(parent)
     frame.itemIds = {}
     frame.dressingRooms = {}
     frame.currenPage = 0
+    frame.dressingRoomSetup = nil
+    --[[
     frame.dressingRoomSetup = {
         ["width"] = 0,
         ["height"] = 0,
@@ -259,8 +266,7 @@ function ns.CreatePreviewList(parent)
         ["z"] = 0.0,
         ["facing"] = 0.0,
         ["sequence"] = 0,
-    }
-
+    }]]
     frame.onEnter = nil
     frame.onLeave = nil
     frame.onItemClick = nil
@@ -273,12 +279,8 @@ function ns.CreatePreviewList(parent)
     frame.GetPageCount = PreviewList_GetPageCount
 
     frame:SetScript("OnShow", function(self)
-        self:SetPage(self.currentPage)
-    end)
-
-    frame:SetScript("OnHide", function(self)
-        for i, dr in ipairs(self.dressingRooms) do
-            dr:Hide()
+        if self.dressingRoomSetup ~= nil then
+            self:Update()
         end
     end)
 

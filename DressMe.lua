@@ -6,6 +6,8 @@ local _, classFileName = UnitClass("player")
 
 local previewSetupVersion = "classic"
 
+-- Selected on first time the addon's window is show
+local defaultSlot = "Head"
 
 -- Used in look saving/sending. Chenging wil breack compatibility.
 local slotOrder = { "Head", "Shoulder", "Back", "Chest", "Shirt", "Tabard", "Wrist", "Hands", "Waist", "Legs", "Feet", "Main Hand", "Off-hand", "Ranged",}
@@ -344,60 +346,6 @@ do
     mainFrame.tabs.settings = tabs[3]
 end
 
----------------- PREVIEW LIST ----------------
-
-mainFrame.tabs.preview.list = ns.CreatePreviewList(mainFrame.tabs.preview)
-mainFrame.tabs.preview.slider = CreateFrame("Slider", "$parentSlider", mainFrame.tabs.preview, "UIPanelScrollBarTemplateLightBorder")
-
-do
-    local list = mainFrame.tabs.preview.list
-    list:SetPoint("TOPLEFT")
-    list:SetSize(601, 401)
-
-    local label = list:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("TOP", list, "BOTTOM", 0, -5)
-    label:SetJustifyH("CENTER")
-    label:SetHeight(10)
-
-    local slider = mainFrame.tabs.preview.slider
-    slider:SetPoint("TOPRIGHT", -6, -21)
-    slider:SetPoint("BOTTOMRIGHT", -6, 21)
-    slider:EnableMouseWheel(true)
-    slider:SetScript("OnMouseWheel", function(self, delta)
-        self:SetValue(self:GetValue() - delta)
-    end)
-    slider:SetScript("OnValueChanged", function(self, value)
-        list:SetPage(value)
-        local _, max = self:GetMinMaxValues()
-        label:SetText(("Page: %s/%s"):format(value, max))
-    end)
-    slider:SetScript("OnMinMaxChanged", function(self, min, max)
-        label:SetText(("Page: %s/%s"):format(self:GetValue(), max))
-    end)
-    slider:SetMinMaxValues(0, 0)
-    slider:SetValueStep(1)
-    slider:SetValue(1)
-    
-    slider.buttons = {}
-    slider.buttons.up = _G[slider:GetName() .. "ScrollUpButton"]
-    slider.buttons.down = _G[slider:GetName() .. "ScrollDownButton"]
-
-    slider.buttons.up:SetScript("OnClick", function(self)
-        slider:SetValue(slider:GetValue() - 1)
-        PlaySound("gsTitleOptionOK")
-    end)
-    slider.buttons.down:SetScript("OnClick", function(self)
-        slider:SetValue(slider:GetValue() + 1)
-        PlaySound("gsTitleOptionOK")
-    end)
-
-    list:EnableMouseWheel(true)
-    list:SetScript("OnMouseWheel", function(self, delta)
-        slider:SetValue(slider:GetValue() - delta)
-    end)
-end
-
-
 ---------------- SLOTS ----------------
 
 mainFrame.slots = {}
@@ -454,42 +402,20 @@ local function slot_OnControlLeftClick(self)
 end
 
 
-local function slot_OnLeftCick(self)
+local function slot_OnLeftClick(self)
     local selectedSlot = mainFrame.selectedSlot
     if selectedSlot ~= nil then
         selectedSlot:UnlockHighlight()
-        selectedSlot.selectedPage[selectedSlot.selectedSubclass] = mainFrame.tabs.preview.slider:GetValue()
     end
     mainFrame.selectedSlot = self
-    local slotName = self.slotName
-    local subclass = self.selectedSubclass
-    local page = self.selectedPage[subclass]
-    local previewSetup = ns.GetPreviewSetup(previewSetupVersion, raceFileName, sex, slotName, subclass)
-    local subclassRecords = ns.GetSubclassRecords(slotName, subclass)
-    local list = mainFrame.tabs.preview.list
-    list:SetupModel(previewSetup.width, previewSetup.height,
-                    previewSetup.x, previewSetup.y, previewSetup.z,
-                    previewSetup.facing, previewSetup.sequence)
-    local itemIds = {}
-    for i, record in ipairs(subclassRecords) do
-        table.insert(itemIds, record[1][1])
-    end
-    list:SetItems(itemIds)
-    --list:Update(previewSetup, subclassRecords, page)
-    local slider = mainFrame.tabs.preview.slider
-    slider:SetMinMaxValues(1, list:GetPageCount())
-    if slider:GetValue() ~= page then
-        slider:SetValue(page)
-    else
-        slider:GetScript("OnValueChanged")(slider, page)
-    end
+    mainFrame.tabs.preview:Update(self.slotName)
     --[[ ReTryOn weapon so the model displays
     the weapon of the clicked (selected) slot. ]]
     if self.itemId ~= nil and getIndex({MAIN_HAND_SLOT, OFF_HAND_SLOT, RANGED_SLOT}, self.slotName) then
         mainFrame.dressingRoom:TryOn(self.itemId)
     end
     self:LockHighlight()
-    mainFrame.tabs.preview.subclassMenu:Update(slotName, subclass)
+    -- ainFrame.tabs.preview.subclassMenu:Update(slotName, subclass)
 end
 
 local function slot_OnRightClick(self)
@@ -503,7 +429,7 @@ local function slot_OnClick(self, button)
         elseif IsControlKeyDown() then
             slot_OnControlLeftClick(self)
         else
-            slot_OnLeftCick(self)
+            slot_OnLeftClick(self)
         end
         PlaySound("gsTitleOptionOK")
     elseif button == "RightButton" then
@@ -679,7 +605,7 @@ mainFrame.buttons.useTarget:HookScript("OnClick", function(slef)
 end)
 
 -- At first time it's shown.
-mainFrame.slots["Head"]:SetScript("OnShow", function(self)
+mainFrame.slots[defaultSlot]:SetScript("OnShow", function(self)
     self:SetScript("OnShow", nil)
     self:Click("LeftButton")
     mainFrame.buttons.reset:HookScript("OnClick", btnReset_Hook)
@@ -689,41 +615,125 @@ mainFrame.slots["Head"]:SetScript("OnShow", function(self)
     mainFrame.buttons.undress:HookScript("OnClick", btnUndress_Hook)
 end)
 
----------------- PREVIEW LIST SCRIPT ----------------
+---------------- PREVIEW TAB ----------------
+
+mainFrame.tabs.preview.list = ns.CreatePreviewList(mainFrame.tabs.preview)
+mainFrame.tabs.preview.slider = CreateFrame("Slider", "$parentSlider", mainFrame.tabs.preview, "UIPanelScrollBarTemplateLightBorder")
+
+---------------- Slider
 
 do
-    local previewList = mainFrame.tabs.preview.list
---[[
-    previewList.onItemClick = function(self, button)
-        local preview = self:GetParent()
-        local ids, names = unpack(preview.appereanceData)
-        local selectedPreview = preview.selected
-        local selectedSlot = mainFrame.selectedSlot
-        if IsShiftKeyDown() then
-            local color = names[selectedPreview]:sub(1, 10)
-            local name = names[selectedPreview]:sub(11, -3)
-            SELECTED_CHAT_FRAME:AddMessage("<DressMe>: "..selectedSlot.slotName.." - "..selectedSlot.selectedSubclass.." "..color.."\124Hitem:"..ids[selectedPreview]..":::::::|h["..name.."]\124h\124r".." ("..ids[selectedPreview]..")")
-        elseif IsControlKeyDown() then
-            ns:ShowWowheadURLDialog(ids[selectedPreview])
-        else
-            selectedSlot:SetItem(ids[selectedPreview])
+    local previewTab = mainFrame.tabs.preview
+    local list = mainFrame.tabs.preview.list
+    local slider = mainFrame.tabs.slider
+
+    list:SetPoint("TOPLEFT")
+    list:SetSize(601, 401)
+
+    local label = list:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("TOP", list, "BOTTOM", 0, -5)
+    label:SetJustifyH("CENTER")
+    label:SetHeight(10)
+
+    local slider = mainFrame.tabs.preview.slider
+    slider:SetPoint("TOPRIGHT", -6, -21)
+    slider:SetPoint("BOTTOMRIGHT", -6, 21)
+    slider:EnableMouseWheel(true)
+    slider:SetScript("OnMouseWheel", function(self, delta)
+        self:SetValue(self:GetValue() - delta)
+    end)
+    slider:SetScript("OnMinMaxChanged", function(self, min, max)
+        label:SetText(("Page: %s/%s"):format(self:GetValue(), max))
+    end)
+    
+    slider.buttons = {}
+    slider.buttons.up = _G[slider:GetName() .. "ScrollUpButton"]
+    slider.buttons.down = _G[slider:GetName() .. "ScrollDownButton"]
+
+    slider.buttons.up:SetScript("OnClick", function(self)
+        slider:SetValue(slider:GetValue() - 1)
+        PlaySound("gsTitleOptionOK")
+    end)
+    slider.buttons.down:SetScript("OnClick", function(self)
+        slider:SetValue(slider:GetValue() + 1)
+        PlaySound("gsTitleOptionOK")
+    end)
+
+    list:EnableMouseWheel(true)
+    list:SetScript("OnMouseWheel", function(self, delta)
+        slider:SetValue(slider:GetValue() - delta)
+    end)
+
+    local function onValueChanged(self, value)
+        list:SetPage(value)
+        local _, max = self:GetMinMaxValues()
+        label:SetText(("Page: %s/%s"):format(value, max))
+    end
+
+    slider:SetScript("OnValueChanged", onValueChanged)
+
+    slider.SetValueSilent = function(self, value)
+        self:SetScript("OnValueChanged", nil)
+        self:SetValue(value)
+        self:SetScript("OnValueChanged", onValueChanged)
+    end
+
+    slider:SetMinMaxValues(0, 0)
+    slider:SetValueStep(1)
+end
+
+---------------- Preview list
+
+do
+    local previewTab = mainFrame.tabs.preview
+    local list = previewTab.list
+    local slider = previewTab.slider
+
+    local slotSubclass = {}
+    local slotSubclassPage = {} -- page[slot][subclass] can be `nil`
+
+    for slotName, slot in pairs(mainFrame.slots) do
+        slotSubclass[slotName] = classSubclas[classFileName]
+        slotSubclassPage[slotName] = {}
+        for class, subclass in pairs(classSubclas) do
+            slotSubclassPage[slotName][subclass] = 1
         end
     end
 
-    local onTabDummy = CreateFrame("Button", addon.."PreviewListOnTabDummy")
-    onTabDummy:SetScript("OnClick", function(self)
-        local preview = self.preview
-        local names = preview.appereanceData[2]
-        preview.selected = preview.selected < #names and (preview.selected + 1) or 1
-        GameTooltip:SetOwner(preview, "ANCHOR_TOPLEFT")
-        GameTooltip:ClearLines()
-        fillGameTooltip(names, preview.selected)
-        GameTooltip:Show()
-    end)
-    ]]
+    local currSlot, currSubclass = defaultSlot, classSubclas[classFileName]
+    local records
+
+    previewTab.Update = function(self, slot, subclass)
+        slotSubclassPage[currSlot][currSubclass] = slider:GetValue() > 0 and slider:GetValue() or 1
+        if slot ~= nil then currSlot = slot end
+        if subclass ~= nil then currSubclass = subclass end
+        local setup = ns.GetPreviewSetup(previewSetupVersion, raceFileName, sex, currSlot, currSubclass)
+        list:SetupModel(setup.width, setup.height, setup.x, setup.y, setup.z, setup.facing, setup.sequence)
+        records = ns.GetSubclassRecords(currSlot, currSubclass)
+        local itemIds = {}
+        for i=1, #records do
+            local ids = records[i][1]
+            table.insert(itemIds, ids[1])
+        end
+        list:SetItems(itemIds)
+        slider:SetMinMaxValues(1, list:GetPageCount())
+        slider:SetValue(slotSubclassPage[currSlot][currSubclass])
+    end
+
+    list.onEnter = function(self, ...)
+        --print("ENTER event: item index = "..self:GetParent().itemIndex.." item id = "..self:GetParent().itemId)
+    end
+
+    list.onLeave = function(self, ...)
+        --print("LEAVE event: item index = "..self:GetParent().itemIndex.." item id = "..self:GetParent().itemId)
+    end
+
+    list.onItemClick = function(self, button)
+        --print("CLICK event: item index = "..self:GetParent().itemIndex.." item id = "..self:GetParent().itemId)
+    end
 end
 
----------------- SBUCLASS FRAMES ----------------
+---------------- SBUCLASS FRAME ----------------
 
 function string:startswith(...)
     local array = {...}
@@ -739,7 +749,10 @@ end
 mainFrame.tabs.preview.subclassMenu = CreateFrame("Frame", "$parentSubclassMenu", mainFrame.tabs.preview, "UIDropDownMenuTemplate")
 
 do
+    local previewTab = mainFrame.tabs.preview
+    local slots = mainFrame.slots
     local menu = mainFrame.tabs.preview.subclassMenu
+
     menu:SetPoint("TOPRIGHT", -120, 38)
     menu.initializers = {} -- init func per slot
     UIDropDownMenu_JustifyText(menu, "LEFT")
@@ -754,8 +767,7 @@ do
         end
     end
 
-    local previewTab = mainFrame.tabs.preview
-    local slots = mainFrame.slots
+    local slotSubclass
 
     local function subclassMenu_OnClick(self, subclass)
         local selectedSlot = mainFrame.selectedSlot
