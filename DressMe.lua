@@ -461,7 +461,7 @@ local function slot_OnEnter(self)
         GameTooltip:SetHyperlink(link)
         if GetSettings().showShortcutsInTooltip then
             GameTooltip:AddLine(" ")
-            GameTooltip:AddLine("|n|cff00ff00Shift + Left Click:|r create a hyperlink for the item.")
+            GameTooltip:AddLine("|cff00ff00Shift + Left Click:|r create a hyperlink for the item.")
             GameTooltip:AddLine("|cff00ff00Right Click:|r undress the slot.")
             GameTooltip:AddLine("|cff00ff00Ctrl + Left Click:|r create a Wowhead URL for the item.")
         end
@@ -532,9 +532,6 @@ do
         slot:SetScript("OnEnter", slot_OnEnter)
         slot:SetScript("OnLeave", slot_OnLeave)
         slot.slotName = slotName
-        slot.selectedPage = {}      -- per subclass, filled later in subclass
-        -- Empty declarations just as reminder
-        slot.selectedSubclass = nil -- init later in subclass
         mainFrame.slots[slotName] = slot
         slot.textures = {}
         slot.textures.empty = slot:CreateTexture(nil, "BACKGROUND")
@@ -723,16 +720,53 @@ do
         currSubclass = subclass
     end
 
-    list.onEnter = function(self, ...)
-        --print("ENTER event: item index = "..self:GetParent().itemIndex.." item id = "..self:GetParent().itemId)
+    local selectedInRecord = {} -- { [first id in record] = index of selected id, ...}
+
+    local tabDummy = CreateFrame("Button", addon.."PreviewListTabDummy", previewTab)
+
+    list.onEnter = function(self)
+        local recordIndex = self:GetParent().itemIndex
+        local ids = records[recordIndex][1]
+        local names = records[recordIndex][2]
+        GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+        GameTooltip:ClearLines()
+        GameTooltip:AddLine("This appearance is provided by:", 1, 1, 1)
+        GameTooltip:AddLine(" ")
+        local selected = selectedInRecord[ids[1]] ~= nil and selectedInRecord[ids[1]] or 1
+        for i, id in ipairs(ids) do
+            GameTooltip:AddLine((i == selected and "> " or "- ")..names[i]..(id == mainFrame.selectedSlot.itemId and " <"or ""))
+        end
+        if GetSettings().showShortcutsInTooltip then
+            GameTooltip:AddLine("|n|cff00ff00Left Click:|r try on the appearance.")
+            if #ids > 1 then
+                GameTooltip:AddLine("|cff00ff00Tab:|r choose an item in the list.")
+                GameTooltip:AddLine("|cff00ff00Shift + Left Click:|r create a hyperlink for the chosen item.")
+            else
+                GameTooltip:AddLine("|cff00ff00Shift + Left Click:|r create a hyperlink for the item.")
+            end
+            GameTooltip:AddLine("|cff00ff00Ctrl + Left Click:|r create a Wowhead URL for the chosen item.")
+        end
+        GameTooltip:Show()
+        SetOverrideBindingClick(tabDummy, true, "TAB", tabDummy:GetName(), "RightButton")
     end
 
     list.onLeave = function(self, ...)
-        --print("LEAVE event: item index = "..self:GetParent().itemIndex.." item id = "..self:GetParent().itemId)
+        ClearOverrideBindings(tabDummy)
+        GameTooltip:ClearLines()
+        GameTooltip:Hide()
     end
 
+    tabDummy:SetScript("OnClick", function(self)
+        if list.entered ~= nil then
+            list.onEnter(list.entered)
+        end
+    end)
+
     list.onItemClick = function(self, button)
-        --print("CLICK event: item index = "..self:GetParent().itemIndex.." item id = "..self:GetParent().itemId)
+        local recordIndex = self:GetParent().itemIndex
+        local ids = records[recordIndex][1]
+        mainFrame.selectedSlot:SetItem(ids[1])
+        list.onEnter(self)
     end
 end
 

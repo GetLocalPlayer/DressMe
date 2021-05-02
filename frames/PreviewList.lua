@@ -1,45 +1,15 @@
 local addon, ns = ...
 
 
-local previewBackdrop = { -- small "DressingRoom"s
+local itemBackdrop = { -- small "DressingRoom"s
     bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
 	edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
 	tile = true, tileSize = 16, edgeSize = 16,
     insets = { left = 3, right = 3, top = 3, bottom = 3 }
 }
-local previewBackdropColor = {0.25, 0.25, 0.25, 1}
+local itemBackdropColor = {0.25, 0.25, 0.25, 1}
+local itemBackdropBorderColor = {1, 1, 1}
 local previewHighlightTexture = "Interface\\Buttons\\ButtonHilight-Square"
-
---[[
-local function subrange(t, first, last)
-    local result = {}
-    for i = first, last do
-        if t[i] then
-            table.insert(result, t[i])
-        else
-            break
-        end
-    end
-    return result
-end
-
-
-local function fillGameTooltip(names, selected)
-    GameTooltip:AddLine("This appearance's provided by:", 1, 1, 1)
-    GameTooltip:AddLine(" ")
-    for i = 1, #names do
-        GameTooltip:AddLine((i == selected and "> " or "- ")..names[i])
-    end
-    GameTooltip:AddLine("|n|cff00ff00Left Click:|r try on the appearance.")
-    if #names > 1 then
-        GameTooltip:AddLine("|cff00ff00Tab:|r choose an item in the list.")
-        GameTooltip:AddLine("|cff00ff00Shift + Left Click:|r create a hyperlink for the chosen item.")
-    else
-        GameTooltip:AddLine("|cff00ff00Shift + Left Click:|r create a hyperlink for the item.")
-    end
-    GameTooltip:AddLine("|cff00ff00Ctrl + Left Click:|r create a Wowhead URL for the chosen item.")
-end
-]]
 
 --[[
     Methods:
@@ -57,7 +27,10 @@ end
 
 
 local function button_OnClick(self, button)
-    local onItemClick = self:GetParent():GetParent().onItemClick
+    local mainFrame = self:GetParent():GetParent()
+    local onItemClick = mainFrame.onItemClick
+    mainFrame.selectedItemId = self:GetParent().itemId
+    mainFrame.selectedItemIndex = self:GetParent().itemIndex
     if onItemClick ~= nil then
         onItemClick(self, button)
     end
@@ -69,6 +42,7 @@ end
 
 local function button_OnEnter(self, ...)
     local onEnter = self:GetParent():GetParent().onEnter
+    self:GetParent():GetParent().enteredButton = self
     if onEnter ~= nil then
         onEnter(self, ...)
     end
@@ -77,6 +51,7 @@ end
 
 local function button_OnLeave(self, ...)
     local onLeave = self:GetParent():GetParent().onLeave
+    self:GetParent():GetParent().enteredButton = nil
     if onLeave ~= nil then
         onLeave(self, ...)
     end
@@ -97,8 +72,8 @@ local dressingRoomRecycler = {
             else
                 self.counter = self.counter + 1
                 local dr = ns.CreateDressingRoom("$parentDressingRoom"..self.counter, parent)
-                dr:SetBackdrop(previewBackdrop)
-                dr:SetBackdropColor(unpack(previewBackdropColor))
+                dr:SetBackdrop(itemBackdrop)
+                dr:SetBackdropColor(unpack(itemBackdropColor))
                 dr:EnableDragRotation(false)
                 dr:EnableMouseWheel(false)
                 dr.queriedLabel = dr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -146,6 +121,8 @@ local function PreviewList_SetItems(self, itemIds)
     for i=1, #itemIds do
         table.insert(self.itemIds, itemIds[i])
     end
+    self.selectedItemId = nil
+    self.selectedItemIndex = nil
     if self.dressingRoomSetup ~= nil then
         self:Update()
     end
@@ -295,6 +272,10 @@ function ns.CreatePreviewList(parent)
     frame.onEnter = nil
     frame.onLeave = nil
     frame.onItemClick = nil
+
+    frame.enteredButton = nil -- last button reacted on "OnEnter" event, set to `nil` in "OnLeave" event
+    frame.selectedItemId = nil
+    frame.selectedItemIndex = nil
 
     frame.SetItems = PreviewList_SetItems
     frame.Update = PreviewList_Update
