@@ -789,10 +789,8 @@ do
                 info.func = menu_OnClick
                 UIDropDownMenu_AddButton(info)
             end
-            previewTab:Update(slot, slotSelectedSubclass[slot])
         end,
     }
-
     setmetatable(initializer, initializer)
 
     function menu.Update(self, slot)
@@ -803,6 +801,7 @@ do
         end
         UIDropDownMenu_SetText(self, slotSelectedSubclass[slot])
         initializer.slot = slot
+        previewTab:Update(slot, slotSelectedSubclass[slot])
         UIDropDownMenu_Initialize(self, initializer)
     end
 end
