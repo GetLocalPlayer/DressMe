@@ -87,16 +87,16 @@ local dressingRoomRecycler = {
     ["recycled"] = {},
     ["counter"] = 0,
 
-    ["get"] = function(self, frame, number)
+    ["get"] = function(self, parent, number)
         local result = {}
         while #result < number do
-            if self.recycled[frame] == nil then self.recycled[frame] = {} end
-            local recycled = self.recycled[frame]
+            if self.recycled[parent] == nil then self.recycled[parent] = {} end
+            local recycled = self.recycled[parent]
             if #self.recycled > 0 then
                 table.insert(result, table.remove(recycled))
             else
                 self.counter = self.counter + 1
-                local dr = ns.CreateDressingRoom("$parentDressingRoom"..self.counter, frame)
+                local dr = ns.CreateDressingRoom("$parentDressingRoom"..self.counter, parent)
                 dr:SetBackdrop(previewBackdrop)
                 dr:SetBackdropColor(unpack(previewBackdropColor))
                 dr:EnableDragRotation(false)
@@ -123,7 +123,7 @@ local dressingRoomRecycler = {
                 btn:SetScript("OnLeave", button_OnLeave)
                 btn:SetScript("OnClick", button_OnClick)
                 dr.button = btn
-                table.insert(result, dr)
+                table.insert(result, 1, dr)
             end
         end
         return result
