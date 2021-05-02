@@ -679,21 +679,11 @@ do
         slider:SetValue(slider:GetValue() - delta)
     end)
 
-    local function onValueChanged(self, value)
+    slider:SetScript("OnValueChanged", function (self, value)
         list:SetPage(value)
         local _, max = self:GetMinMaxValues()
         label:SetText(("Page: %s/%s"):format(value, max))
-    end
-
-    slider:SetScript("OnValueChanged", onValueChanged)
-
-    slider.SetValueSilent = function(self, value)
-        self:SetScript("OnValueChanged", nil)
-        self:SetValue(value)
-        local _, max = self:GetMinMaxValues()
-        label:SetText(("Page: %s/%s"):format(value, max))
-        self:SetScript("OnValueChanged", onValueChanged)
-    end
+    end)
 
     slider:SetMinMaxValues(0, 0)
     slider:SetValueStep(1)
@@ -727,9 +717,8 @@ do
         local setup = ns.GetPreviewSetup(previewSetupVersion, raceFileName, sex, slot, subclass)
         list:SetupModel(setup.width, setup.height, setup.x, setup.y, setup.z, setup.facing, setup.sequence)
         local page = slotSubclassPage[slot][subclass] ~= nil and slotSubclassPage[slot][subclass] or 1
-        list:SetPage(page)
         slider:SetMinMaxValues(1, list:GetPageCount())
-        slider:SetValueSilent(page)
+        slider:SetValue(page)
         currSlot = slot
         currSubclass = subclass
     end
