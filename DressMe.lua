@@ -6,14 +6,54 @@ local _, classFileName = UnitClass("player")
 
 local previewSetupVersion = "classic"
 
--- Selected on first time the addon's window is show
-local defaultSlot = "Head"
-
+local armorSlots = {"Head", "Shoulder", "Chest", "Wrist", "Hands", "Waist", "Legs", "Feet"}
+local backSlot = "Back"
+local miscellaneousSlots = {"Tabard", "Shirt"}
+local mainHandSlot = "Main Hand"
+local offHandSlot = "Off-hand"
+local rangedSlot = "Ranged"
 -- Used in look saving/sending. Chenging wil breack compatibility.
 local slotOrder = { "Head", "Shoulder", "Back", "Chest", "Shirt", "Tabard", "Wrist", "Hands", "Waist", "Legs", "Feet", "Main Hand", "Off-hand", "Ranged",}
 
+local slotTextures = {
+    ["Head"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-head",
+    ["Shoulder"] =  "Interface\\Paperdoll\\ui-paperdoll-slot-shoulder",
+    ["Back"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-chest",
+    ["Chest"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-chest",
+    ["Shirt"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-shirt",
+    ["Tabard"] =    "Interface\\Paperdoll\\ui-paperdoll-slot-tabard",
+    ["Wrist"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-wrists",
+    ["Hands"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-hands",
+    ["Waist"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-waist",
+    ["Legs"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-legs",
+    ["Feet"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-feet",
+    ["Main Hand"] = "Interface\\Paperdoll\\ui-paperdoll-slot-mainhand",
+    ["Off-hand"] =  "Interface\\Paperdoll\\ui-paperdoll-slot-secondaryhand",
+    ["Ranged"] =    "Interface\\Paperdoll\\ui-paperdoll-slot-ranged",
+}
 
-local classSubclas = {
+local slotSubclasses = {--[[
+    ["slot1"] = {subclass1, subclass2, ...},
+    ["slot2"] = {subclass1, subclass2, ...},
+    ["slot2"] = {subclass1, subclass2, ...},
+    ...]]
+}
+
+do
+    for i, slot in ipairs(armorSlots) do slotSubclasses[slot] = {"Cloth", "Leather", "Mail", "Plate"} end
+    for i, slot in ipairs(miscellaneousSlots) do slotSubclasses[slot] = {"Miscellaneous", } end
+    slotSubclasses[backSlot] = {"Cloth", }
+    slotSubclasses[mainHandSlot] = {
+        "1H Axe", "1H Mace", "1H Sword", "1H Dagger", "1H Fist",
+        "MH Axe", "MH Mace", "MH Sword", "MH Dagger", "MH Fist",
+        "2H Axe", "2H Mace", "2H Sword", "Polearm", "Staff" }
+    slotSubclasses[offHandSlot] = { "OH Axe", "OH Mace", "OH Sword", "OH Dagger", "OH Fist", "Shield", "Held in Off-hand"}
+    slotSubclasses[rangedSlot] = {"Bow", "Crossbow", "Gun", "Wand", "Thrown"}
+end
+
+local defaultSlot = "Head"
+
+local defaultArmorSubclass = {
     ["MAGE"] = "Cloth",
     ["PRIEST"] = "Cloth",
     ["WARLOCK"] = "Cloth",
@@ -351,30 +391,6 @@ end
 mainFrame.slots = {}
 mainFrame.selectedSlot = nil
 
-local SLOT_TEXTURES = {
-    ["Head"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-head",
-    ["Shoulder"] =  "Interface\\Paperdoll\\ui-paperdoll-slot-shoulder",
-    ["Back"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-chest",
-    ["Chest"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-chest",
-    ["Shirt"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-shirt",
-    ["Tabard"] =    "Interface\\Paperdoll\\ui-paperdoll-slot-tabard",
-    ["Wrist"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-wrists",
-    ["Hands"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-hands",
-    ["Waist"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-waist",
-    ["Legs"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-legs",
-    ["Feet"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-feet",
-    ["Main Hand"] = "Interface\\Paperdoll\\ui-paperdoll-slot-mainhand",
-    ["Off-hand"] =  "Interface\\Paperdoll\\ui-paperdoll-slot-secondaryhand",
-    ["Ranged"] =    "Interface\\Paperdoll\\ui-paperdoll-slot-ranged",
-}
-
-local ARMOR_SLOTS = {"Head", "Shoulder", "Chest", "Wrist", "Hands", "Waist", "Legs", "Feet"}
-local BACK_SLOT = "Back"
-local MISCELLANEOUS_SLOTS = {"Tabard", "Shirt"}
-local MAIN_HAND_SLOT = "Main Hand"
-local OFF_HAND_SLOT = "Off-hand"
-local RANGED_SLOT = "Ranged"
-
 local function slot_OnShiftLeftClick(self)
     if self.itemId ~= nil then
         local _, link = GetItemInfo(self.itemId)
@@ -408,14 +424,13 @@ local function slot_OnLeftClick(self)
         selectedSlot:UnlockHighlight()
     end
     mainFrame.selectedSlot = self
-    mainFrame.tabs.preview:Update(self.slotName)
+    mainFrame.tabs.preview.subclassMenu:Update(self.slotName)
     --[[ ReTryOn weapon so the model displays
     the weapon of the clicked (selected) slot. ]]
-    if self.itemId ~= nil and getIndex({MAIN_HAND_SLOT, OFF_HAND_SLOT, RANGED_SLOT}, self.slotName) then
+    if self.itemId ~= nil and getIndex({mainHandSlot, offHandSlot, rangedSlot}, self.slotName) then
         mainFrame.dressingRoom:TryOn(self.itemId)
     end
     self:LockHighlight()
-    -- ainFrame.tabs.preview.subclassMenu:Update(slotName, subclass)
 end
 
 local function slot_OnRightClick(self)
@@ -460,14 +475,14 @@ end
 
 local function slot_Reset(self)
     local characterSlotName = self.slotName
-    if characterSlotName == MAIN_HAND_SLOT then characterSlotName = "MainHand" end
-    if characterSlotName == OFF_HAND_SLOT then characterSlotName = "SecondaryHand" end
-    if characterSlotName == RANGED_SLOT then characterSlotName = "Ranged" end
-    if characterSlotName == BACK_SLOT then characterSlotName = "Back" end
+    if characterSlotName == mainHandSlot then characterSlotName = "MainHand" end
+    if characterSlotName == offHandSlot then characterSlotName = "SecondaryHand" end
+    if characterSlotName == rangedSlot then characterSlotName = "Ranged" end
+    if characterSlotName == backSlot then characterSlotName = "Back" end
     local slotId = GetInventorySlotInfo(characterSlotName.."Slot")
     local itemId = GetInventoryItemID("player", slotId)
     local name, link, quality, _, _, _, _, _, _, texture = GetItemInfo(itemId ~= nil and itemId or 0)
-    if name ~= nil and (quality >= 2 or getIndex(MISCELLANEOUS_SLOTS, self.slotName)) then
+    if name ~= nil and (quality >= 2 or getIndex(miscellaneousSlots, self.slotName)) then
         self:SetItem(itemId)
     else
         self:RemoveItem()
@@ -509,7 +524,7 @@ end
 --------- Slot building
 
 do
-    for slotName, texturePath in pairs(SLOT_TEXTURES) do
+    for slotName, texturePath in pairs(slotTextures) do
         local slot = CreateFrame("Button", "$parentSlot"..slotName, mainFrame, "ItemButtonTemplate")
         slot:RegisterForClicks("LeftButtonUp", "RightButtonUp")
         slot:SetFrameLevel(mainFrame.dressingRoom:GetFrameLevel() + 1)
@@ -556,7 +571,7 @@ end
 local function btnReset_Hook()
     mainFrame.dressingRoom:Undress()
     for _, slot in pairs(mainFrame.slots) do
-        if slot.slotName == RANGED_SLOT and ("DRUIDSHAMANPALADINDEATHKNIGHT"):find(classFileName) then
+        if slot.slotName == rangedSlot and ("DRUIDSHAMANPALADINDEATHKNIGHT"):find(classFileName) then
             slot:RemoveItem()
         else
             slot:Reset()
@@ -675,6 +690,8 @@ do
     slider.SetValueSilent = function(self, value)
         self:SetScript("OnValueChanged", nil)
         self:SetValue(value)
+        local _, max = self:GetMinMaxValues()
+        label:SetText(("Page: %s/%s"):format(value, max))
         self:SetScript("OnValueChanged", onValueChanged)
     end
 
@@ -689,35 +706,32 @@ do
     local list = previewTab.list
     local slider = previewTab.slider
 
-    local slotSubclass = {}
-    local slotSubclassPage = {} -- page[slot][subclass] can be `nil`
+    local slotSubclassPage = {} -- page per [slot][subclass] can be `nil`
 
-    for slotName, slot in pairs(mainFrame.slots) do
-        slotSubclass[slotName] = classSubclas[classFileName]
-        slotSubclassPage[slotName] = {}
-        for class, subclass in pairs(classSubclas) do
-            slotSubclassPage[slotName][subclass] = 1
-        end
+    for slot, _ in pairs(mainFrame.slots) do
+        slotSubclassPage[slot] = {}
     end
 
-    local currSlot, currSubclass = defaultSlot, classSubclas[classFileName]
+    local currSlot, currSubclass = defaultSlot, defaultArmorSubclass[classFileName]
     local records
 
     previewTab.Update = function(self, slot, subclass)
         slotSubclassPage[currSlot][currSubclass] = slider:GetValue() > 0 and slider:GetValue() or 1
-        if slot ~= nil then currSlot = slot end
-        if subclass ~= nil then currSubclass = subclass end
-        local setup = ns.GetPreviewSetup(previewSetupVersion, raceFileName, sex, currSlot, currSubclass)
-        list:SetupModel(setup.width, setup.height, setup.x, setup.y, setup.z, setup.facing, setup.sequence)
-        records = ns.GetSubclassRecords(currSlot, currSubclass)
+        records = ns.GetSubclassRecords(slot, subclass)
         local itemIds = {}
         for i=1, #records do
             local ids = records[i][1]
             table.insert(itemIds, ids[1])
         end
         list:SetItems(itemIds)
+        local setup = ns.GetPreviewSetup(previewSetupVersion, raceFileName, sex, slot, subclass)
+        list:SetupModel(setup.width, setup.height, setup.x, setup.y, setup.z, setup.facing, setup.sequence)
+        local page = slotSubclassPage[slot][subclass] ~= nil and slotSubclassPage[slot][subclass] or 1
+        list:SetPage(page)
         slider:SetMinMaxValues(1, list:GetPageCount())
-        slider:SetValue(slotSubclassPage[currSlot][currSubclass])
+        slider:SetValueSilent(page)
+        currSlot = slot
+        currSubclass = subclass
     end
 
     list.onEnter = function(self, ...)
@@ -735,17 +749,6 @@ end
 
 ---------------- SBUCLASS FRAME ----------------
 
-function string:startswith(...)
-    local array = {...}
-    for i = 1, #array do
-        assert(type(array[i]) == "string", "string:startswith(\"...\") - argument type error, string is required")
-        if self:sub(1, array[i]:len()) == array[i] then
-            return true
-        end
-    end
-    return  false
-end
-
 mainFrame.tabs.preview.subclassMenu = CreateFrame("Frame", "$parentSubclassMenu", mainFrame.tabs.preview, "UIDropDownMenuTemplate")
 
 do
@@ -757,135 +760,50 @@ do
     menu.initializers = {} -- init func per slot
     UIDropDownMenu_JustifyText(menu, "LEFT")
 
-    function menu.Update(self, slotName, subclass)
-        UIDropDownMenu_SetText(self, subclass)
-        if menu.initializers[slotName] ~= nil then
-            UIDropDownMenu_EnableDropDown(self)
-            UIDropDownMenu_Initialize(self, menu.initializers[slotName])
-        else
-            UIDropDownMenu_DisableDropDown(self)
-        end
-    end
+    local slotSelectedSubclass = {}
 
-    local slotSubclass
+    for i, slot in ipairs(armorSlots) do slotSelectedSubclass[slot] = defaultArmorSubclass[classFileName] end
+    for i, slot in ipairs(miscellaneousSlots) do slotSelectedSubclass[slot] = "Miscellaneous" end
+    slotSelectedSubclass[backSlot] = slotSubclasses[backSlot][1] 
+    slotSelectedSubclass[mainHandSlot] = slotSubclasses[mainHandSlot][1]
+    slotSelectedSubclass[offHandSlot] = slotSubclasses[offHandSlot][1]
+    slotSelectedSubclass[rangedSlot] = slotSubclasses[rangedSlot][1]
 
-    local function subclassMenu_OnClick(self, subclass)
-        local selectedSlot = mainFrame.selectedSlot
-        selectedSlot.selectedPage[selectedSlot.selectedSubclass] = previewTab.slider:GetValue()
-        local slotName = selectedSlot.slotName
-        local page = selectedSlot.selectedPage[subclass]
-        local previewSetup = ns.GetPreviewSetup(previewSetupVersion, raceFileName, sex, slotName, subclass)
-        local subclassAppearances = ns.GetSubclassRecords(slotName, subclass)
-        previewTab.list:Update(previewSetup, subclassAppearances, page)
-        selectedSlot.selectedSubclass = subclass
-        previewTab.slider:SetMinMaxValues(1, previewTab.list:GetPageCount())
-        if previewTab.slider:GetValue() ~= page then
-            previewTab.slider:SetValue(page)
-        else
-            previewTab.slider:GetScript("OnValueChanged")(previewTab.slider, page)
-        end
+    local function menu_OnClick(self, slot, subclass)
+        previewTab:Update(slot, subclass)
+        slotSelectedSubclass[slot] = subclass
         UIDropDownMenu_SetText(mainFrame.tabs.preview.subclassMenu, subclass)
     end
 
-    ---------------- ARMOR ----------------
+    local initializer = {
+        ["slot"] = nil,
 
-    do
-        local subclasses = {"Cloth", "Leather", "Mail", "Plate"}
-
-        local function init(self)
+        ["__call"] = function (self, frame)
             local info = UIDropDownMenu_CreateInfo()
-            for i = 1, #subclasses do
-                info.text, info.checked, info.arg1, info.func = subclasses[i], subclasses[i] == UIDropDownMenu_GetText(self), subclasses[i], subclassMenu_OnClick
+            local slot = self.slot
+            for i, subclass in ipairs(slotSubclasses[slot]) do
+                info.text = subclass
+                info.checked = subclass == UIDropDownMenu_GetText(frame)
+                info.arg1 = slot
+                info.arg2 = subclass
+                info.func = menu_OnClick
                 UIDropDownMenu_AddButton(info)
             end
+            previewTab:Update(slot, slotSelectedSubclass[slot])
+        end,
+    }
+
+    setmetatable(initializer, initializer)
+
+    function menu.Update(self, slot)
+        if #slotSubclasses[slot] > 1 then
+            UIDropDownMenu_EnableDropDown(self)
+        else
+            UIDropDownMenu_DisableDropDown(self)
         end
-
-        for _, slotName in pairs(ARMOR_SLOTS) do
-            previewTab.subclassMenu.initializers[slotName] = init
-            slots[slotName].selectedSubclass = classSubclas[classFileName]
-            for _, subclass in ipairs(subclasses) do
-                slots[slotName].selectedPage[subclass] = 1
-            end
-        end
-    end
-
-    ---------------- BACK ----------------
-
-    do
-        local subclass = "Cloth"
-        slots[BACK_SLOT].selectedSubclass = subclass
-        slots[BACK_SLOT].selectedPage[subclass] = 1
-    end
-
-    ---------------- SHIRT / TABARD ----------------
-
-    do
-        local subclass = "Miscellaneous"
-        for _, name in pairs(MISCELLANEOUS_SLOTS) do
-            slots[name].selectedSubclass = subclass
-            slots[name].selectedPage[subclass] = 1
-        end
-    end
-
-    ---------------- MAIN HAND ----------------
-
-    do
-        local subclasses = {
-            "1H Axe", "1H Mace", "1H Sword", "1H Dagger", "1H Fist",
-            "MH Axe", "MH Mace", "MH Sword", "MH Dagger", "MH Fist",
-            "2H Axe", "2H Mace", "2H Sword", "Polearm", "Staff"
-        }
-        local function init (self)
-            local info = UIDropDownMenu_CreateInfo()
-            for i = 1, #subclasses do
-                info.text, info.checked, info.arg1, info.func = subclasses[i], subclasses[i] == UIDropDownMenu_GetText(self), subclasses[i], subclassMenu_OnClick
-                UIDropDownMenu_AddButton(info)
-            end
-        end
-        previewTab.subclassMenu.initializers[MAIN_HAND_SLOT] = init
-        slots[MAIN_HAND_SLOT].selectedSubclass = subclasses[1]
-        for _, subclass in ipairs(subclasses) do
-            slots[MAIN_HAND_SLOT].selectedPage[subclass] = 1
-        end
-    end
-
-    ---------------- OFF-HAND ----------------
-
-    do
-        local subclasses = {
-            "OH Axe", "OH Mace", "OH Sword", "OH Dagger", "OH Fist",
-            "Shield", "Held in Off-hand"
-        }
-        local function init(self)
-            local info = UIDropDownMenu_CreateInfo()
-            for i = 1, #subclasses do
-                info.text, info.checked, info.arg1, info.func = subclasses[i], subclasses[i] == UIDropDownMenu_GetText(self), subclasses[i], subclassMenu_OnClick
-                UIDropDownMenu_AddButton(info)
-            end
-        end
-        previewTab.subclassMenu.initializers[OFF_HAND_SLOT] = init
-        slots[OFF_HAND_SLOT].selectedSubclass = subclasses[1]
-        for _, subclass in ipairs(subclasses) do
-            slots[OFF_HAND_SLOT].selectedPage[subclass] = 1
-        end
-    end
-
-    ---------------- RANGED ----------------
-
-    do
-        local subclasses = {"Bow", "Crossbow", "Gun", "Wand", "Thrown"}
-        local function init(self)
-            local info = UIDropDownMenu_CreateInfo()
-            for i = 1, #subclasses do
-                info.text, info.checked, info.arg1, info.func = subclasses[i], subclasses[i] == UIDropDownMenu_GetText(self), subclasses[i], subclassMenu_OnClick
-                UIDropDownMenu_AddButton(info)
-            end
-        end
-        previewTab.subclassMenu.initializers[RANGED_SLOT] = init
-        slots[RANGED_SLOT].selectedSubclass = subclasses[1]
-        for _, subclass in ipairs(subclasses) do
-            slots[RANGED_SLOT].selectedPage[subclass] = 1
-        end
+        UIDropDownMenu_SetText(self, slotSelectedSubclass[slot])
+        initializer.slot = slot
+        UIDropDownMenu_Initialize(self, initializer)
     end
 end
 

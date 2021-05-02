@@ -49,10 +49,6 @@ end
         SetItems(itemIds) // takes a list of integers
         SetupModel(self, width, height, x, y, z, facing, sequence)
         Update
-        
-
-    To update must be called manually after Set functions and SetupModel call
-    just because DressUpModel will not be updated twice in the same frame.
 ]]
 
 local function DressingRoom_OnUpdateModel(self)
@@ -139,6 +135,7 @@ local dressingRoomRecycler = {
         for i=1, #recycled do
             if recycled[i] == dr then return end
         end
+        dr:ClearModel()
         table.insert(recycled, dr)
     end,
 }
@@ -149,10 +146,14 @@ local function PreviewList_SetItems(self, itemIds)
     for i=1, #itemIds do
         table.insert(self.itemIds, itemIds[i])
     end
+    if self.dressingRoomSetup ~= nil then
+        self:Update()
+    end
 end
 
 
 local function PreviewList_SetupModel(self, width, height, x, y, z, facing, sequence)
+    assert(#self.itemIds > 0, "`SetItemIds` first.")
     self.dressingRoomSetup = {
         ["width"] = width,
         ["height"] = height,
@@ -162,36 +163,6 @@ local function PreviewList_SetupModel(self, width, height, x, y, z, facing, sequ
         ["facing"] = facing,
         ["sequence"] = sequence,
     }
-end
-
-
-local function PreviewList_SetPage(self, page)
-    self.currentPage = page
-end
-
-
-local function PreviewList_GetPage(self)
-    return self.currentPage
-end
-
-
-local function PreviewList_GetPageCount(self)
-    local setup = self.dressingRoomSetup
-    local width = setup.width > 0 and setup.width or self:GetWidth()
-    local height = setup.height and setup.height or self:GetHeight()
-    local countW = math.floor(self:GetWidth() / width)
-    local countH = math.floor(self:GetHeight() / height)
-    return math.ceil(#self.itemIds/(countW * countH))
-end
-
-
-local function PreviewList_Update(self)
-    assert(self.dressingRoomSetup ~= nil, "`SetupModel` first.")
-    local setup = self.dressingRoomSetup
-    local width = setup.width > 0 and setup.width or self:GetWidth()
-    local height = setup.height and setup.height or self:GetHeight()
-    local x, y, z = setup.x, setup.y, setup.z
-    local facing, sequence = setup.facing, setup.sequence
     local countW = math.floor(self:GetWidth() / width)
     local countH = math.floor(self:GetHeight() / height)
     local perPage = countW * countH
@@ -222,41 +193,83 @@ local function PreviewList_Update(self)
                 dr:SetPoint("TOPLEFT", self, "TOPLEFT", width * (w - 1) + gapW , -height * (h - 1) - gapH)
             end
         end
-        for i=#self.dressingRooms, 1, -1 do
-            local dr = self.dressingRooms[i]
-            local index = (self.currentPage - 1) * perPage + i
-            local itemId = self.itemIds[index]
-            if itemId == nil then
-                dr:OnUpdateModel(nil)
-                dr:Hide()
-            else
-                dr.itemId = itemId
-                dr.itemIndex = index
-                dr:SetWidth(width)
-                dr:SetHeight(height)
-                dr:Show()
-                dr:ClearModel()
-                dr.button:Hide()
-                dr.queriedLabel:Show()
-                dr.queryFailedLabel:Hide()
-                ns.QueryItem(itemId, function(queriedItemId, success)
-                    if queriedItemId == itemId then
-                        dr.queriedLabel:Hide()
-                        if success then
-                            dr.queryFailedLabel:Hide()
-                            dr:Reset()
-                            dr:Undress()
-                            dr:SetPosition(x, y, z)
-                            dr:SetFacing(facing)
-                            dr:TryOn(itemId)
-                            dr.button:Show()
-                            dr:OnUpdateModel(DressingRoom_OnUpdateModel)
-                        else
-                            dr.queryFailedLabel:Show()
-                        end
-                    end
-                end)
-            end
+        for i, dr in ipairs(self.dressingRooms) do
+            dr:SetSize(width, height)
+        end
+    end
+    self:Update()
+end
+
+
+local function PreviewList_SetPage(self, page)
+    assert(type(page) == "number", "`page` must be a positive number.")
+    self.currentPage = page
+    if self.dressingRoomSetup ~= nil then
+        self:Update()
+    end
+end
+
+
+local function PreviewList_GetPage(self)
+    return self.currentPage
+end
+
+
+local function PreviewList_GetPageCount(self)
+    if #self.itemIds == 0 or #self.dressingRooms == 0 then
+        return 0
+    end
+    return math.ceil(#self.itemIds/#self.dressingRooms)
+end
+
+
+local function queryItemHandler(functable, itemId, success)
+    local queriedItemId = functable.queriedItemId
+    local dr = functable.dressingRoom
+    if queriedItemId == itemId then
+        dr.queriedLabel:Hide()
+        if success then
+            dr.queriedLabel:Hide()
+            dr:Reset()
+            dr:Undress()
+            local setup = dr:GetParent().dressingRoomSetup
+            dr:SetPosition(setup.x, setup.y, setup.z)
+            dr:SetFacing(setup.facing)
+            dr:TryOn(itemId)
+            dr.button:Show()
+            dr:OnUpdateModel(DressingRoom_OnUpdateModel)
+        else
+            dr.queryFailedLabel:Show()
+        end
+    end
+end
+
+local function PreviewList_Update(self)
+    assert(self.dressingRoomSetup ~= nil, "`SetupModel` first.")
+    assert(#self.itemIds > 0, "`SetItemIds` first.")
+    local perPage = #self.dressingRooms
+    for i, dr in ipairs(self.dressingRooms) do
+        local dr = self.dressingRooms[i]
+        local index = (self.currentPage - 1) * perPage + i
+        local itemId = self.itemIds[index]
+        if itemId == nil then
+            dr:OnUpdateModel(nil)
+            dr:ClearModel()
+            dr:Hide()
+        else
+            dr.itemId = itemId
+            dr.itemIndex = index
+            dr:Show()
+            dr:ClearModel()
+            dr.button:Hide()
+            dr.queriedLabel:Show()
+            dr.queryFailedLabel:Hide()
+            local handler = {
+                ["queriedItemId"] = itemId,
+                ["dressingRoom"] = dr,
+                ["__call"] = queryItemHandler,}
+            setmetatable(handler, handler)
+            ns.QueryItem(itemId, handler)
         end
     end
 end

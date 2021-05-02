@@ -15,7 +15,7 @@ end
 -- Returns all the appearances for the given slot/subclass.
 function ns.GetSubclassRecords(whatSlot, whatSubclass)
     assert(type(whatSlot) == "string", "'slot' is mandatroy and must be 'string'.")
-    assert(type(whatSubclass) == "string", "'subclass' is mandatroy and must be 'string'.")
+    assert(type(whatSubclass) == "string", "'subclass' is mandatroy and must be 'string' but given `"..tostring(whatSubclass).."`.")
     local slotData = items[whatSlot] == nil and items["Armor"][whatSlot] or items[whatSlot]
     return slotData[whatSubclass]
 end
