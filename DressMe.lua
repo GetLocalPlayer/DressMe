@@ -731,6 +731,7 @@ do
             else
                 list:TryOn(nil)
             end
+            return
         end
         if arrayHasValue(chestSlots, slot) then
             if  GetSettings().hideHairBeardOnChestPreview then
@@ -738,7 +739,9 @@ do
             else
                 list:TryOn(nil)
             end
+            return
         end
+        list:TryOn(nil)
     end
 
     previewTab.Update = function(self, slot, subclass)
