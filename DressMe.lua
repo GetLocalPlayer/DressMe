@@ -395,7 +395,7 @@ local function slot_OnShiftLeftClick(self)
     if self.itemId ~= nil then
         local _, link = GetItemInfo(self.itemId)
         if link ~= nil then
-            SELECTED_CHAT_FRAME:AddMessage("<DressMe>: "..link)
+            SELECTED_CHAT_FRAME:AddMessage("<DressMe>: "..link.." ("..self.itemId..")")
         else
             SELECTED_CHAT_FRAME:AddMessage("<DressMe>: It seems this item cannot be used for transmogrification.")
         end
