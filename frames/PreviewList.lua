@@ -261,7 +261,9 @@ local function PreviewList_TryOn(self, item)
     self.tryOnItem = item
     if item ~= nil then
         for i, dr in ipairs(self.dressingRooms) do
-            dr:TryOn(item)
+            if dr:IsVisible() then
+                dr:TryOn(item)
+            end
         end
     end
 end
