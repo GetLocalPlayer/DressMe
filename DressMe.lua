@@ -6,12 +6,54 @@ local _, classFileName = UnitClass("player")
 
 local previewSetupVersion = "classic"
 
-
+local armorSlots = {"Head", "Shoulder", "Chest", "Wrist", "Hands", "Waist", "Legs", "Feet"}
+local backSlot = "Back"
+local miscellaneousSlots = {"Tabard", "Shirt"}
+local mainHandSlot = "Main Hand"
+local offHandSlot = "Off-hand"
+local rangedSlot = "Ranged"
 -- Used in look saving/sending. Chenging wil breack compatibility.
 local slotOrder = { "Head", "Shoulder", "Back", "Chest", "Shirt", "Tabard", "Wrist", "Hands", "Waist", "Legs", "Feet", "Main Hand", "Off-hand", "Ranged",}
 
+local slotTextures = {
+    ["Head"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-head",
+    ["Shoulder"] =  "Interface\\Paperdoll\\ui-paperdoll-slot-shoulder",
+    ["Back"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-chest",
+    ["Chest"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-chest",
+    ["Shirt"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-shirt",
+    ["Tabard"] =    "Interface\\Paperdoll\\ui-paperdoll-slot-tabard",
+    ["Wrist"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-wrists",
+    ["Hands"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-hands",
+    ["Waist"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-waist",
+    ["Legs"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-legs",
+    ["Feet"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-feet",
+    ["Main Hand"] = "Interface\\Paperdoll\\ui-paperdoll-slot-mainhand",
+    ["Off-hand"] =  "Interface\\Paperdoll\\ui-paperdoll-slot-secondaryhand",
+    ["Ranged"] =    "Interface\\Paperdoll\\ui-paperdoll-slot-ranged",
+}
 
-local classSubclas = {
+local slotSubclasses = {--[[
+    ["slot1"] = {subclass1, subclass2, ...},
+    ["slot2"] = {subclass1, subclass2, ...},
+    ["slot2"] = {subclass1, subclass2, ...},
+    ...]]
+}
+
+do
+    for i, slot in ipairs(armorSlots) do slotSubclasses[slot] = {"Cloth", "Leather", "Mail", "Plate"} end
+    for i, slot in ipairs(miscellaneousSlots) do slotSubclasses[slot] = {"Miscellaneous", } end
+    slotSubclasses[backSlot] = {"Cloth", }
+    slotSubclasses[mainHandSlot] = {
+        "1H Axe", "1H Mace", "1H Sword", "1H Dagger", "1H Fist",
+        "MH Axe", "MH Mace", "MH Sword", "MH Dagger", "MH Fist",
+        "2H Axe", "2H Mace", "2H Sword", "Polearm", "Staff" }
+    slotSubclasses[offHandSlot] = { "OH Axe", "OH Mace", "OH Sword", "OH Dagger", "OH Fist", "Shield", "Held in Off-hand"}
+    slotSubclasses[rangedSlot] = {"Bow", "Crossbow", "Gun", "Wand", "Thrown"}
+end
+
+local defaultSlot = "Head"
+
+local defaultArmorSubclass = {
     ["MAGE"] = "Cloth",
     ["PRIEST"] = "Cloth",
     ["WARLOCK"] = "Cloth",
@@ -29,7 +71,26 @@ local defaultSettings = {
     dressingRoomBackgroundColor = {0.055, 0.055, 0.055, 1},
     previewSetup = "classic", -- possible values are "classic" and "modern",
     showDressMeButton = true,
+    showShortcutsInTooltip = true,
 }
+
+local function GetSettings()
+    if _G["DressMeSettings"] == nil then
+        local function copyTable(tableFrom)
+            local result = {}
+            for k, v in pairs(tableFrom) do
+                if type(v) == "table" then
+                    result[k] = copyTable(v)
+                else
+                    result[k] = v
+                end
+            end
+            return result
+        end
+        _G["DressMeSettings"] = copyTable(defaultSettings)
+    end
+    return _G["DressMeSettings"]
+end
 
 local backdrop = { -- currently used for tests
     bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
@@ -194,7 +255,7 @@ do
 end
 
 
-mainFrame.dressingRoom = ns:CreateDressingRoom(nil, mainFrame)
+mainFrame.dressingRoom = ns.CreateDressingRoom(nil, mainFrame)
 
 do
     local dressingRoom = mainFrame.dressingRoom
@@ -325,88 +386,10 @@ do
     mainFrame.tabs.settings = tabs[3]
 end
 
----------------- PREVIEW LIST ----------------
-
-mainFrame.tabs.preview.list = ns:CreatePreviewList(mainFrame.tabs.preview)
-mainFrame.tabs.preview.slider = CreateFrame("Slider", "$parentSlider", mainFrame.tabs.preview, "UIPanelScrollBarTemplateLightBorder")
-
-do
-    local list = mainFrame.tabs.preview.list
-    list:SetPoint("TOPLEFT")
-    list:SetSize(601, 401)
-
-    local label = list:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("TOP", list, "BOTTOM", 0, -5)
-    label:SetJustifyH("CENTER")
-    label:SetHeight(10)
-
-    local slider = mainFrame.tabs.preview.slider
-    slider:SetPoint("TOPRIGHT", -6, -21)
-    slider:SetPoint("BOTTOMRIGHT", -6, 21)
-    slider:EnableMouseWheel(true)
-    slider:SetScript("OnMouseWheel", function(self, delta)
-        self:SetValue(self:GetValue() - delta)
-    end)
-    slider:SetScript("OnValueChanged", function(self, value)
-        list:SetPage(value)
-        local _, max = self:GetMinMaxValues()
-        label:SetText(("Page: %s/%s"):format(value, max))
-    end)
-    slider:SetScript("OnMinMaxChanged", function(self, min, max)
-        label:SetText(("Page: %s/%s"):format(self:GetValue(), max))
-    end)
-    slider:SetMinMaxValues(0, 0)
-    slider:SetValueStep(1)
-    slider:SetValue(1)
-    
-    slider.buttons = {}
-    slider.buttons.up = _G[slider:GetName() .. "ScrollUpButton"]
-    slider.buttons.down = _G[slider:GetName() .. "ScrollDownButton"]
-
-    slider.buttons.up:SetScript("OnClick", function(self)
-        slider:SetValue(slider:GetValue() - 1)
-        PlaySound("gsTitleOptionOK")
-    end)
-    slider.buttons.down:SetScript("OnClick", function(self)
-        slider:SetValue(slider:GetValue() + 1)
-        PlaySound("gsTitleOptionOK")
-    end)
-
-    list:EnableMouseWheel(true)
-    list:SetScript("OnMouseWheel", function(self, delta)
-        slider:SetValue(slider:GetValue() - delta)
-    end)
-end
-
-
 ---------------- SLOTS ----------------
 
 mainFrame.slots = {}
 mainFrame.selectedSlot = nil
-
-local SLOT_TEXTURES = {
-    ["Head"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-head",
-    ["Shoulder"] =  "Interface\\Paperdoll\\ui-paperdoll-slot-shoulder",
-    ["Back"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-chest",
-    ["Chest"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-chest",
-    ["Shirt"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-shirt",
-    ["Tabard"] =    "Interface\\Paperdoll\\ui-paperdoll-slot-tabard",
-    ["Wrist"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-wrists",
-    ["Hands"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-hands",
-    ["Waist"] =     "Interface\\Paperdoll\\ui-paperdoll-slot-waist",
-    ["Legs"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-legs",
-    ["Feet"] =      "Interface\\Paperdoll\\ui-paperdoll-slot-feet",
-    ["Main Hand"] = "Interface\\Paperdoll\\ui-paperdoll-slot-mainhand",
-    ["Off-hand"] =  "Interface\\Paperdoll\\ui-paperdoll-slot-secondaryhand",
-    ["Ranged"] =    "Interface\\Paperdoll\\ui-paperdoll-slot-ranged",
-}
-
-local ARMOR_SLOTS = {"Head", "Shoulder", "Chest", "Wrist", "Hands", "Waist", "Legs", "Feet"}
-local BACK_SLOT = "Back"
-local MISCELLANEOUS_SLOTS = {"Tabard", "Shirt"}
-local MAIN_HAND_SLOT = "Main Hand"
-local OFF_HAND_SLOT = "Off-hand"
-local RANGED_SLOT = "Ranged"
 
 local function slot_OnShiftLeftClick(self)
     if self.itemId ~= nil then
@@ -430,39 +413,24 @@ end
 
 local function slot_OnControlLeftClick(self)
     if self.itemId ~= nil then
-        ns:ShowWowheadURLDialog(self.itemId)
+        ns.ShowWowheadURLDialog(self.itemId)
     end
 end
 
 
-local function slot_OnLeftCick(self)
+local function slot_OnLeftClick(self)
     local selectedSlot = mainFrame.selectedSlot
     if selectedSlot ~= nil then
         selectedSlot:UnlockHighlight()
-        selectedSlot.selectedPage[selectedSlot.selectedSubclass] = mainFrame.tabs.preview.slider:GetValue()
     end
     mainFrame.selectedSlot = self
-    local slotName = self.slotName
-    local subclass = self.selectedSubclass
-    local page = self.selectedPage[subclass]
-    local previewSetup = ns.GetPreviewSetup(previewSetupVersion, raceFileName, sex, slotName, subclass)
-    local subclassAppearances = ns.GetSubclassRecords(slotName, subclass)
-    local list = mainFrame.tabs.preview.list
-    list:Update(previewSetup, subclassAppearances, page)
-    local slider = mainFrame.tabs.preview.slider
-    slider:SetMinMaxValues(1, list:GetPageCount())
-    if slider:GetValue() ~= page then
-        slider:SetValue(page)
-    else
-        slider:GetScript("OnValueChanged")(slider, page)
-    end
+    mainFrame.tabs.preview.subclassMenu:Update(self.slotName)
     --[[ ReTryOn weapon so the model displays
     the weapon of the clicked (selected) slot. ]]
-    if self.itemId ~= nil and getIndex({MAIN_HAND_SLOT, OFF_HAND_SLOT, RANGED_SLOT}, self.slotName) then
+    if self.itemId ~= nil and getIndex({mainHandSlot, offHandSlot, rangedSlot}, self.slotName) then
         mainFrame.dressingRoom:TryOn(self.itemId)
     end
     self:LockHighlight()
-    mainFrame.tabs.preview.subclassMenu:Update(slotName, subclass)
 end
 
 local function slot_OnRightClick(self)
@@ -476,7 +444,7 @@ local function slot_OnClick(self, button)
         elseif IsControlKeyDown() then
             slot_OnControlLeftClick(self)
         else
-            slot_OnLeftCick(self)
+            slot_OnLeftClick(self)
         end
         PlaySound("gsTitleOptionOK")
     elseif button == "RightButton" then
@@ -491,10 +459,12 @@ local function slot_OnEnter(self)
     else
         local _, link = GetItemInfo(self.itemId)
         GameTooltip:SetHyperlink(link)
-        GameTooltip:AddLine(" ")
-        GameTooltip:AddLine("|n|cff00ff00Shift + Left Click:|r create a hyperlink for the item.")
-        GameTooltip:AddLine("|cff00ff00Right Click:|r undress the slot.")
-        GameTooltip:AddLine("|cff00ff00Ctrl + Left Click:|r create a Wowhead URL for the item.")
+        if GetSettings().showShortcutsInTooltip then
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine("|cff00ff00Shift + Left Click:|r create a hyperlink for the item.")
+            GameTooltip:AddLine("|cff00ff00Right Click:|r undress the slot.")
+            GameTooltip:AddLine("|cff00ff00Ctrl + Left Click:|r create a Wowhead URL for the item.")
+        end
     end
     GameTooltip:Show()
 end
@@ -505,14 +475,14 @@ end
 
 local function slot_Reset(self)
     local characterSlotName = self.slotName
-    if characterSlotName == MAIN_HAND_SLOT then characterSlotName = "MainHand" end
-    if characterSlotName == OFF_HAND_SLOT then characterSlotName = "SecondaryHand" end
-    if characterSlotName == RANGED_SLOT then characterSlotName = "Ranged" end
-    if characterSlotName == BACK_SLOT then characterSlotName = "Back" end
+    if characterSlotName == mainHandSlot then characterSlotName = "MainHand" end
+    if characterSlotName == offHandSlot then characterSlotName = "SecondaryHand" end
+    if characterSlotName == rangedSlot then characterSlotName = "Ranged" end
+    if characterSlotName == backSlot then characterSlotName = "Back" end
     local slotId = GetInventorySlotInfo(characterSlotName.."Slot")
     local itemId = GetInventoryItemID("player", slotId)
     local name, link, quality, _, _, _, _, _, _, texture = GetItemInfo(itemId ~= nil and itemId or 0)
-    if name ~= nil and (quality >= 2 or getIndex(MISCELLANEOUS_SLOTS, self.slotName)) then
+    if name ~= nil and (quality >= 2 or getIndex(miscellaneousSlots, self.slotName)) then
         self:SetItem(itemId)
     else
         self:RemoveItem()
@@ -554,7 +524,7 @@ end
 --------- Slot building
 
 do
-    for slotName, texturePath in pairs(SLOT_TEXTURES) do
+    for slotName, texturePath in pairs(slotTextures) do
         local slot = CreateFrame("Button", "$parentSlot"..slotName, mainFrame, "ItemButtonTemplate")
         slot:RegisterForClicks("LeftButtonUp", "RightButtonUp")
         slot:SetFrameLevel(mainFrame.dressingRoom:GetFrameLevel() + 1)
@@ -562,9 +532,6 @@ do
         slot:SetScript("OnEnter", slot_OnEnter)
         slot:SetScript("OnLeave", slot_OnLeave)
         slot.slotName = slotName
-        slot.selectedPage = {}      -- per subclass, filled later in subclass
-        -- Empty declarations just as reminder
-        slot.selectedSubclass = nil -- init later in subclass
         mainFrame.slots[slotName] = slot
         slot.textures = {}
         slot.textures.empty = slot:CreateTexture(nil, "BACKGROUND")
@@ -601,7 +568,7 @@ end
 local function btnReset_Hook()
     mainFrame.dressingRoom:Undress()
     for _, slot in pairs(mainFrame.slots) do
-        if slot.slotName == RANGED_SLOT and ("DRUIDSHAMANPALADINDEATHKNIGHT"):find(classFileName) then
+        if slot.slotName == rangedSlot and ("DRUIDSHAMANPALADINDEATHKNIGHT"):find(classFileName) then
             slot:RemoveItem()
         else
             slot:Reset()
@@ -650,7 +617,7 @@ mainFrame.buttons.useTarget:HookScript("OnClick", function(slef)
 end)
 
 -- At first time it's shown.
-mainFrame.slots["Head"]:SetScript("OnShow", function(self)
+mainFrame.slots[defaultSlot]:SetScript("OnShow", function(self)
     self:SetScript("OnShow", nil)
     self:Click("LeftButton")
     mainFrame.buttons.reset:HookScript("OnClick", btnReset_Hook)
@@ -660,175 +627,229 @@ mainFrame.slots["Head"]:SetScript("OnShow", function(self)
     mainFrame.buttons.undress:HookScript("OnClick", btnUndress_Hook)
 end)
 
----------------- PREVIEW LIST SCRIPT ----------------
+---------------- PREVIEW TAB ----------------
 
-mainFrame.tabs.preview.list:OnButtonClick(function(self, button)
-    local preview = self:GetParent()
-    local ids, names = unpack(preview.appereanceData)
-    local selectedPreview = preview.selected
-    local selectedSlot = mainFrame.selectedSlot
-    if IsShiftKeyDown() then
-        local color = names[selectedPreview]:sub(1, 10)
-        local name = names[selectedPreview]:sub(11, -3)
-        SELECTED_CHAT_FRAME:AddMessage("<DressMe>: "..selectedSlot.slotName.." - "..selectedSlot.selectedSubclass.." "..color.."\124Hitem:"..ids[selectedPreview]..":::::::|h["..name.."]\124h\124r".." ("..ids[selectedPreview]..")")
-    elseif IsControlKeyDown() then
-        ns:ShowWowheadURLDialog(ids[selectedPreview])
-    else
-        selectedSlot:SetItem(ids[selectedPreview])
-    end
-end)
+mainFrame.tabs.preview.list = ns.CreatePreviewList(mainFrame.tabs.preview)
+mainFrame.tabs.preview.slider = CreateFrame("Slider", "$parentSlider", mainFrame.tabs.preview, "UIPanelScrollBarTemplateLightBorder")
 
----------------- SBUCLASS FRAMES ----------------
+---------------- Slider
 
-function string:startswith(...)
-    local array = {...}
-    for i = 1, #array do
-        assert(type(array[i]) == "string", "string:startswith(\"...\") - argument type error, string is required")
-        if self:sub(1, array[i]:len()) == array[i] then
-            return true
-        end
-    end
-    return  false
+do
+    local previewTab = mainFrame.tabs.preview
+    local list = mainFrame.tabs.preview.list
+    local slider = mainFrame.tabs.slider
+
+    list:SetPoint("TOPLEFT")
+    list:SetSize(601, 401)
+
+    local label = list:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("TOP", list, "BOTTOM", 0, -5)
+    label:SetJustifyH("CENTER")
+    label:SetHeight(10)
+
+    local slider = mainFrame.tabs.preview.slider
+    slider:SetPoint("TOPRIGHT", -6, -21)
+    slider:SetPoint("BOTTOMRIGHT", -6, 21)
+    slider:EnableMouseWheel(true)
+    slider:SetScript("OnMouseWheel", function(self, delta)
+        self:SetValue(self:GetValue() - delta)
+    end)
+    slider:SetScript("OnMinMaxChanged", function(self, min, max)
+        label:SetText(("Page: %s/%s"):format(self:GetValue(), max))
+    end)
+    
+    slider.buttons = {}
+    slider.buttons.up = _G[slider:GetName() .. "ScrollUpButton"]
+    slider.buttons.down = _G[slider:GetName() .. "ScrollDownButton"]
+
+    slider.buttons.up:SetScript("OnClick", function(self)
+        slider:SetValue(slider:GetValue() - 1)
+        PlaySound("gsTitleOptionOK")
+    end)
+    slider.buttons.down:SetScript("OnClick", function(self)
+        slider:SetValue(slider:GetValue() + 1)
+        PlaySound("gsTitleOptionOK")
+    end)
+
+    list:EnableMouseWheel(true)
+    list:SetScript("OnMouseWheel", function(self, delta)
+        slider:SetValue(slider:GetValue() - delta)
+    end)
+
+    slider:SetScript("OnValueChanged", function (self, value)
+        list:SetPage(value)
+        local _, max = self:GetMinMaxValues()
+        label:SetText(("Page: %s/%s"):format(value, max))
+    end)
+
+    slider:SetMinMaxValues(0, 0)
+    slider:SetValueStep(1)
 end
+
+---------------- Preview list
+
+do
+    local previewTab = mainFrame.tabs.preview
+    local list = previewTab.list
+    local slider = previewTab.slider
+
+    local slotSubclassPage = {} -- page per [slot][subclass] can be `nil`
+
+    for slot, _ in pairs(mainFrame.slots) do
+        slotSubclassPage[slot] = {}
+    end
+
+    local currSlot, currSubclass = defaultSlot, defaultArmorSubclass[classFileName]
+    local records
+
+    previewTab.Update = function(self, slot, subclass)
+        slotSubclassPage[currSlot][currSubclass] = slider:GetValue() > 0 and slider:GetValue() or 1
+        records = ns.GetSubclassRecords(slot, subclass)
+        local itemIds = {}
+        for i=1, #records do
+            local ids = records[i][1]
+            table.insert(itemIds, ids[1])
+        end
+        list:SetItems(itemIds)
+        local setup = ns.GetPreviewSetup(previewSetupVersion, raceFileName, sex, slot, subclass)
+        list:SetupModel(setup.width, setup.height, setup.x, setup.y, setup.z, setup.facing, setup.sequence)
+        local page = slotSubclassPage[slot][subclass] ~= nil and slotSubclassPage[slot][subclass] or 1
+        slider:SetMinMaxValues(1, list:GetPageCount())
+        slider:SetValue(page)
+        currSlot = slot
+        currSubclass = subclass
+    end
+
+    local selectedInRecord = {} -- { [first id in record] = index of selected id, ...}
+    local enteredButton
+
+    local tabDummy = CreateFrame("Button", addon.."PreviewListTabDummy", previewTab)
+
+    list.onEnter = function(self)
+        local recordIndex = self:GetParent().itemIndex
+        local ids = records[recordIndex][1]
+        local names = records[recordIndex][2]
+        GameTooltip:Hide()
+        GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+        GameTooltip:ClearLines()
+        GameTooltip:AddLine("This appearance is provided by:", 1, 1, 1)
+        GameTooltip:AddLine(" ")
+        local selectedIndex = selectedInRecord[ids[1]] ~= nil and selectedInRecord[ids[1]] or 1
+        for i, id in ipairs(ids) do
+            GameTooltip:AddLine((i == selectedIndex and "> " or "- ")..names[i]..(id == mainFrame.selectedSlot.itemId and " <"or ""))
+        end
+        if GetSettings().showShortcutsInTooltip then
+            GameTooltip:AddLine("|n|cff00ff00Left Click:|r try on the appearance.")
+            if #ids > 1 then
+                GameTooltip:AddLine("|cff00ff00Tab:|r choose an item in the list.")
+                GameTooltip:AddLine("|cff00ff00Shift + Left Click:|r create a hyperlink for the chosen item.")
+            else
+                GameTooltip:AddLine("|cff00ff00Shift + Left Click:|r create a hyperlink for the item.")
+            end
+            GameTooltip:AddLine("|cff00ff00Ctrl + Left Click:|r create a Wowhead URL for the chosen item.")
+        end
+        GameTooltip:Show()
+        SetOverrideBindingClick(tabDummy, true, "TAB", tabDummy:GetName(), "RightButton")
+        enteredButton = self
+    end
+
+    list.onLeave = function(self, ...)
+        ClearOverrideBindings(tabDummy)
+        GameTooltip:ClearLines()
+        GameTooltip:Hide()
+        enteredButton = nil
+    end
+
+    tabDummy:SetScript("OnClick", function(self)
+        if enteredButton ~= nil then
+            local recordIndex = enteredButton:GetParent().itemIndex
+            local ids = records[recordIndex][1]
+            if #ids > 1 then
+                if selectedInRecord[ids[1]] == nil then
+                    selectedInRecord[ids[1]] = 2
+                else
+                    selectedInRecord[ids[1]] = selectedInRecord[ids[1]] < #ids and selectedInRecord[ids[1]] + 1 or 1
+                end
+            end
+            list.onEnter(enteredButton)
+        end
+    end)
+
+    list.onItemClick = function(self, button)
+        local recordIndex = self:GetParent().itemIndex
+        local ids = records[recordIndex][1]
+        local selectedIndex = selectedInRecord[ids[1]] ~= nil and selectedInRecord[ids[1]] or 1
+        local itemId = ids[selectedIndex]
+        if IsShiftKeyDown() then
+            local names = records[recordIndex][2]
+            local color = names[selectedIndex]:sub(1, 10)
+            local name = names[selectedIndex]:sub(11, -3)
+            SELECTED_CHAT_FRAME:AddMessage("<DressMe>: "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r".." ("..itemId..")")
+        elseif IsControlKeyDown() then
+            ns.ShowWowheadURLDialog(itemId)
+        else
+            mainFrame.selectedSlot:SetItem(itemId)
+        end
+        list.onEnter(self)
+    end
+end
+
+---------------- SBUCLASS FRAME ----------------
 
 mainFrame.tabs.preview.subclassMenu = CreateFrame("Frame", "$parentSubclassMenu", mainFrame.tabs.preview, "UIDropDownMenuTemplate")
 
 do
+    local previewTab = mainFrame.tabs.preview
+    local slots = mainFrame.slots
     local menu = mainFrame.tabs.preview.subclassMenu
+
     menu:SetPoint("TOPRIGHT", -120, 38)
     menu.initializers = {} -- init func per slot
     UIDropDownMenu_JustifyText(menu, "LEFT")
 
-    function menu.Update(self, slotName, subclass)
-        UIDropDownMenu_SetText(self, subclass)
-        if menu.initializers[slotName] ~= nil then
-            UIDropDownMenu_EnableDropDown(self)
-            UIDropDownMenu_Initialize(self, menu.initializers[slotName])
-        else
-            UIDropDownMenu_DisableDropDown(self)
-        end
-    end
+    local slotSelectedSubclass = {}
 
-    local previewTab = mainFrame.tabs.preview
-    local slots = mainFrame.slots
+    for i, slot in ipairs(armorSlots) do slotSelectedSubclass[slot] = defaultArmorSubclass[classFileName] end
+    for i, slot in ipairs(miscellaneousSlots) do slotSelectedSubclass[slot] = "Miscellaneous" end
+    slotSelectedSubclass[backSlot] = slotSubclasses[backSlot][1] 
+    slotSelectedSubclass[mainHandSlot] = slotSubclasses[mainHandSlot][1]
+    slotSelectedSubclass[offHandSlot] = slotSubclasses[offHandSlot][1]
+    slotSelectedSubclass[rangedSlot] = slotSubclasses[rangedSlot][1]
 
-    local function subclassMenu_OnClick(self, subclass)
-        local selectedSlot = mainFrame.selectedSlot
-        selectedSlot.selectedPage[selectedSlot.selectedSubclass] = previewTab.slider:GetValue()
-        local slotName = selectedSlot.slotName
-        local page = selectedSlot.selectedPage[subclass]
-        local previewSetup = ns.GetPreviewSetup(previewSetupVersion, raceFileName, sex, slotName, subclass)
-        local subclassAppearances = ns.GetSubclassRecords(slotName, subclass)
-        previewTab.list:Update(previewSetup, subclassAppearances, page)
-        selectedSlot.selectedSubclass = subclass
-        previewTab.slider:SetMinMaxValues(1, previewTab.list:GetPageCount())
-        if previewTab.slider:GetValue() ~= page then
-            previewTab.slider:SetValue(page)
-        else
-            previewTab.slider:GetScript("OnValueChanged")(previewTab.slider, page)
-        end
+    local function menu_OnClick(self, slot, subclass)
+        previewTab:Update(slot, subclass)
+        slotSelectedSubclass[slot] = subclass
         UIDropDownMenu_SetText(mainFrame.tabs.preview.subclassMenu, subclass)
     end
 
-    ---------------- ARMOR ----------------
+    local initializer = {
+        ["slot"] = nil,
 
-    do
-        local subclasses = {"Cloth", "Leather", "Mail", "Plate"}
-
-        local function init(self)
+        ["__call"] = function (self, frame)
             local info = UIDropDownMenu_CreateInfo()
-            for i = 1, #subclasses do
-                info.text, info.checked, info.arg1, info.func = subclasses[i], subclasses[i] == UIDropDownMenu_GetText(self), subclasses[i], subclassMenu_OnClick
+            local slot = self.slot
+            for i, subclass in ipairs(slotSubclasses[slot]) do
+                info.text = subclass
+                info.checked = subclass == UIDropDownMenu_GetText(frame)
+                info.arg1 = slot
+                info.arg2 = subclass
+                info.func = menu_OnClick
                 UIDropDownMenu_AddButton(info)
             end
+        end,
+    }
+    setmetatable(initializer, initializer)
+
+    function menu.Update(self, slot)
+        if #slotSubclasses[slot] > 1 then
+            UIDropDownMenu_EnableDropDown(self)
+        else
+            UIDropDownMenu_DisableDropDown(self)
         end
-
-        for _, slotName in pairs(ARMOR_SLOTS) do
-            previewTab.subclassMenu.initializers[slotName] = init
-            slots[slotName].selectedSubclass = classSubclas[classFileName]
-            for _, subclass in ipairs(subclasses) do
-                slots[slotName].selectedPage[subclass] = 1
-            end
-        end
-    end
-
-    ---------------- BACK ----------------
-
-    do
-        local subclass = "Cloth"
-        slots[BACK_SLOT].selectedSubclass = subclass
-        slots[BACK_SLOT].selectedPage[subclass] = 1
-    end
-
-    ---------------- SHIRT / TABARD ----------------
-
-    do
-        local subclass = "Miscellaneous"
-        for _, name in pairs(MISCELLANEOUS_SLOTS) do
-            slots[name].selectedSubclass = subclass
-            slots[name].selectedPage[subclass] = 1
-        end
-    end
-
-    ---------------- MAIN HAND ----------------
-
-    do
-        local subclasses = {
-            "1H Axe", "1H Mace", "1H Sword", "1H Dagger", "1H Fist",
-            "MH Axe", "MH Mace", "MH Sword", "MH Dagger", "MH Fist",
-            "2H Axe", "2H Mace", "2H Sword", "Polearm", "Staff"
-        }
-        local function init (self)
-            local info = UIDropDownMenu_CreateInfo()
-            for i = 1, #subclasses do
-                info.text, info.checked, info.arg1, info.func = subclasses[i], subclasses[i] == UIDropDownMenu_GetText(self), subclasses[i], subclassMenu_OnClick
-                UIDropDownMenu_AddButton(info)
-            end
-        end
-        previewTab.subclassMenu.initializers[MAIN_HAND_SLOT] = init
-        slots[MAIN_HAND_SLOT].selectedSubclass = subclasses[1]
-        for _, subclass in ipairs(subclasses) do
-            slots[MAIN_HAND_SLOT].selectedPage[subclass] = 1
-        end
-    end
-
-    ---------------- OFF-HAND ----------------
-
-    do
-        local subclasses = {
-            "OH Axe", "OH Mace", "OH Sword", "OH Dagger", "OH Fist",
-            "Shield", "Held in Off-hand"
-        }
-        local function init(self)
-            local info = UIDropDownMenu_CreateInfo()
-            for i = 1, #subclasses do
-                info.text, info.checked, info.arg1, info.func = subclasses[i], subclasses[i] == UIDropDownMenu_GetText(self), subclasses[i], subclassMenu_OnClick
-                UIDropDownMenu_AddButton(info)
-            end
-        end
-        previewTab.subclassMenu.initializers[OFF_HAND_SLOT] = init
-        slots[OFF_HAND_SLOT].selectedSubclass = subclasses[1]
-        for _, subclass in ipairs(subclasses) do
-            slots[OFF_HAND_SLOT].selectedPage[subclass] = 1
-        end
-    end
-
-    ---------------- RANGED ----------------
-
-    do
-        local subclasses = {"Bow", "Crossbow", "Gun", "Wand", "Thrown"}
-        local function init(self)
-            local info = UIDropDownMenu_CreateInfo()
-            for i = 1, #subclasses do
-                info.text, info.checked, info.arg1, info.func = subclasses[i], subclasses[i] == UIDropDownMenu_GetText(self), subclasses[i], subclassMenu_OnClick
-                UIDropDownMenu_AddButton(info)
-            end
-        end
-        previewTab.subclassMenu.initializers[RANGED_SLOT] = init
-        slots[RANGED_SLOT].selectedSubclass = subclasses[1]
-        for _, subclass in ipairs(subclasses) do
-            slots[RANGED_SLOT].selectedPage[subclass] = 1
-        end
+        UIDropDownMenu_SetText(self, slotSelectedSubclass[slot])
+        initializer.slot = slot
+        previewTab:Update(slot, slotSelectedSubclass[slot])
+        UIDropDownMenu_Initialize(self, initializer)
     end
 end
 
@@ -1115,24 +1136,6 @@ end)
 
 do
     local settingsTab = mainFrame.tabs.settings
-
-    local function GetSettings()
-        if _G["DressMeSettings"] == nil then
-            local function copyTable(tableFrom)
-                local result = {}
-                for k, v in pairs(tableFrom) do
-                    if type(v) == "table" then
-                        result[k] = copyTable(v)
-                    else
-                        result[k] = v
-                    end
-                end
-                return result
-            end
-            _G["DressMeSettings"] = copyTable(defaultSettings)
-        end
-        return _G["DressMeSettings"]
-    end
     
     --------- Preview Setup
 
@@ -1235,32 +1238,50 @@ do
     --------- Show/hide "DressMe" button
     
     local showDressMeButtonCheckBox = CreateFrame("CheckButton", addon.."ShowDressMeButtonCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
-    showDressMeButtonCheckBox:SetScript("OnClick", function(self)
-        if self:GetChecked() then
-            btnDressMe:Show()
-            GetSettings().showDressMeButton = true
-        else
-            btnDressMe:Hide()
-            GetSettings().showDressMeButton = false
-        end
-    end)
-    showDressMeButtonCheckBox:HookScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
-        GameTooltip:ClearLines()
-        GameTooltip:AddLine("Show \"DressMe\" button")
-        GameTooltip:AddLine("Show or hide \"DressMe\" button in the character window.", 1, 1, 1, 1, true)
-        GameTooltip:AddLine("The addon can be still accessed via \"/dressme\" chat command.", 1, 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    showDressMeButtonCheckBox:HookScript("OnLeave", function(self)
-        GameTooltip:Hide()
-    end)
 
-    local showDressMeButtonTitle = colorPicker:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    showDressMeButtonTitle:SetText("Show \"DressMe\" button:")
-    showDressMeButtonTitle:SetPoint("TOPRIGHT", showDressMeButtonCheckBox, "TOPLEFT", -4, -4)
+    do
+        local checkbox = showDressMeButtonCheckBox
+        checkbox:SetPoint("TOPLEFT", settingsTab, "TOPLEFT", 15, -150)
+        checkbox:SetScript("OnClick", function(self)
+            if self:GetChecked() then
+                btnDressMe:Show()
+                GetSettings().showDressMeButton = true
+            else
+                btnDressMe:Hide()
+                GetSettings().showDressMeButton = false
+            end
+        end)
+        checkbox:HookScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+            GameTooltip:ClearLines()
+            GameTooltip:AddLine("Show \"DressMe\" button")
+            GameTooltip:AddLine("Show or hide \"DressMe\" button in the character window.", 1, 1, 1, 1, true)
+            GameTooltip:AddLine("The addon can be still accessed via \"/dressme\" chat command.", 1, 1, 1, 1, true)
+            GameTooltip:Show()
+        end)
+        checkbox:HookScript("OnLeave", function(self)
+            GameTooltip:Hide()
+        end)
 
-    showDressMeButtonCheckBox:SetPoint("TOPLEFT", settingsTab, "TOPLEFT", showDressMeButtonTitle:GetWidth() + 28, -150)
+        local text = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        text:SetText("Show \"DressMe\" button")
+        text:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
+    end
+
+    --------- Show shortcuts in tooltips
+    
+    local showShortcutsInTooltipCheckBox = CreateFrame("CheckButton", addon.."ShowShortcutsInTooltipCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
+    
+    do
+        local checkbox = showShortcutsInTooltipCheckBox
+        checkbox:SetPoint("TOP", showDressMeButtonCheckBox, "BOTTOM", 0, -10)
+        checkbox:SetScript("OnClick", function(self)
+            GetSettings().showShortcutsInTooltip = self:GetChecked() ~= nil
+        end)
+        local text = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        text:SetText("Show shortcuts in tooltip")
+        text:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
+    end
 
     --------- Apply settings on addon loaded
 
@@ -1277,6 +1298,8 @@ do
         else
             btnDressMe:Hide()
         end
+        -- Show shortcuts in tooltip
+        showShortcutsInTooltipCheckBox:SetChecked(settings.showShortcutsInTooltip)
         UIDropDownMenu_SetText(menu, settings.previewSetup)
     end
 

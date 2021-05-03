@@ -6,16 +6,15 @@
 ## SavedVariables: DressMeSettings
 ## Version: 1.2.1
 
-QueryItem.lua
-WowheadURL.lua
-
 db\ItemsDB.lua
 db\ItemsAPI.lua
 db\PreviewSetupDB.lua
 db\PreviewSetupAPI.lua
 
-DressingRoom.lua
-PreviewList.lua
-ListFrame.lua
+frames\QueryItem.lua
+frames\WowheadURL.lua
+frames\DressingRoom.lua
+frames\PreviewList.lua
+frames\ListFrame.lua
 
 DressMe.lua
