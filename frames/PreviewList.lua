@@ -19,6 +19,10 @@ local previewHighlightTexture = "Interface\\Buttons\\ButtonHilight-Square"
         SetItems(itemIds) // takes a list of integers
         SetupModel(self, width, height, x, y, z, facing, sequence)
         Update
+        TryOn(item)
+
+        Call `Update` method manually after all Set- methods. I don't want
+        to update DressUpModels after each change.
 ]]
 
 local function DressingRoom_OnUpdateModel(self)
@@ -121,9 +125,9 @@ local function PreviewList_SetItems(self, itemIds)
     end
     self.selectedItemId = nil
     self.selectedItemIndex = nil
-    if self.dressingRoomSetup ~= nil then
-        self:Update()
-    end
+    --if self.dressingRoomSetup ~= nil then
+    --    self:Update()
+    --end
 end
 
 
@@ -172,16 +176,16 @@ local function PreviewList_SetupModel(self, width, height, x, y, z, facing, sequ
             dr:SetSize(width, height)
         end
     end
-    self:Update()
+    --self:Update()
 end
 
 
 local function PreviewList_SetPage(self, page)
     assert(type(page) == "number", "`page` must be a positive number.")
     self.currentPage = page
-    if self.dressingRoomSetup ~= nil then
-        self:Update()
-    end
+    --if self.dressingRoomSetup ~= nil then
+    --    self:Update()
+    --end
 end
 
 
@@ -250,6 +254,13 @@ local function PreviewList_Update(self)
 end
 
 
+local function PreviewList_TryOn(self, item)
+    for i, dr in ipairs(self.dressingRooms) do
+        dr:TryOn(item)
+    end
+end
+
+
 function ns.CreatePreviewList(parent)
     local frame = CreateFrame("Frame", addon.."PreviewList", parent)
 
@@ -280,6 +291,7 @@ function ns.CreatePreviewList(parent)
     frame.GetPage = PreviewList_GetPage
     frame.SetPage = PreviewList_SetPage
     frame.GetPageCount = PreviewList_GetPageCount
+    frame.TryOn = PreviewList_TryOn
 
     frame:SetScript("OnShow", function(self)
         if self.dressingRoomSetup ~= nil then

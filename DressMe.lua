@@ -12,6 +12,10 @@ local miscellaneousSlots = {"Tabard", "Shirt"}
 local mainHandSlot = "Main Hand"
 local offHandSlot = "Off-hand"
 local rangedSlot = "Ranged"
+
+-- For hiding hair/beard
+local chestSlots = {"Chest", "Tabard", "Shirt"}
+
 -- Used in look saving/sending. Chenging wil breack compatibility.
 local slotOrder = { "Head", "Shoulder", "Back", "Chest", "Shirt", "Tabard", "Wrist", "Hands", "Waist", "Legs", "Feet", "Main Hand", "Off-hand", "Ranged",}
 
@@ -72,6 +76,8 @@ local defaultSettings = {
     previewSetup = "classic", -- possible values are "classic" and "modern",
     showDressMeButton = true,
     showShortcutsInTooltip = true,
+    hideHairOnCloakPreview = false,
+    hideHairBeardOnChestPreview = false,
 }
 
 local function GetSettings()
@@ -91,6 +97,17 @@ local function GetSettings()
     end
     return _G["DressMeSettings"]
 end
+
+
+local function arrayHasValue(array, value)
+    for i, v in ipairs(array) do
+        if v == value then
+            return true
+        end
+    end
+    return false
+end
+
 
 local backdrop = { -- currently used for tests
     bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
@@ -677,7 +694,6 @@ do
     end)
 
     slider:SetScript("OnValueChanged", function (self, value)
-        list:SetPage(value)
         local _, max = self:GetMinMaxValues()
         label:SetText(("Page: %s/%s"):format(value, max))
     end)
@@ -702,6 +718,9 @@ do
     local currSlot, currSubclass = defaultSlot, defaultArmorSubclass[classFileName]
     local records
 
+    local hideHairItemId = 10289
+    local hideBeardHairItemId = 29943
+
     previewTab.Update = function(self, slot, subclass)
         slotSubclassPage[currSlot][currSubclass] = slider:GetValue() > 0 and slider:GetValue() or 1
         records = ns.GetSubclassRecords(slot, subclass)
@@ -715,10 +734,38 @@ do
         list:SetupModel(setup.width, setup.height, setup.x, setup.y, setup.z, setup.facing, setup.sequence)
         local page = slotSubclassPage[slot][subclass] ~= nil and slotSubclassPage[slot][subclass] or 1
         slider:SetMinMaxValues(1, list:GetPageCount())
-        slider:SetValue(page)
+        if slider:GetValue() ~= page then
+            slider:SetValue(page)
+        else
+            list:SetPage(page)
+            list:Update()
+        end
         currSlot = slot
         currSubclass = subclass
+        -- Hair/beard cotrol
+        if GetSettings().hideHairOnCloakPreview and slot == backSlot then
+            list:TryOn(hideHairItemId)
+        end
+        if GetSettings().hideHairBeardOnChestPreview and arrayHasValue(chestSlots, slot) then
+            list:TryOn(hideBeardHairItemId)
+        end
     end
+
+    previewTab:SetScript("OnShow", function(self)
+        previewTab:Update(currSlot, currSubclass)
+    end)
+
+    slider:HookScript("OnValueChanged", function(self, value)
+        -- Hair/beard cotrol
+        list:SetPage(value)
+        list:Update()
+        if GetSettings().hideHairOnCloakPreview and currSlot == backSlot then
+            list:TryOn(hideHairItemId)
+        end
+        if GetSettings().hideHairBeardOnChestPreview and arrayHasValue(chestSlots, currSlot) then
+            list:TryOn(hideBeardHairItemId)
+        end
+    end)
 
     local selectedInRecord = {} -- { [first id in record] = index of selected id, ...}
     local enteredButton
@@ -840,7 +887,7 @@ do
     }
     setmetatable(initializer, initializer)
 
-    function menu.Update(self, slot)
+    menu.Update = function(self, slot)
         if #slotSubclasses[slot] > 1 then
             UIDropDownMenu_EnableDropDown(self)
         else
@@ -1283,6 +1330,36 @@ do
         text:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
     end
 
+        --------- Hide hair on cloak preview
+    
+    local hideHairOnCloakPreviewCheckBox = CreateFrame("CheckButton", addon.."HideHairOnCloakPreviewCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
+
+    do
+        local checkbox = hideHairOnCloakPreviewCheckBox
+        checkbox:SetPoint("TOP", showShortcutsInTooltipCheckBox, "BOTTOM", 0, -20)
+        checkbox:SetScript("OnClick", function(self)
+            GetSettings().hideHairOnCloakPreview = self:GetChecked() ~= nil
+        end)
+        local text = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        text:SetText("Hide hair on cloak preview")
+        text:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
+    end
+
+    --------- Hide hair and beard on chest preview
+    
+    local hideHairBeardOnChestPreviewCheckBox = CreateFrame("CheckButton", addon.."HideHairBeardOnChestPreviewCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
+    
+    do
+        local checkbox = hideHairBeardOnChestPreviewCheckBox
+        checkbox:SetPoint("TOP", hideHairOnCloakPreviewCheckBox, "BOTTOM", 0, -10)
+        checkbox:SetScript("OnClick", function(self)
+            GetSettings().hideHairBeardOnChestPreview = self:GetChecked() ~= nil
+        end)
+        local text = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        text:SetText("Hide hair and beard on chest/shirt/tabard preview")
+        text:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
+    end
+
     --------- Apply settings on addon loaded
 
     local function applySettings(settings)
@@ -1300,6 +1377,10 @@ do
         end
         -- Show shortcuts in tooltip
         showShortcutsInTooltipCheckBox:SetChecked(settings.showShortcutsInTooltip)
+        -- Hide hair on cloak preview
+        hideHairOnCloakPreviewCheckBox:SetChecked(settings.hideHairOnCloakPreview)
+        -- Hide hair and beard on chest preview
+        hideHairBeardOnChestPreviewCheckBox:SetChecked(settings.hideHairBeardOnChestPreview)
         UIDropDownMenu_SetText(menu, settings.previewSetup)
     end
 
