@@ -719,7 +719,27 @@ do
     local records
 
     local hideHairItemId = 10289
-    local hideBeardHairItemId = 29943
+    local hideHairBeardItemId = 29943
+
+    ns.QueryItem(hideHairItemId)
+    ns.QueryItem(hideHairBeardItemId)
+
+    local function hairBeardControl(slot)
+        if slot == backSlot then
+            if GetSettings().hideHairOnCloakPreview then
+                list:TryOn(hideHairItemId)
+            else
+                list:TryOn(nil)
+            end
+        end
+        if arrayHasValue(chestSlots, slot) then
+            if  GetSettings().hideHairBeardOnChestPreview then
+                list:TryOn(hideHairBeardItemId)
+            else
+                list:TryOn(nil)
+            end
+        end
+    end
 
     previewTab.Update = function(self, slot, subclass)
         slotSubclassPage[currSlot][currSubclass] = slider:GetValue() > 0 and slider:GetValue() or 1
@@ -734,6 +754,7 @@ do
         list:SetupModel(setup.width, setup.height, setup.x, setup.y, setup.z, setup.facing, setup.sequence)
         local page = slotSubclassPage[slot][subclass] ~= nil and slotSubclassPage[slot][subclass] or 1
         slider:SetMinMaxValues(1, list:GetPageCount())
+        hairBeardControl(slot)
         if slider:GetValue() ~= page then
             slider:SetValue(page)
         else
@@ -742,13 +763,6 @@ do
         end
         currSlot = slot
         currSubclass = subclass
-        -- Hair/beard cotrol
-        if GetSettings().hideHairOnCloakPreview and slot == backSlot then
-            list:TryOn(hideHairItemId)
-        end
-        if GetSettings().hideHairBeardOnChestPreview and arrayHasValue(chestSlots, slot) then
-            list:TryOn(hideBeardHairItemId)
-        end
     end
 
     previewTab:SetScript("OnShow", function(self)
@@ -756,15 +770,9 @@ do
     end)
 
     slider:HookScript("OnValueChanged", function(self, value)
-        -- Hair/beard cotrol
+        hairBeardControl(currSlot)
         list:SetPage(value)
         list:Update()
-        if GetSettings().hideHairOnCloakPreview and currSlot == backSlot then
-            list:TryOn(hideHairItemId)
-        end
-        if GetSettings().hideHairBeardOnChestPreview and arrayHasValue(chestSlots, currSlot) then
-            list:TryOn(hideBeardHairItemId)
-        end
     end)
 
     local selectedInRecord = {} -- { [first id in record] = index of selected id, ...}

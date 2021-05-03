@@ -215,6 +215,9 @@ local function queryItemHandler(functable, itemId, success)
             dr:SetPosition(setup.x, setup.y, setup.z)
             dr:SetFacing(setup.facing)
             dr:TryOn(itemId)
+            if dr:GetParent().tryOnItem ~= nil then
+                dr:TryOn(dr:GetParent().tryOnItem)
+            end
             dr.button:Show()
             dr:OnUpdateModel(DressingRoom_OnUpdateModel)
         else
@@ -255,8 +258,11 @@ end
 
 
 local function PreviewList_TryOn(self, item)
-    for i, dr in ipairs(self.dressingRooms) do
-        dr:TryOn(item)
+    self.tryOnItem = item
+    if item ~= nil then
+        for i, dr in ipairs(self.dressingRooms) do
+            dr:TryOn(item)
+        end
     end
 end
 

@@ -42,12 +42,15 @@ end
 
 function ns.QueryItem(itemId, handler)
     assert(type(itemId) == "number", "`itemId` must be a number.")
-    assert( type(handler) == "function" or
+    assert( type(handler) == "nil" or
+            type(handler) == "function" or
             (type(handler) == "table" and getmetatable(handler) ~= nil and getmetatable(handler)["__call"] ~= nil),
             "'handler' must be a callable object (a function or a functable).")
     local itemName, itemLink = GetItemInfo(itemId)
     if itemLink ~= nil then
-        handler(itemId, true)
+        if handler ~= nil then
+            handler(itemId, true)
+        end
     else
         local queries = dummy.queries
         if queries[itemId] == nil then
