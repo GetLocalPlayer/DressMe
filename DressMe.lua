@@ -725,27 +725,18 @@ do
     ns.QueryItem(hideHairBeardItemId)
 
     local function hairBeardControl(slot)
-        if slot == backSlot then
-            if GetSettings().hideHairOnCloakPreview then
-                list:TryOn(hideHairItemId)
-            else
-                list:TryOn(nil)
-            end
-            return
+        if slot == backSlot and GetSettings().hideHairOnCloakPreview then
+            list:TryOn(hideHairItemId)
         end
-        if arrayHasValue(chestSlots, slot) then
-            if  GetSettings().hideHairBeardOnChestPreview then
-                list:TryOn(hideHairBeardItemId)
-            else
-                list:TryOn(nil)
-            end
-            return
+        if arrayHasValue(chestSlots, slot) and GetSettings().hideHairBeardOnChestPreview then
+            list:TryOn(hideHairBeardItemId)
         end
-        list:TryOn(nil)
     end
 
     previewTab.Update = function(self, slot, subclass)
         slotSubclassPage[currSlot][currSubclass] = slider:GetValue() > 0 and slider:GetValue() or 1
+        currSlot = slot
+        currSubclass = subclass
         records = ns.GetSubclassRecords(slot, subclass)
         local itemIds = {}
         for i=1, #records do
@@ -764,19 +755,16 @@ do
             list:Update()
         end
         hairBeardControl(slot)
-        currSlot = slot
-        currSubclass = subclass
     end
 
     previewTab:SetScript("OnShow", function(self)
-        hairBeardControl(currSlot)
         previewTab:Update(currSlot, currSubclass)
     end)
 
     slider:HookScript("OnValueChanged", function(self, value)
-        hairBeardControl(currSlot)
         list:SetPage(value)
         list:Update()
+        hairBeardControl(currSlot)
     end)
 
     local selectedInRecord = {} -- { [first id in record] = index of selected id, ...}

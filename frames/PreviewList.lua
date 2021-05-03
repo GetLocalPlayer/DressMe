@@ -78,6 +78,7 @@ local dressingRoomRecycler = {
                 dr:SetBackdropColor(unpack(itemBackdropColor))
                 dr:EnableDragRotation(false)
                 dr:EnableMouseWheel(false)
+                dr.isQuerying = false
                 dr.queriedLabel = dr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
                 dr.queriedLabel:SetJustifyH("LEFT")
                 dr.queriedLabel:SetHeight(18)
@@ -113,6 +114,7 @@ local dressingRoomRecycler = {
             if recycled[i] == dr then return end
         end
         dr:ClearModel()
+        dr.isQuerying = false
         table.insert(recycled, dr)
     end,
 }
@@ -140,8 +142,7 @@ local function PreviewList_SetupModel(self, width, height, x, y, z, facing, sequ
         ["y"] = y,
         ["z"] = z,
         ["facing"] = facing,
-        ["sequence"] = sequence,
-    }
+        ["sequence"] = sequence,}
     local countW = math.floor(self:GetWidth() / width)
     local countH = math.floor(self:GetHeight() / height)
     local perPage = countW * countH
@@ -176,16 +177,12 @@ local function PreviewList_SetupModel(self, width, height, x, y, z, facing, sequ
             dr:SetSize(width, height)
         end
     end
-    --self:Update()
 end
 
 
 local function PreviewList_SetPage(self, page)
     assert(type(page) == "number", "`page` must be a positive number.")
     self.currentPage = page
-    --if self.dressingRoomSetup ~= nil then
-    --    self:Update()
-    --end
 end
 
 
@@ -207,6 +204,7 @@ local function queryItemHandler(functable, itemId, success)
     local dr = functable.dressingRoom
     if queriedItemId == itemId then
         dr.queriedLabel:Hide()
+        dr.isQuerying = false
         if success then
             dr.queriedLabel:Hide()
             dr:Reset()
@@ -229,6 +227,7 @@ end
 local function PreviewList_Update(self)
     assert(self.dressingRoomSetup ~= nil, "`SetupModel` first.")
     assert(#self.itemIds > 0, "`SetItemIds` first.")
+    self.tryOnItem = nil
     local perPage = #self.dressingRooms
     for i, dr in ipairs(self.dressingRooms) do
         local dr = self.dressingRooms[i]
@@ -241,6 +240,7 @@ local function PreviewList_Update(self)
         else
             dr.itemId = itemId
             dr.itemIndex = index
+            dr.isQuerying = true
             dr:Show()
             dr:ClearModel()
             dr.button:Hide()
@@ -261,7 +261,7 @@ local function PreviewList_TryOn(self, item)
     self.tryOnItem = item
     if item ~= nil then
         for i, dr in ipairs(self.dressingRooms) do
-            if dr:IsVisible() then
+            if dr:IsVisible() and not dr.isQuerying then
                 dr:TryOn(item)
             end
         end
