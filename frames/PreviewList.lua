@@ -42,7 +42,6 @@ end
 
 local function button_OnEnter(self, ...)
     local onEnter = self:GetParent():GetParent().onEnter
-    self:GetParent():GetParent().enteredButton = self
     if onEnter ~= nil then
         onEnter(self, ...)
     end
@@ -51,7 +50,6 @@ end
 
 local function button_OnLeave(self, ...)
     local onLeave = self:GetParent():GetParent().onLeave
-    self:GetParent():GetParent().enteredButton = nil
     if onLeave ~= nil then
         onLeave(self, ...)
     end
@@ -273,7 +271,6 @@ function ns.CreatePreviewList(parent)
     frame.onLeave = nil
     frame.onItemClick = nil
 
-    frame.enteredButton = nil -- last button reacted on "OnEnter" event, set to `nil` in "OnLeave" event
     frame.selectedItemId = nil
     frame.selectedItemIndex = nil
 

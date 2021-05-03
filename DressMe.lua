@@ -413,7 +413,7 @@ end
 
 local function slot_OnControlLeftClick(self)
     if self.itemId ~= nil then
-        ns:ShowWowheadURLDialog(self.itemId)
+        ns.ShowWowheadURLDialog(self.itemId)
     end
 end
 
@@ -721,6 +721,7 @@ do
     end
 
     local selectedInRecord = {} -- { [first id in record] = index of selected id, ...}
+    local enteredButton
 
     local tabDummy = CreateFrame("Button", addon.."PreviewListTabDummy", previewTab)
 
@@ -728,13 +729,14 @@ do
         local recordIndex = self:GetParent().itemIndex
         local ids = records[recordIndex][1]
         local names = records[recordIndex][2]
+        GameTooltip:Hide()
         GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
         GameTooltip:ClearLines()
         GameTooltip:AddLine("This appearance is provided by:", 1, 1, 1)
         GameTooltip:AddLine(" ")
-        local selected = selectedInRecord[ids[1]] ~= nil and selectedInRecord[ids[1]] or 1
+        local selectedIndex = selectedInRecord[ids[1]] ~= nil and selectedInRecord[ids[1]] or 1
         for i, id in ipairs(ids) do
-            GameTooltip:AddLine((i == selected and "> " or "- ")..names[i]..(id == mainFrame.selectedSlot.itemId and " <"or ""))
+            GameTooltip:AddLine((i == selectedIndex and "> " or "- ")..names[i]..(id == mainFrame.selectedSlot.itemId and " <"or ""))
         end
         if GetSettings().showShortcutsInTooltip then
             GameTooltip:AddLine("|n|cff00ff00Left Click:|r try on the appearance.")
@@ -748,24 +750,46 @@ do
         end
         GameTooltip:Show()
         SetOverrideBindingClick(tabDummy, true, "TAB", tabDummy:GetName(), "RightButton")
+        enteredButton = self
     end
 
     list.onLeave = function(self, ...)
         ClearOverrideBindings(tabDummy)
         GameTooltip:ClearLines()
         GameTooltip:Hide()
+        enteredButton = nil
     end
 
     tabDummy:SetScript("OnClick", function(self)
-        if list.entered ~= nil then
-            list.onEnter(list.entered)
+        if enteredButton ~= nil then
+            local recordIndex = enteredButton:GetParent().itemIndex
+            local ids = records[recordIndex][1]
+            if #ids > 1 then
+                if selectedInRecord[ids[1]] == nil then
+                    selectedInRecord[ids[1]] = 2
+                else
+                    selectedInRecord[ids[1]] = selectedInRecord[ids[1]] < #ids and selectedInRecord[ids[1]] + 1 or 1
+                end
+            end
+            list.onEnter(enteredButton)
         end
     end)
 
     list.onItemClick = function(self, button)
         local recordIndex = self:GetParent().itemIndex
         local ids = records[recordIndex][1]
-        mainFrame.selectedSlot:SetItem(ids[1])
+        local selectedIndex = selectedInRecord[ids[1]] ~= nil and selectedInRecord[ids[1]] or 1
+        local itemId = ids[selectedIndex]
+        if IsShiftKeyDown() then
+            local names = records[recordIndex][2]
+            local color = names[selectedIndex]:sub(1, 10)
+            local name = names[selectedIndex]:sub(11, -3)
+            SELECTED_CHAT_FRAME:AddMessage("<DressMe>: "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r".." ("..itemId..")")
+        elseif IsControlKeyDown() then
+            ns.ShowWowheadURLDialog(itemId)
+        else
+            mainFrame.selectedSlot:SetItem(itemId)
+        end
         list.onEnter(self)
     end
 end

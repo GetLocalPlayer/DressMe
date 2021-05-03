@@ -37,7 +37,7 @@ StaticPopupDialogs["DRESSME_WOWHEAD_URL_DIALOG"] = {
 }
 
 
-function ns:ShowWowheadURLDialog(itemId)
+function ns.ShowWowheadURLDialog(itemId)
     if StaticPopup_Visible("DRESSME_WOWHEAD_URL_DIALOG") then
         StaticPopup_Hide("DRESSME_WOWHEAD_URL_DIALOG")
     end
