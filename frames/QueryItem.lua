@@ -58,7 +58,11 @@ function ns.QueryItem(itemId, handler)
             queries[itemId] = {}
         end
         local functable = {
-            ["__call"] = function(self, itemId, success) handler(itemId, success) end,
+            ["__call"] = function(self, itemId, success) 
+                if handler ~= nil then
+                    handler(itemId, success)
+                end
+            end,
             ["time"] = QUERY_TIME,
         }
         setmetatable(functable, functable)
