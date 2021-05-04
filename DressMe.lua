@@ -311,13 +311,19 @@ do
             if playerName ~= "" then
                 local slots = mainFrame.slots
                 local s = slots[slotOrder[1]].itemId ~= nil and tostring(slots[slotOrder[1]].itemId) or ""
+                local itemsCount = slots[slotOrder[1]].itemId == nil and 0 or 1
                 for i=2, #slotOrder do
                     s = s..":"
                     if slots[slotOrder[i]].itemId ~= nil then
                         s = s..slots[slotOrder[i]].itemId
+                        itemsCount = itemsCount + 1
                     end
                 end
-                SendAddonMessage(addonMessagePrefix, s, "WHISPER", playerName)
+                if itemsCount > 0 then
+                    SendAddonMessage(addonMessagePrefix, s, "WHISPER", playerName)
+                else
+                    SELECTED_CHAT_FRAME:AddMessage("|ccff6ff98<DressMe>|r: nothing to send.")
+                end
             end
         end,
         OnShow = function(self)
@@ -441,9 +447,9 @@ local function slot_OnShiftLeftClick(self)
     if self.itemId ~= nil then
         local _, link = GetItemInfo(self.itemId)
         if link ~= nil then
-            SELECTED_CHAT_FRAME:AddMessage("<DressMe>: "..link.." ("..self.itemId..")")
+            SELECTED_CHAT_FRAME:AddMessage("|ccff6ff98<DressMe>|r: "..link.." ("..self.itemId..")")
         else
-            SELECTED_CHAT_FRAME:AddMessage("<DressMe>: It seems this item cannot be used for transmogrification.")
+            SELECTED_CHAT_FRAME:AddMessage("|ccff6ff98<DressMe>|r: It seems this item cannot be used for transmogrification.")
         end
     end
 end
@@ -860,7 +866,7 @@ do
             local names = records[recordIndex][2]
             local color = names[selectedIndex]:sub(1, 10)
             local name = names[selectedIndex]:sub(11, -3)
-            SELECTED_CHAT_FRAME:AddMessage("<DressMe>: "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r".." ("..itemId..")")
+            SELECTED_CHAT_FRAME:AddMessage("|ccff6ff98<DressMe>|r: "..color.."\124Hitem:"..itemId..":::::::|h["..name.."]\124h\124r".." ("..itemId..")")
         elseif IsControlKeyDown() then
             ns.ShowWowheadURLDialog(itemId)
         else
