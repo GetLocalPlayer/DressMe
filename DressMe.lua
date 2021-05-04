@@ -16,7 +16,7 @@ local rangedSlot = "Ranged"
 -- For hiding hair/beard
 local chestSlots = {"Chest", "Tabard", "Shirt"}
 
-local addonMessagePrefix
+local addonMessagePrefix = "DressMe"
 -- Used in look saving/sending. Chenging wil breack compatibility.
 local slotOrder = { "Head", "Shoulder", "Back", "Chest", "Shirt", "Tabard", "Wrist", "Hands", "Waist", "Legs", "Feet", "Main Hand", "Off-hand", "Ranged",}
 
@@ -79,6 +79,7 @@ local defaultSettings = {
     showShortcutsInTooltip = true,
     hideHairOnCloakPreview = false,
     hideHairBeardOnChestPreview = false,
+    useServerTimeInReceivedAppearances = false,
 }
 
 local function GetSettings()
@@ -311,8 +312,9 @@ do
                 local slots = mainFrame.slots
                 local s = slots[slotOrder[1]].itemId ~= nil and tostring(slots[slotOrder[1]].itemId) or ""
                 for i=2, #slotOrder do
+                    s = s..":"
                     if slots[slotOrder[i]].itemId ~= nil then
-                        s = s..":"..slots[slotOrder[i]].itemId
+                        s = s..slots[slotOrder[i]].itemId
                     end
                 end
                 SendAddonMessage(addonMessagePrefix, s, "WHISPER", playerName)
@@ -991,7 +993,7 @@ do
         }
     ]]
 
-    local listFrame = ns:CreateListFrame("$parentSavedLooks", nil, scrollFrame)
+    local listFrame = ns.CreateListFrame("$parentSavedLooks", nil, scrollFrame)
     listFrame:SetWidth(scrollFrame:GetWidth())
     listFrame:SetScript("OnShow", function(self)
         if self.selected == nil then
@@ -1223,7 +1225,7 @@ do
     label:SetPoint("BOTTOM", frame, "TOP", 0, 10)
     label:SetJustifyH("CENTER")
     label:SetHeight(10)
-    label:SetText("Received appearances")
+    label:SetText("Received Appearances")
 
     local btnRemove = CreateFrame("Button", "$parentButtonRemove", scrollFrame, "UIPanelButtonTemplate2")
     btnRemove:SetSize(90, 20)
@@ -1245,6 +1247,112 @@ do
     btnClear:SetText("Clear")
     btnClear:SetScript("OnClick", function() PlaySound("gsTitleOptionOK") end)
     btnClear:Disable()
+
+    local listFrame = ns.CreateListFrame("$parentSavedLooks", nil, scrollFrame)
+    listFrame:SetWidth(scrollFrame:GetWidth())
+    listFrame:SetScript("OnShow", function(self)
+        if self.selected == nil then
+            btnTryOn:Disable()
+            btnRemove:Disable()
+        else
+            btnTryOn:Enable()
+            btnRemove:Enable()
+        end
+        if self:GetSize() == 0 then
+            btnClear:Disable()
+        else
+            btnClear:Enable()
+        end
+        for i=1, self:GetSize() do
+            local btn = self:GetButton(i)
+            if GetSettings().useServerTimeInReceivedAppearances then
+                btn:SetText(btn.serverTime.." "..btn.sender)
+            else
+                btn:SetText(btn.localTime.." "..btn.sender)
+            end
+        end
+    end)
+    
+    scrollFrame:SetScrollChild(listFrame)
+
+    listFrame:RegisterEvent("CHAT_MSG_ADDON")
+    listFrame:SetScript("OnEvent", function(self, event, prefix, message, channel, sender)
+        if prefix == addonMessagePrefix then
+            for i=1, listFrame:GetSize() do
+                local btn = listFrame:GetButton(i)
+                if btn.sender == sender and btn.message == message then
+                    return
+                end
+            end
+            local btn = listFrame:GetButton(listFrame:AddItem(sender))
+            btn.sender = sender
+            btn.message = message
+            local h, m = GetGameTime()
+            btn.serverTime = format("[%u:%s]", h, m < 10 and "0"..m or tostring(m))
+            local d = date("*t")
+            btn.localTime = format("[%u:%s]", d.hour, d.min < 10 and "0"..d.min or tostring(d.min))
+            if GetSettings().useServerTimeInReceivedAppearances then
+                btn:SetText(btn.serverTime.." "..sender)
+            else
+                btn:SetText(btn.localTime.." "..sender)
+            end
+            btnClear:Enable()
+            scrollFrame:UpdateScrollChildRect()
+        end
+    end)
+
+    listFrame.onSelect = function(self)
+        btnRemove:Enable()
+        btnTryOn:Enable()
+    end
+
+    btnRemove:HookScript("OnClick", function(self)
+        local btn = listFrame:GetButton(listFrame:GetSelected())
+        btn.sender = nil
+        btn.message = nil
+        btn.serverTime = nil
+        btn.localTime = nil
+        listFrame:RemoveItem(listFrame:GetSelected())
+        self:Disable()
+        btnTryOn:Disable()
+        if listFrame:GetSize() == 0 then
+            btnClear:Disable()
+        end
+        scrollFrame:UpdateScrollChildRect()
+    end)
+
+    btnClear:HookScript("OnClick", function(self)
+        while listFrame:GetSize() > 0 do
+            local btn = listFrame:GetButton(1)
+            btn.sender = nil
+            btn.message = nil
+            btn.serverTime = nil
+            btn.localTime = nil
+            listFrame:RemoveItem(1)
+        end
+        btnTryOn:Disable()
+        btnRemove:Disable()
+        btnClear:Disable()
+        scrollFrame:UpdateScrollChildRect()
+    end)
+
+    btnTryOn:HookScript("OnClick", function()
+        local btn = listFrame:GetButton(listFrame:GetSelected())
+        local splitted = {}
+        for s in string.gmatch(btn.message..":", "([^:]*):") do
+            table.insert(splitted, s)
+        end
+        if #splitted == #slotOrder then
+            for i, slot in ipairs(slotOrder) do
+                local itemId = tonumber(splitted[i])
+                if itemId ~= nil then
+                    mainFrame.slots[slot]:SetItem(itemId)
+                else
+                    mainFrame.slots[slot]:RemoveItem()
+                end
+            end
+        end
+    end)
 end
 
 ---------------- CHARACTER MENU BUTTON ----------------
@@ -1442,6 +1550,21 @@ do
         text:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
     end
 
+    --------- Use server time in received appearances
+    
+    local useServerTimeInReceivedAppearancesCheckBox = CreateFrame("CheckButton", addon.."UseServerTimeInReceivedAppearancesCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
+    
+    do
+        local checkbox = useServerTimeInReceivedAppearancesCheckBox
+        checkbox:SetPoint("TOP", hideHairBeardOnChestPreviewCheckBox, "BOTTOM", 0, -20)
+        checkbox:SetScript("OnClick", function(self)
+            GetSettings().useServerTimeInReceivedAppearances = self:GetChecked() ~= nil
+        end)
+        local text = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        text:SetText("Use Server Time in \"Received Appearences\" list")
+        text:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
+    end
+
     --------- Apply settings on addon loaded
 
     local function applySettings(settings)
@@ -1463,6 +1586,8 @@ do
         hideHairOnCloakPreviewCheckBox:SetChecked(settings.hideHairOnCloakPreview)
         -- Hide hair and beard on chest preview
         hideHairBeardOnChestPreviewCheckBox:SetChecked(settings.hideHairBeardOnChestPreview)
+        -- Use server time in Received Appearences list
+        useServerTimeInReceivedAppearancesCheckBox:SetChecked(settings.useServerTimeInReceivedAppearances)
         UIDropDownMenu_SetText(menu, settings.previewSetup)
     end
 
@@ -1470,8 +1595,7 @@ do
     settingsTab:SetScript("OnEvent", function(self, event, addonName)
         if addonName == addon then
             if event == "ADDON_LOADED" then
-                local settings = GetSettings()
-                applySettings(settings)
+                applySettings(GetSettings())
             end
         end
     end)

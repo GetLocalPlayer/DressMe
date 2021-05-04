@@ -60,7 +60,7 @@ local function button_OnLeave(self, ...)
 end
 
 
-local dressingRoomRecycler = {
+local recycler = {
     ["recycled"] = {},
     ["counter"] = 0,
 
@@ -107,13 +107,14 @@ local dressingRoomRecycler = {
         return result
     end,
 
-    ["recycle"] = function(self, frame, dr)
-        if self.recycled[frame] == nil then self.recycled[frame] = {} end
-        local recycled = self.recycled[frame]
-        for i=1, #recycled do
-            if recycled[i] == dr then return end
+    ["recycle"] = function(self, parent, dr)
+        if self.recycled[parent] == nil then self.recycled[parent] = {} end
+        local recycled = self.recycled[parent]
+        for i, v in pairs(recycled) do
+            assert(dr ~= v, "Double recycling.")
         end
         dr:ClearModel()
+        dr:Hide()
         dr.isQuerying = false
         table.insert(recycled, dr)
     end,
@@ -148,7 +149,7 @@ local function PreviewList_SetupModel(self, width, height, x, y, z, facing, sequ
     local perPage = countW * countH
     if #self.itemIds > 0 and perPage > 0 then
         if #self.dressingRooms < perPage then
-            local list = dressingRoomRecycler:get(self, perPage - #self.dressingRooms)
+            local list = recycler:get(self, perPage - #self.dressingRooms)
             while #list > 0 do
                 local dr = table.remove(list)
                 dr:SetWidth(width)
@@ -158,11 +159,10 @@ local function PreviewList_SetupModel(self, width, height, x, y, z, facing, sequ
         elseif #self.dressingRooms > perPage then
             while #self.dressingRooms > perPage do
                 local dr = table.remove(self.dressingRooms)
-                dr:Hide()
                 dr:OnUpdateModel(nil)
                 dr.itemId = nil
                 dr.itemIndex = nil
-                dressingRoomRecycler:recycle(self, dr)
+                recycler:recycle(self, dr)
             end
         end
         local gapW = (self:GetWidth() - countW * width) / 2

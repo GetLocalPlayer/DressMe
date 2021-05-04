@@ -1,17 +1,46 @@
 local addon, ns = ...
 
 
-local recycler = {}
-local counter = 0
-local function nextInt()
-    counter = counter + 1
-    return counter
-end
-
 
 local function button_OnClick(self)
     self:GetParent():Select(self:GetID())
 end
+
+
+local recycler = {
+    ["recycled"] = {},
+    ["counter"] = 0,
+
+    ["get"] = function(self, parent, number)
+        number = number ~= nil and number or 1
+        local result = {}
+        while #result < number do
+            if self.recycled[parent] == nil then self.recycled[parent] = {} end
+            local recycled = self.recycled[parent]
+            if #self.recycled > 0 then
+                table.insert(result, table.remove(recycled))
+            else
+                self.counter = self.counter + 1
+                local btn = CreateFrame("Button", "$parentListFrameButton"..self.counter, parent, "OptionsListButtonTemplate")
+                btn:SetID(0)
+                btn:Show()
+                btn:SetScript("OnClick", button_OnClick)
+                table.insert(result, 1, btn)
+            end
+        end
+        return #result > 1 and result or result[1]
+    end,
+
+    ["recycle"] = function(self, parent, btn)
+        if self.recycled[parent] == nil then self.recycled[parent] = {} end
+        local recycled = self.recycled[parent]
+        for i, v in ipairs(recycled) do
+            assert(btn ~= v, "Double recycling.")
+        end
+        btn:Hide()
+        table.insert(recycled, btn)
+    end,
+}
 
 
 local function ListFrame_SetInsets(self, left, right, top, bottom)
@@ -32,19 +61,19 @@ local function ListFrame_GetListHeight(self)
 end
 
 
-local function ListFrame_Select(self, item)
+local function ListFrame_Select(self, id)
     if self.selected ~= nil then
         self.buttons[self.selected]:UnlockHighlight()
     end
-    if type(item) == "number" then
-        self.buttons[item]:LockHighlight()
-        self.selected = item
+    if type(id) == "number" then
+        self.buttons[id]:LockHighlight()
+        self.selected = id
         if self.onSelect ~= nil then
-            self.onSelect(self, item)
+            self.onSelect(self, id)
         end
-    elseif type(item) == "string" then
+    elseif type(id) == "string" then
         for i = 1, #self.buttons do
-            if self.buttons[i]:GetText() == item then
+            if self.buttons[i]:GetText() == id then
                 self.buttons[i]:LockHighlight()
                 self.selected = i
                 if self.onSelect ~= nil then
@@ -72,34 +101,34 @@ local function ListFrame_GetSelected(self)
 end
 
 
-local function ListFrame_GetButton(self, btn)
-    if type(btn) == "string" then
+local function ListFrame_GetButton(self, nameOrId)
+    if type(nameOrId) == "string" then
         for i = 1, #self.buttons do
-            if self.buttons[i].name == btn then
+            if self.buttons[i].name == nameOrId then
                 return self.buttons[i]
             end
         end
-    elseif type(btn) == "number" then
-        return self.buttons[btn]
+    elseif type(nameOrId) == "number" then
+        return self.buttons[nameOrId]
     end
 end
 
 
-local function ListFrame_RemoveItem(self, item)
-    if #self.buttons >= item and item > 0 then
-        if self:GetSelected() == item then
-            self:Deselect()
-        elseif self:GetSelected() > item then
-            self.selected = self.selected - 1
+local function ListFrame_RemoveItem(self, id)
+    if #self.buttons >= id and id > 0 then
+        if self.selected ~= nil then
+            if self.selected == id then
+                self:Deselect()
+            elseif self.selected > id then
+                self.selected = self.selected - 1
+            end
         end
-        for i = item + 1, #self.buttons do
+        for i = id + 1, #self.buttons do
             self.buttons[i]:SetID(i - 1)
         end 
-        local btn = table.remove(self.buttons, item)
-        btn:SetParent(nil)
+        local btn = table.remove(self.buttons, id)
         btn:ClearAllPoints()
-        btn:Hide()
-        table.insert(recycler, btn)
+        recycler:recycle(self, btn)
         self:Update()
     end
 end
@@ -111,11 +140,8 @@ local function ListFrame_Clear(self)
     end
     while #self.buttons > 0 do
         local btn = table.remove(self.buttons, #self.buttons)
-        btn:SetParent(nil)
         btn:ClearAllPoints()
-        btn:Hide()
-        btn:SetID(0)
-        table.insert(recycler, btn)
+        recycler:recycle(self, btn)
     end
     self:Update()
 end
@@ -126,8 +152,7 @@ local function ListFrame_Update(self)
     if #self.buttons > 0 then
         self.buttons[1]:SetPoint("TOPLEFT", self.insets.left, -self.insets.top)
         self.buttons[1]:SetPoint("TOPRIGHT", -self.insets.right, self.insets.bottom)
-
-        for i = 2, #self.buttons do
+        for i=2, #self.buttons do
             self.buttons[i]:SetPoint("TOPLEFT", self.buttons[i - 1], "BOTTOMLEFT")
             self.buttons[i]:SetPoint("TOPRIGHT", self.buttons[i - 1], "BOTTOMRIGHT")
         end
@@ -137,9 +162,7 @@ end
 
 local function ListFrame_AddItem(self, itemName)
     assert(type(itemName) == "string", "Item name must be a 'string' value.")
-    local btn = #recycler == 0 and CreateFrame("Button", "ListFrame"..nextInt(), self, "OptionsListButtonTemplate") or table.remove(recycler)
-    btn:SetParent(self)
-    btn:Show()
+    local btn = recycler:get(self)
     btn:SetText(itemName)
     btn:SetScript("OnClick", button_OnClick)
     btn.name = itemName
@@ -153,7 +176,12 @@ local function ListFrame_AddItem(self, itemName)
 end
 
 
-function ns:CreateListFrame(name, list, parent)
+local function ListFrame_GetSize(self)
+    return #self.buttons
+end
+
+
+function ns.CreateListFrame(name, list, parent)
     local frame = CreateFrame("Frame", name, parent)
     frame.insets = {left = 0, right = 0, top = 0, bottom = 0}
     frame.buttons = {}
@@ -170,6 +198,7 @@ function ns:CreateListFrame(name, list, parent)
     frame.RemoveItem = ListFrame_RemoveItem
     frame.Clear = ListFrame_Clear
     frame.Update = ListFrame_Update
+    frame.GetSize = ListFrame_GetSize
 
     if list ~= nil then
         for _, name in pairs(list) do
