@@ -16,6 +16,7 @@ local rangedSlot = "Ranged"
 -- For hiding hair/beard
 local chestSlots = {"Chest", "Tabard", "Shirt"}
 
+local addonMessagePrefix
 -- Used in look saving/sending. Chenging wil breack compatibility.
 local slotOrder = { "Head", "Shoulder", "Back", "Chest", "Shirt", "Tabard", "Wrist", "Hands", "Waist", "Legs", "Feet", "Main Hand", "Off-hand", "Ranged",}
 
@@ -296,12 +297,38 @@ end
 mainFrame.buttons.send = CreateFrame("Button", "$parentButtonSend", mainFrame, "UIPanelButtonTemplate2")
 
 do
+    StaticPopupDialogs["DRESSME_SEND_DIALOG"] = {
+        text = "|cffffd700Enter player name:",
+        button1 = "Send",
+        button2 = CLOSE,
+        timeout = 0,
+        whileDead = true,
+        hasEditBox = true,
+        preferredIndex = 3,
+        OnAccept = function(self)
+            local playerName = self.editBox:GetText()
+            if playerName ~= "" then
+                local slots = mainFrame.slots
+                local s = slots[slotOrder[1]].itemId ~= nil and tostring(slots[slotOrder[1]].itemId) or ""
+                for i=2, #slotOrder do
+                    if slots[slotOrder[i]].itemId ~= nil then
+                        s = s..":"..slots[slotOrder[i]].itemId
+                    end
+                end
+                SendAddonMessage(addonMessagePrefix, s, "WHISPER", playerName)
+            end
+        end,
+        OnShow = function(self)
+            local data = self.data
+            self.editBox:SetText("")
+        end,}
     local btn = mainFrame.buttons.send
     btn:SetPoint("TOPRIGHT", mainFrame.dressingRoom, "BOTTOMRIGHT")
     btn:SetPoint("BOTTOM", mainFrame.stats, "BOTTOM", 0, 1)
     btn:SetWidth(mainFrame.dressingRoom:GetWidth()/4)
     btn:SetText("Send")
     btn:SetScript("OnClick", function()
+        StaticPopup_Show("DRESSME_SEND_DIALOG")
         PlaySound("gsTitleOptionOK")
     end)
 end
@@ -902,49 +929,51 @@ end
 
 ---------------- APPEARANCES ----------------
 
+mainFrame.tabs.appearances.saved = CreateFrame("Frame", "$parentSaved", mainFrame.tabs.appearances)
+
 do
     local appearancesTab = mainFrame.tabs.appearances
 
-    local background = CreateFrame("Frame", "$parentSavedListBackground", appearancesTab)
-    background:SetPoint("TOPLEFT", 5, -30)
-    background:SetPoint("BOTTOM", 0, 30)
-    background:SetWidth(280)
-    background:SetBackdrop({
+    local frame = appearancesTab.saved
+    frame:SetPoint("TOPLEFT", 5, -30)
+    frame:SetPoint("BOTTOM", 0, 30)
+    frame:SetWidth(280)
+    frame:SetBackdrop({
         bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
         tile = true, tileSize = 16, edgeSize = 16,
         insets = { left = 3, right = 3, top = 3, bottom = 3 }
     })
-    background:SetBackdropColor(0, 0, 0, 1)
+    frame:SetBackdropColor(0, 0, 0, 1)
 
-    local scrollFrame = CreateFrame("ScrollFrame", "$parentScrollFrame", background, "UIPanelScrollFrameTemplate")
+    local scrollFrame = CreateFrame("ScrollFrame", "$parentScrollFrame", frame, "UIPanelScrollFrameTemplate")
     scrollFrame:SetPoint("TOPLEFT", 8, -8)
     scrollFrame:SetPoint("BOTTOMLEFT", 8, 8)
-    scrollFrame:SetWidth(background:GetWidth() - 12)
+    scrollFrame:SetWidth(frame:GetWidth() - 12)
 
     local btnSave = CreateFrame("Button", "$parentButtonSave", scrollFrame, "UIPanelButtonTemplate2")
     btnSave:SetSize(90, 20)
-    btnSave:SetPoint("CENTER", background, "TOP", 0, 14)
+    btnSave:SetPoint("CENTER", frame, "TOP", 0, 14)
     btnSave:SetText("Save")
     btnSave:SetScript("OnClick", function() PlaySound("gsTitleOptionOK") end)
     btnSave:Disable()
 
     local btnSaveAs = CreateFrame("Button", "$parentButtonSaveAs", scrollFrame, "UIPanelButtonTemplate2")
     btnSaveAs:SetSize(90, 20)
-    btnSaveAs:SetPoint("LEFT", background, "TOPLEFT", 0, 14)
+    btnSaveAs:SetPoint("LEFT", frame, "TOPLEFT", 0, 14)
     btnSaveAs:SetText("Save As...")
     btnSaveAs:SetScript("OnClick", function() PlaySound("gsTitleOptionOK") end)
 
     local btnRemove = CreateFrame("Button", "$parentButtonRemove", scrollFrame, "UIPanelButtonTemplate2")
     btnRemove:SetSize(90, 20)
-    btnRemove:SetPoint("RIGHT", background, "TOPRIGHT", 0, 14)
+    btnRemove:SetPoint("RIGHT", frame, "TOPRIGHT", 0, 14)
     btnRemove:SetText("Remove")
     btnRemove:SetScript("OnClick", function() PlaySound("gsTitleOptionOK") end)
     btnRemove:Disable()
 
     local btnTryOn = CreateFrame("Button", "$parentButtonTryOn", scrollFrame, "UIPanelButtonTemplate2")
     btnTryOn:SetSize(90, 20)
-    btnTryOn:SetPoint("LEFT", background, "BOTTOMLEFT", 0, -12)
+    btnTryOn:SetPoint("LEFT", frame, "BOTTOMLEFT", 0, -12)
     btnTryOn:SetText("Try on")
     btnTryOn:SetScript("OnClick", function() PlaySound("gsTitleOptionOK") end)
     btnTryOn:Disable()
@@ -1163,6 +1192,59 @@ do
             dialog.id = listFrame.buttons[listFrame:GetSelected()]:GetID()
         end
     end)
+end
+
+---------------- RECIEVED APPEARANCES ----------------
+
+mainFrame.tabs.appearances.received = CreateFrame("Frame", "$parentReceived", mainFrame.tabs.appearances)
+
+do
+    local appearancesTab = mainFrame.tabs.appearances
+
+    local frame = mainFrame.tabs.appearances.received
+    frame:SetPoint("TOP", mainFrame.tabs.appearances.saved, "TOP")
+    frame:SetPoint("RIGHT", -21, 0)
+    frame:SetPoint("BOTTOM", 0, 30)
+    frame:SetWidth(280)
+    frame:SetBackdrop({
+        bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true, tileSize = 16, edgeSize = 16,
+        insets = { left = 3, right = 3, top = 3, bottom = 3 }
+    })
+    frame:SetBackdropColor(0, 0, 0, 1)
+
+    local scrollFrame = CreateFrame("ScrollFrame", "$parentScrollFrame", frame, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", 8, -8)
+    scrollFrame:SetPoint("BOTTOMLEFT", 8, 8)
+    scrollFrame:SetWidth(frame:GetWidth() - 12)
+
+    local label = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("BOTTOM", frame, "TOP", 0, 10)
+    label:SetJustifyH("CENTER")
+    label:SetHeight(10)
+    label:SetText("Received appearances")
+
+    local btnRemove = CreateFrame("Button", "$parentButtonRemove", scrollFrame, "UIPanelButtonTemplate2")
+    btnRemove:SetSize(90, 20)
+    btnRemove:SetPoint("CENTER", frame, "BOTTOM", 0, -12)
+    btnRemove:SetText("Remove")
+    btnRemove:SetScript("OnClick", function() PlaySound("gsTitleOptionOK") end)
+    btnRemove:Disable()
+
+    local btnTryOn = CreateFrame("Button", "$parentButtonSaveAs", scrollFrame, "UIPanelButtonTemplate2")
+    btnTryOn:SetSize(90, 20)
+    btnTryOn:SetPoint("LEFT", frame, "BOTTOMLEFT", 0, -12)
+    btnTryOn:SetText("Try On")
+    btnTryOn:SetScript("OnClick", function() PlaySound("gsTitleOptionOK") end)
+    btnTryOn:Disable()
+
+    local btnClear = CreateFrame("Button", "$parentButtonClear", scrollFrame, "UIPanelButtonTemplate2")
+    btnClear:SetSize(90, 20)
+    btnClear:SetPoint("RIGHT", frame, "BOTTOMRIGHT", 0, -12)
+    btnClear:SetText("Clear")
+    btnClear:SetScript("OnClick", function() PlaySound("gsTitleOptionOK") end)
+    btnClear:Disable()
 end
 
 ---------------- CHARACTER MENU BUTTON ----------------
