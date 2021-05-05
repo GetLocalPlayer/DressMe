@@ -78,7 +78,6 @@ local recycler = {
                 dr:SetBackdropColor(unpack(itemBackdropColor))
                 dr:EnableDragRotation(false)
                 dr:EnableMouseWheel(false)
-                dr.isQuerying = false
                 dr.queriedLabel = dr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
                 dr.queriedLabel:SetJustifyH("LEFT")
                 dr.queriedLabel:SetHeight(18)
@@ -115,7 +114,6 @@ local recycler = {
         end
         dr:ClearModel()
         dr:Hide()
-        dr.isQuerying = false
         table.insert(recycled, dr)
     end,
 }
@@ -147,7 +145,7 @@ local function PreviewList_SetupModel(self, width, height, x, y, z, facing, sequ
     local countW = math.floor(self:GetWidth() / width)
     local countH = math.floor(self:GetHeight() / height)
     local perPage = countW * countH
-    if #self.itemIds > 0 and perPage > 0 then
+    if perPage > 0 then
         if #self.dressingRooms < perPage then
             local list = recycler:get(self, perPage - #self.dressingRooms)
             while #list > 0 do
@@ -160,8 +158,6 @@ local function PreviewList_SetupModel(self, width, height, x, y, z, facing, sequ
             while #self.dressingRooms > perPage do
                 local dr = table.remove(self.dressingRooms)
                 dr:OnUpdateModel(nil)
-                dr.itemId = nil
-                dr.itemIndex = nil
                 recycler:recycle(self, dr)
             end
         end
@@ -171,6 +167,9 @@ local function PreviewList_SetupModel(self, width, height, x, y, z, facing, sequ
             for w = 1, countW do
                 local dr = self.dressingRooms[(h - 1) * countW + w]
                 dr:SetPoint("TOPLEFT", self, "TOPLEFT", width * (w - 1) + gapW , -height * (h - 1) - gapH)
+                dr.itemId = nil
+                dr.itemIndex = nil
+                dr.isQuerying = false
             end
         end
         for i, dr in ipairs(self.dressingRooms) do
