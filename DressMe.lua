@@ -696,7 +696,7 @@ do
     list:SetPoint("TOPLEFT")
     list:SetSize(601, 401)
 
-    local label = list:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    local label = list:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     label:SetPoint("TOP", list, "BOTTOM", 0, -5)
     label:SetJustifyH("CENTER")
     label:SetHeight(10)
