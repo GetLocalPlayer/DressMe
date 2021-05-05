@@ -1381,7 +1381,16 @@ end)
 
 do
     local settingsTab = mainFrame.tabs.settings
-    
+
+    --------- EMail and GitHub
+
+    local stats = mainFrame.stats
+    local email = settingsTab:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    email:SetPoint("CENTER", mainFrame.stats, "CENTER", 10, 0)
+    email:SetJustifyH("CENTER")
+    email:SetHeight(10)
+    email:SetText("GetLocalPlayer@Gmail.com  |  GitHub.com/GetLocalPlayer/DressMe")
+
     --------- Preview Setup
 
     local menu = CreateFrame("Frame", addon.."PreviewSetupDropDownMenu", settingsTab, "UIDropDownMenuTemplate")
