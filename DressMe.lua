@@ -820,7 +820,7 @@ do
         GameTooltip:AddLine(" ")
         local selectedIndex = selectedInRecord[ids[1]] ~= nil and selectedInRecord[ids[1]] or 1
         for i, id in ipairs(ids) do
-            GameTooltip:AddLine((i == selectedIndex and "> " or "- ")..names[i]..(id == mainFrame.selectedSlot.itemId and " <"or ""))
+            GameTooltip:AddLine((i == selectedIndex and "> " or "- ")..names[i]..(id == mainFrame.selectedSlot.itemId and " *"or ""))
         end
         if GetSettings().showShortcutsInTooltip then
             GameTooltip:AddLine("|n|cff00ff00Left Click:|r try on the appearance.")
