@@ -1,5 +1,7 @@
 local addon, ns = ...
 
+local mainFrameTitle = "|ccff6ff98DressMe |cffffffff1.3 (Test)|r"
+
 local sex = UnitSex("player")
 local _, raceFileName = UnitRace("player")
 local _, classFileName = UnitClass("player")
@@ -145,7 +147,7 @@ do
 
     local title = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     title:SetPoint("TOP", 0, -9)
-    title:SetText("DressMe")
+    title:SetText(mainFrameTitle)
 
     local titleBg = mainFrame:CreateTexture(nil, "BACKGROUND")
 	titleBg:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-Title-Background")
