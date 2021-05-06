@@ -747,6 +747,7 @@ do
         GameTooltip:ClearLines()
         GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
         GameTooltip:AddLine("Shadowform")
+        GameTooltip:AddLine("A poor simulation that relies on the model's light setup. Equipment with its own light source (like  \"Excavator's Brand\" tourch) gives wrong result. Emission textures that ignore light (like Draenei eyes) also ignore this simulation.", 1, 1, 1, 1, true)
         GameTooltip:Show()
     end)
 
