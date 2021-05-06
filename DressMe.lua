@@ -691,6 +691,9 @@ end
     displayed model.
 ]]
 mainFrame.buttons.useTarget:HookScript("OnClick", function(slef)
+    if mainFrame.dressingRoom.shadowformEnabled then
+        mainFrame.dressingRoom:EnableShadowform()
+    end
     mainFrame.dressingRoom:Undress()
     tryOnFromSlots(mainFrame.dressingRoom)
 end)
@@ -1058,7 +1061,7 @@ do
     local btnTryOn = CreateFrame("Button", "$parentButtonTryOn", scrollFrame, "UIPanelButtonTemplate2")
     btnTryOn:SetSize(90, 20)
     btnTryOn:SetPoint("LEFT", frame, "BOTTOMLEFT", 0, -12)
-    btnTryOn:SetText("Try on")
+    btnTryOn:SetText("Try On")
     btnTryOn:SetScript("OnClick", function() PlaySound("gsTitleOptionOK") end)
     btnTryOn:Disable()
 
