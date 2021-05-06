@@ -21,8 +21,9 @@ local previewHighlightTexture = "Interface\\Buttons\\ButtonHilight-Square"
         Update
         TryOn(item)
 
-        Call `Update` method manually after all Set- methods. I don't want
-        to update DressUpModels after each change.
+        Call `Update` method manually after all Set- methods. TryOn 
+        items several times in the same frame can give sometimes 
+        unexpected result.
 ]]
 
 local function DressingRoom_OnUpdateModel(self)
@@ -170,10 +171,8 @@ local function PreviewList_SetupModel(self, width, height, x, y, z, facing, sequ
                 dr.itemId = nil
                 dr.itemIndex = nil
                 dr.isQuerying = false
+                dr:SetSize(width, height)
             end
-        end
-        for i, dr in ipairs(self.dressingRooms) do
-            dr:SetSize(width, height)
         end
     end
 end
@@ -199,9 +198,8 @@ end
 
 
 local function queryItemHandler(functable, itemId, success)
-    local queriedItemId = functable.queriedItemId
     local dr = functable.dressingRoom
-    if queriedItemId == itemId then
+    if dr.itemId == itemId then
         dr.queriedLabel:Hide()
         dr.isQuerying = false
         if success then
@@ -230,15 +228,15 @@ local function PreviewList_Update(self)
     local perPage = #self.dressingRooms
     for i, dr in ipairs(self.dressingRooms) do
         local dr = self.dressingRooms[i]
-        local index = (self.currentPage - 1) * perPage + i
-        local itemId = self.itemIds[index]
+        local itemIndex = (self.currentPage - 1) * perPage + i
+        local itemId = self.itemIds[itemIndex]
         if itemId == nil then
             dr:OnUpdateModel(nil)
             dr:ClearModel()
             dr:Hide()
         else
             dr.itemId = itemId
-            dr.itemIndex = index
+            dr.itemIndex = itemIndex
             dr.isQuerying = true
             dr:Show()
             dr:ClearModel()
@@ -246,7 +244,6 @@ local function PreviewList_Update(self)
             dr.queriedLabel:Show()
             dr.queryFailedLabel:Hide()
             local handler = {
-                ["queriedItemId"] = itemId,
                 ["dressingRoom"] = dr,
                 ["__call"] = queryItemHandler,}
             setmetatable(handler, handler)

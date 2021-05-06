@@ -218,6 +218,8 @@ function ns.CreateDressingRoom(name, parent)
     function frame:GetFacing(...) return model:GetFacing(...) end
     function frame:SetFacing(...) model:SetFacing(...) end
     function frame:SetSequence(...) model:SetSequence(...) end
+    function frame:SetLight(...) model:SetLight(...) end
+    function frame:GetLight(...) return model:GetLight(...) end
     function frame:OnUpdateModel(...) model:SetScript("OnUpdateModel", ...) end
     function frame:EnableDragRotation(enable) 
         if enable then dragDummy:Show() else dragDummy:Hide() end

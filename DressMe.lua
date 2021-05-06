@@ -784,13 +784,13 @@ do
         local setup = ns.GetPreviewSetup(previewSetupVersion, raceFileName, sex, slot, subclass)
         list:SetupModel(setup.width, setup.height, setup.x, setup.y, setup.z, setup.facing, setup.sequence)
         local page = slotSubclassPage[slot][subclass] ~= nil and slotSubclassPage[slot][subclass] or 1
-        slider:SetMinMaxValues(1, list:GetPageCount())
         if slider:GetValue() ~= page then
             slider:SetValue(page)
         else
             list:SetPage(page)
             list:Update()
         end
+        slider:SetMinMaxValues(1, list:GetPageCount())
         hairBeardControl(slot)
     end
 
