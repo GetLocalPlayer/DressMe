@@ -279,22 +279,41 @@ end
 mainFrame.dressingRoom = ns.CreateDressingRoom(nil, mainFrame)
 
 do
-    local dressingRoom = mainFrame.dressingRoom
-    dressingRoom:SetPoint("TOPLEFT", 10, -74)
-    dressingRoom:SetSize(400, 400)
-    dressingRoom:SetBackdrop(backdrop)
-    dressingRoom:SetBackdropColor(unpack(defaultSettings.dressingRoomBackgroundColor))
+    local dr = mainFrame.dressingRoom
+    dr:SetPoint("TOPLEFT", 10, -74)
+    dr:SetSize(400, 400)
+    dr:SetBackdrop(backdrop)
+    dr:SetBackdropColor(unpack(defaultSettings.dressingRoomBackgroundColor))
 
-    local border = CreateFrame("Frame", nil, dressingRoom)
+    local border = CreateFrame("Frame", nil, dr)
     border:SetAllPoints()
     border:SetBackdrop(dressingRoomBorderBackdrop)
     border:SetBackdropColor(0, 0, 0, 0)
 
-    local tip = dressingRoom:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    tip:SetPoint("BOTTOM", dressingRoom, "TOP", 0, 12)
+    local tip = dr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    tip:SetPoint("BOTTOM", dr, "TOP", 0, 12)
     tip:SetJustifyH("CENTER")
     tip:SetJustifyV("BOTTOM")
     tip:SetText("\124cff00ff00Left Mouse:\124r rotate \124 \124cff00ff00Right Mouse:\124r pan\124n\124cff00ff00Wheel\124r or \124cff00ff00Alt + Right Mouse:\124r zoom")
+
+    -- SetLight(enabled, omni, dirX, dirY, dirZ, ambIntensity, ambR, ambG, ambB, dirIntensity, dirR, dirG, dirB)
+    local defaultLight = {1, 0, 0, 1, 0, 1, 0.7, 0.7, 0.7, 1, 0.8, 0.8, 0.64}
+    local shadowformLight = {1, 0, 0, 1, 0, 1, 0.16, 0, 0.23, 0}
+    local shadowformAlpha = 0.75
+
+    dr.shadowformEnabled = false
+
+    dr.EnableShadowform = function(self)
+        self:SetLight(unpack(shadowformLight))
+        self:SetModelAlpha(shadowformAlpha)
+        self.shadowformEnabled = true
+    end
+
+    dr.DisableShadowform = function(self)
+        self:SetLight(unpack(defaultLight))
+        self:SetModelAlpha(1)
+        self.shadowformEnabled = false
+    end
 end
 
 mainFrame.buttons.send = CreateFrame("Button", "$parentButtonSend", mainFrame, "UIPanelButtonTemplate2")
@@ -628,6 +647,9 @@ local function btnReset_Hook()
             slot:Reset()
         end
     end
+    if mainFrame.dressingRoom.shadowformEnabled then
+        mainFrame.dressingRoom:EnableShadowform()
+    end
 end
 
 local function btnUndress_Hook()
@@ -659,6 +681,9 @@ local function dressingRoom_OnShow(self)
     self:Reset()
     self:Undress()
     tryOnFromSlots(self)
+    if self.shadowformEnabled then
+        self:EnableShadowform()
+    end
 end
 
 --[[
@@ -680,6 +705,53 @@ mainFrame.slots[defaultSlot]:SetScript("OnShow", function(self)
     btnReset_Hook()
     mainFrame.buttons.undress:HookScript("OnClick", btnUndress_Hook)
 end)
+
+---------------- SHADOWFORM ----------------
+
+mainFrame.buttons.shadowform = CreateFrame("Button", "$parentShadowformButton", mainFrame, "ItemButtonTemplate")
+
+do
+    local enableTexture = "Interface\\Icons\\spell_shadow_shadowform"
+    local disableTexture = "Interface\\Icons\\spell_nature_wispsplode"
+    
+    local btn = mainFrame.buttons.shadowform
+    btn:SetSize(28, 28)
+    _G[btn:GetName().."NormalTexture"]:SetAllPoints()
+    _G[btn:GetName().."NormalTexture"]:SetTexCoord(0.1875, 0.796875, 0.1875, 0.796875)
+
+    btn:SetPoint("RIGHT", mainFrame.dressingRoom, "BOTTOMRIGHT", -16, 54)
+    btn:SetFrameLevel(mainFrame.dressingRoom:GetFrameLevel() + 1)
+
+    local texture = btn:CreateTexture(nil, "BACKGROUND")
+    texture:SetAllPoints()
+    texture:SetTexture(enableTexture)
+
+    btn:RegisterForClicks("LeftButtonUp")
+    btn:SetScript("OnClick", function(self)
+        PlaySound("gsTitleOptionOK")
+        if not mainFrame.dressingRoom.shadowformEnabled then
+            mainFrame.dressingRoom:EnableShadowform()
+            texture:SetTexture(disableTexture)
+            self:LockHighlight()
+        else
+            mainFrame.dressingRoom:DisableShadowform()
+            texture:SetTexture(enableTexture)
+            self:UnlockHighlight()
+        end
+    end)
+
+    btn:SetScript("OnEnter", function(self)
+        GameTooltip:ClearLines()
+        GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+        GameTooltip:AddLine("Shadowform")
+        GameTooltip:Show()
+    end)
+
+    btn:SetScript("OnLeave", function(self)
+        GameTooltip:ClearLines()
+        GameTooltip:Hide()
+    end)
+end
 
 ---------------- PREVIEW TAB ----------------
 
@@ -790,6 +862,8 @@ do
             list:SetPage(page)
             list:Update()
         end
+        -- SetMinMaxValues must be after Set Page
+        -- since it also can trigger "OnValueChanged".
         slider:SetMinMaxValues(1, list:GetPageCount())
         hairBeardControl(slot)
     end

@@ -1,8 +1,11 @@
 
 local addon, ns = ...
 
-local initWidth = 350
-local initHeight = 430
+local defaultWidth = 350
+local defaultHeight = 430
+
+-- SetLight(enabled, omni, dirX, dirY, dirZ, ambIntensity, ambR, ambG, ambB, dirIntensity, dirR, dirG, dirB)
+local defaultLight = {1, 0, 0, 1, 0, 1, 0.7, 0.7, 0.7, 1, 0.8, 0.8, 0.64}
 
 local xStep = 0.2 -- per pixel
 local zStep = 0.003 -- per pixel
@@ -79,9 +82,9 @@ local modelZ = {
 function ns.CreateDressingRoom(name, parent)
     local frame = CreateFrame("Frame", name, parent)
     frame:EnableMouseWheel(true)
-    frame:SetSize(initWidth, initHeight)
-    frame:SetMinResize(initWidth, initHeight)
-    frame:SetMaxResize(initWidth, initHeight)
+    frame:SetSize(defaultWidth, defaultHeight)
+    frame:SetMinResize(defaultWidth, defaultHeight)
+    frame:SetMaxResize(defaultWidth, defaultHeight)
 
     local unit = "player"
     local _, unitRaceFileName = UnitRace(unit)
@@ -184,6 +187,7 @@ function ns.CreateDressingRoom(name, parent)
 
         model:SetPosition(x, y, z)
         model:SetFacing(facing)
+        model:SetLight(unpack(defaultLight))
     end
 
     function frame:SetUnit(newUnit)
@@ -220,6 +224,8 @@ function ns.CreateDressingRoom(name, parent)
     function frame:SetSequence(...) model:SetSequence(...) end
     function frame:SetLight(...) model:SetLight(...) end
     function frame:GetLight(...) return model:GetLight(...) end
+    function frame:SetModelAlpha(...) model:SetAlpha(...) end
+    function frame:GetModelAlpha(...) return model:GetAlpha(...) end
     function frame:OnUpdateModel(...) model:SetScript("OnUpdateModel", ...) end
     function frame:EnableDragRotation(enable) 
         if enable then dragDummy:Show() else dragDummy:Hide() end
