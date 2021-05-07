@@ -697,7 +697,7 @@ end
 --[[
     After half a year I don't remeber anymore
     why I do it, but showing/hiding a DressUpModel
-    brokes the model's positioning.
+    breaks the model's positioning.
 ]]
 local function dressingRoom_OnShow(self)
     self:Reset()
@@ -723,12 +723,12 @@ end)
 -- At first time it's shown.
 mainFrame.slots[defaultSlot]:SetScript("OnShow", function(self)
     self:SetScript("OnShow", nil)
-    self:Click("LeftButton")
     mainFrame.buttons.reset:HookScript("OnClick", btnReset_Hook)
     mainFrame.dressingRoom:HookScript("OnShow", dressingRoom_OnShow)
     dressingRoom_OnShow(mainFrame.dressingRoom)
     btnReset_Hook()
     mainFrame.buttons.undress:HookScript("OnClick", btnUndress_Hook)
+    self:Click("LeftButton")
 end)
 
 ---------------- SHADOWFORM ----------------
@@ -873,30 +873,42 @@ do
         currSlot = slot
         currSubclass = subclass
         records = ns.GetSubclassRecords(slot, subclass)
+
         local itemIds = {}
+        local selectedItemId
         for i=1, #records do
             local ids = records[i][1]
             table.insert(itemIds, ids[1])
+            if selectedItemId == nil and mainFrame.slots[slot].itemId ~= nil and arrayHasValue(ids, mainFrame.slots[slot].itemId) then
+                selectedItemId = ids[1]
+            end
         end
         list:SetItems(itemIds)
+        if selectedItemId ~= nil then
+            list:SelectByItemId(selectedItemId)
+        end
+
         local setup = ns.GetPreviewSetup(previewSetupVersion, raceFileName, sex, slot, subclass)
         list:SetupModel(setup.width, setup.height, setup.x, setup.y, setup.z, setup.facing, setup.sequence)
+
         local page = slotSubclassPage[slot][subclass] ~= nil and slotSubclassPage[slot][subclass] or 1
+        local pageCount = list:GetPageCount()
+        --[[ SetMinMaxValues triggers "OnValueChanged"
+        via changing current value if current value is
+        not in range of current min/max values. ]]
+        local _, sliderMax = slider:GetMinMaxValues()
+        if page > sliderMax then
+            slider:SetMinMaxValues(1, pageCount)
+        end
         if slider:GetValue() ~= page then
             slider:SetValue(page)
         else
             list:SetPage(page)
             list:Update()
         end
-        -- SetMinMaxValues must be after Set Page
-        -- since it also can trigger "OnValueChanged".
-        slider:SetMinMaxValues(1, list:GetPageCount())
+        slider:SetMinMaxValues(1, pageCount)
         hairBeardControl(slot)
     end
-
-    previewTab:SetScript("OnShow", function(self)
-        previewTab:Update(currSlot, currSubclass)
-    end)
 
     slider:HookScript("OnValueChanged", function(self, value)
         list:SetPage(value)

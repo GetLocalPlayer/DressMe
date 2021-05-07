@@ -9,7 +9,16 @@ local itemBackdrop = { -- small "DressingRoom"s
 }
 local itemBackdropColor = {0.25, 0.25, 0.25, 1}
 local itemBackdropBorderColor = {1, 1, 1}
+local selectedItemBackdropBorderColor = {0.843, 0, 1}
 local previewHighlightTexture = "Interface\\Buttons\\ButtonHilight-Square"
+
+
+local function getIndexOf(array, value)
+    for i, v in ipairs(array) do
+        if v == value then return i end
+    end
+    return nil
+end
 
 --[[
     Methods:
@@ -36,6 +45,15 @@ local function button_OnClick(self, button)
     local onItemClick = mainFrame.onItemClick
     mainFrame.selectedItemId = self:GetParent().itemId
     mainFrame.selectedItemIndex = self:GetParent().itemIndex
+    if mainFrame.selectedItemId ~= nil then
+        for _, dr in ipairs(mainFrame.dressingRooms) do
+            if dr.itemId == mainFrame.selectedItemId then
+                dr:SetBackdropBorderColor(unpack(selectedItemBackdropBorderColor))
+            else
+                dr:SetBackdropBorderColor(unpack(itemBackdropBorderColor))
+            end
+        end
+    end
     if onItemClick ~= nil then
         onItemClick(self, button)
     end
@@ -77,6 +95,7 @@ local recycler = {
                 local dr = ns.CreateDressingRoom("$parentDressingRoom"..self.counter, parent)
                 dr:SetBackdrop(itemBackdrop)
                 dr:SetBackdropColor(unpack(itemBackdropColor))
+                dr:SetBackdropBorderColor(unpack(itemBackdropBorderColor))
                 dr:EnableDragRotation(false)
                 dr:EnableMouseWheel(false)
                 dr.queriedLabel = dr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -172,6 +191,7 @@ local function PreviewList_SetupModel(self, width, height, x, y, z, facing, sequ
                 dr.itemIndex = nil
                 dr.isQuerying = false
                 dr:SetSize(width, height)
+                dr:SetBackdropBorderColor(itemBackdropBorderColor)
             end
         end
     end
@@ -248,6 +268,27 @@ local function PreviewList_Update(self)
                 ["__call"] = queryItemHandler,}
             setmetatable(handler, handler)
             ns.QueryItem(itemId, handler)
+            if dr.itemId == self.selectedItemId then
+                dr:SetBackdropBorderColor(unpack(selectedItemBackdropBorderColor))
+            else
+                dr:SetBackdropBorderColor(unpack(itemBackdropBorderColor))
+            end
+        end
+    end
+end
+
+
+local function PreviewList_SelectByItemId(self, itemId)
+    local index = getIndexOf(self.itemIds, itemId)
+    if index ~= nil then
+        self.selectedItemId = itemId
+        self.selectedItemIndex = index
+        for _, dr in ipairs(self.dressingRooms) do
+            if dr.itemId == itemId then
+                dr:SetBackdropBorderColor(unpack(selectedItemBackdropBorderColor))
+            else
+                dr:SetBackdropBorderColor(unpack(itemBackdropBorderColor))
+            end
         end
     end
 end
@@ -295,6 +336,7 @@ function ns.CreatePreviewList(parent)
     frame.GetPage = PreviewList_GetPage
     frame.SetPage = PreviewList_SetPage
     frame.GetPageCount = PreviewList_GetPageCount
+    frame.SelectByItemId = PreviewList_SelectByItemId
     frame.TryOn = PreviewList_TryOn
 
     frame:SetScript("OnShow", function(self)
