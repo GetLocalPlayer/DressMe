@@ -87,6 +87,7 @@ local defaultSettings = {
     hideHairOnCloakPreview = false,
     hideHairBeardOnChestPreview = false,
     useServerTimeInReceivedAppearances = false,
+    announceAppearanceReceiving = true,
 }
 
 local function GetSettings()
@@ -1413,6 +1414,9 @@ do
             end
             btnClear:Enable()
             scrollFrame:UpdateScrollChildRect()
+            if GetSettings().announceAppearanceReceiving then
+                SELECTED_CHAT_FRAME:AddMessage("|ccff6ff98<DressMe>|r: an appearance has been received from "..sender..".")
+            end
         end
     end)
 
@@ -1742,6 +1746,22 @@ do  --------- Use server time in received appearances
 end
 
 
+do  --------- Announce appearance receiving
+    local settingsTab = mainFrame.tabs.settings
+    settingsTab.announceAppearanceReceivingCheckBox = CreateFrame("CheckButton", "$parentAnnounceAppearanceReceivingCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
+    
+    local checkbox = settingsTab.announceAppearanceReceivingCheckBox
+    checkbox:SetPoint("TOP", settingsTab.useServerTimeInReceivedAppearancesCheckBox, "BOTTOM", 0, -10)
+    checkbox:SetScript("OnClick", function(self)
+        GetSettings().announceAppearanceReceiving = self:GetChecked() ~= nil
+    end)
+    local label = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetText("Announce in the chat if you received an appearance from another player")
+    label:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
+end
+
+
+
 do  --------- Apply settings on addon loaded
     local settingsTab = mainFrame.tabs.settings
 
@@ -1765,6 +1785,8 @@ do  --------- Apply settings on addon loaded
         settingsTab.hideHairBeardOnChestPreviewCheckBox:SetChecked(settings.hideHairBeardOnChestPreview)
         -- Use server time in Received Appearences list
         settingsTab.useServerTimeInReceivedAppearancesCheckBox:SetChecked(settings.useServerTimeInReceivedAppearances)
+        -- Announce appearance receiving
+        settingsTab.announceAppearanceReceivingCheckBox:SetChecked(settings.announceAppearanceReceiving)
     end
 
     settingsTab:RegisterEvent("ADDON_LOADED")
