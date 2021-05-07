@@ -1761,7 +1761,7 @@ do  --------- Announce appearance receiving
         GetSettings().announceAppearanceReceiving = self:GetChecked() ~= nil
     end)
     local label = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetText("Announce in the chat if you received an appearance from another player")
+    label:SetText("Announce in the chat if an appearance has been received from another player")
     label:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
 end
 
