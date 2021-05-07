@@ -576,8 +576,8 @@ local function slot_Reset(self)
     if characterSlotName == backSlot then characterSlotName = "Back" end
     local slotId = GetInventorySlotInfo(characterSlotName.."Slot")
     local itemId = GetInventoryItemID("player", slotId)
-    local name, link, quality, _, _, _, _, _, _, texture = GetItemInfo(itemId ~= nil and itemId or 0)
-    if name ~= nil and (quality >= 2 or getIndex(miscellaneousSlots, self.slotName)) then
+    local name, link, _, _, _, _, _, _, _, texture = GetItemInfo(itemId ~= nil and itemId or 0)
+    if name ~= nil then
         self:SetItem(itemId)
     else
         self:RemoveItem()
