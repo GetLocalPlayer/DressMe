@@ -1191,7 +1191,12 @@ do
         local savedLooks = _G["DressMeSavedLooks"]
         local id = listFrame.buttons[listFrame:GetSelected()]:GetID()
         for index, slotName in pairs(slotOrder) do
-            mainFrame.slots[slotName]:SetItem(savedLooks[id].items[index])
+            local itemId = savedLooks[id].items[index]
+            if itemId ~= 0 then
+                mainFrame.slots[slotName]:SetItem(itemId)
+            else
+                mainFrame.slots[slotName]:RemoveItem()
+            end
         end
     end)
 
