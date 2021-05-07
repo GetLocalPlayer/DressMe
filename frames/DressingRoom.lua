@@ -231,9 +231,9 @@ function ns.CreateDressingRoom(name, parent)
         if enable then dragDummy:Show() else dragDummy:Hide() end
     end
 
-    local oldSetBackdrop = frame.SetBackdrop
+    local originSetBackdrop = frame.SetBackdrop
     function frame:SetBackdrop(backdrop)
-        oldSetBackdrop(frame, backdrop)
+        originSetBackdrop(frame, backdrop)
         model:SetPoint("TOPLEFT", backdrop.insets.left * 2, -backdrop.insets.top * 2)
         model:SetPoint("BOTTOMRIGHT", -backdrop.insets.right * 2, backdrop.insets.bottom * 2)
     end

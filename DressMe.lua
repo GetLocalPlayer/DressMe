@@ -76,6 +76,11 @@ local defaultArmorSubclass = {
 
 local defaultSettings = {
     dressingRoomBackgroundColor = {0.055, 0.055, 0.055, 1},
+    dressingRoomBackgroundTexture = {
+        [GetRealmName()] = {
+            [GetUnitName("player")] = classFileName == "DEATHKNIGHT" and classFileName or raceFileName,
+        },
+    },
     previewSetup = "classic", -- possible values are "classic" and "modern",
     showDressMeButton = true,
     showShortcutsInTooltip = true,
@@ -85,20 +90,34 @@ local defaultSettings = {
 }
 
 local function GetSettings()
-    if _G["DressMeSettings"] == nil then
-        local function copyTable(tableFrom)
-            local result = {}
-            for k, v in pairs(tableFrom) do
-                if type(v) == "table" then
-                    result[k] = copyTable(v)
-                else
-                    result[k] = v
-                end
+    local function copyTable(tableFrom)
+        local result = {}
+        for k, v in pairs(tableFrom) do
+            if type(v) == "table" then
+                result[k] = copyTable(v)
+            else
+                result[k] = v
             end
-            return result
         end
-        _G["DressMeSettings"] = copyTable(defaultSettings)
+        return result
     end
+
+    if _G["DressMeSettings"] == nil then
+        _G["DressMeSettings"] = copyTable(defaultSettings)
+    else
+        for k, v in pairs(defaultSettings) do
+            if _G["DressMeSettings"][k] == nil then
+                _G["DressMeSettings"][k] = type(v) == "table" and copyTable(v) or v
+            end
+        end
+        if _G["DressMeSettings"].dressingRoomBackgroundTexture[GetRealmName()] == nil then
+            _G["DressMeSettings"].dressingRoomBackgroundTexture[GetRealmName()] = {}
+        end
+        if _G["DressMeSettings"].dressingRoomBackgroundTexture[GetRealmName()][GetUnitName("player")] == nil then
+            _G["DressMeSettings"].dressingRoomBackgroundTexture[GetRealmName()][GetUnitName("player")] = defaultSettings.dressingRoomBackgroundTexture[GetRealmName()][GetUnitName("player")]
+        end
+    end
+
     return _G["DressMeSettings"]
 end
 
@@ -112,13 +131,6 @@ local function arrayHasValue(array, value)
     return false
 end
 
-
-local backdrop = { -- currently used for tests
-    bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-	edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-	tile = false, tileSize = 16, edgeSize = 16,
-	insets = { left = 4, right = 4, top = 4, bottom = 4 }
-}
 
 local dressingRoomBorderBackdrop = { -- For a frame above DressingRoom
     bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
@@ -282,13 +294,23 @@ do
     local dr = mainFrame.dressingRoom
     dr:SetPoint("TOPLEFT", 10, -74)
     dr:SetSize(400, 400)
-    dr:SetBackdrop(backdrop)
-    dr:SetBackdropColor(unpack(defaultSettings.dressingRoomBackgroundColor))
 
     local border = CreateFrame("Frame", nil, dr)
     border:SetAllPoints()
     border:SetBackdrop(dressingRoomBorderBackdrop)
     border:SetBackdropColor(0, 0, 0, 0)
+
+    dr.backgroundTextures = {}
+    for s in ("human,nightelf,dwarf,gnome,draenei,orc,scourge,tauren,troll,bloodelf,deathknight"):gmatch("%w+") do
+        dr.backgroundTextures[s] = dr:CreateTexture(nil, "BACKGROUND")
+        dr.backgroundTextures[s]:SetTexture("Interface\\AddOns\\DressMe\\images\\"..s)
+        dr.backgroundTextures[s]:SetAllPoints()
+        dr.backgroundTextures[s]:Hide()
+    end
+    dr.backgroundTextures["color"] = dr:CreateTexture(nil, "BACKGROUND")
+    dr.backgroundTextures["color"]:SetAllPoints()
+    dr.backgroundTextures["color"]:SetTexture(1, 1, 1)
+    dr.backgroundTextures["color"]:Hide()
 
     local tip = dr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     tip:SetPoint("BOTTOM", dr, "TOP", 0, 12)
@@ -747,7 +769,7 @@ do
         GameTooltip:ClearLines()
         GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
         GameTooltip:AddLine("Shadowform")
-        GameTooltip:AddLine("A poor simulation that relies on the model's light setup. Equipment with its own light source (like  \"Excavator's Brand\" tourch) gives wrong result. Emission textures that ignore light (like Draenei eyes) also ignore this simulation.", 1, 1, 1, 1, true)
+        GameTooltip:AddLine("A poor simulation that relies on the model's light setup. Equipment with its own light source (like  \"Excavator's Brand\" tourch) gives wrong result. Emission textures that ignore light (like Draenei eyes) also ignore the simulation and are not shaded as they would be in the true shadowform.", 1, 1, 1, 1, true)
         GameTooltip:Show()
     end)
 
@@ -1457,30 +1479,32 @@ end)
 
 ---------------- SETTINGS TAB ----------------
 
-do
-    local settingsTab = mainFrame.tabs.settings
-
-    --------- EMail and GitHub
-
-    local stats = mainFrame.stats
-    local email = settingsTab:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+do  --------- email and github
+    local email = mainFrame.tabs.settings:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     email:SetPoint("CENTER", mainFrame.stats, "CENTER", 10, 0)
     email:SetJustifyH("CENTER")
     email:SetHeight(10)
     email:SetText("GetLocalPlayer@Gmail.com  |  GitHub.com/GetLocalPlayer/DressMe")
+end
 
-    --------- Preview Setup
 
-    local menu = CreateFrame("Frame", addon.."PreviewSetupDropDownMenu", settingsTab, "UIDropDownMenuTemplate")
+do  --------- Preview Setup
+    local settingsTab = mainFrame.tabs.settings
 
-    local function menu_OnClick(self, arg1, arg2, checked)
-        GetSettings().previewSetup = arg1
-        UIDropDownMenu_SetText(menu, arg1)
-        previewSetupVersion = arg1
-        mainFrame.selectedSlot:Click("LeftButton")
+    settingsTab.previewSetupMenu = CreateFrame("Frame", "$parentPreviewSetupDropDownMenu", settingsTab, "UIDropDownMenuTemplate")
+    
+    local menu = settingsTab.previewSetupMenu
+
+    local function menu_OnClick(self, mode)
+        GetSettings().previewSetup = mode
+        UIDropDownMenu_SetText(menu, mode)
+        previewSetupVersion = mode
+        if mainFrame.selectedSlot ~= nil then
+            mainFrame.selectedSlot:Click("LeftButton")
+        end
     end
 
-    UIDropDownMenu_Initialize(menu, function(frame, level, menuList)
+    UIDropDownMenu_Initialize(menu, function(frame)
         local previewSetup = GetSettings().previewSetup
         local info = UIDropDownMenu_CreateInfo()
         info.text, info.checked, info.arg1, info.func = "classic", previewSetup == "classic", "classic", menu_OnClick
@@ -1489,201 +1513,251 @@ do
         UIDropDownMenu_AddButton(info)
     end)
 
-    local menuTitle = menu:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    menuTitle:SetPoint("TOPLEFT", settingsTab, "TOPLEFT", 16, -24)
-    menuTitle:SetText("Used models:")
+    local label = menu:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("TOPLEFT", settingsTab, "TOPLEFT", 16, -24)
+    label:SetText("Used models:")
 
-    local menuTip = CreateFrame("Frame", addon.."PreviewSetupDropDownMenuTip", settingsTab)
-    menuTip:SetPoint("LEFT", menuTitle, "LEFT")
-    menuTip:SetPoint("RIGHT", menu:GetChildren(), "LEFT")
-    menuTip:SetHeight(menu:GetChildren():GetHeight())
-    menuTip:EnableMouse(true)
-    menuTip:SetScript("OnEnter", function(self)
+    local tipFrame = CreateFrame("Frame", addon.."PreviewSetupDropDownMenuTip", settingsTab)
+    tipFrame:SetPoint("LEFT", label, "LEFT")
+    tipFrame:SetPoint("RIGHT", menu:GetChildren(), "LEFT")
+    tipFrame:SetHeight(menu:GetChildren():GetHeight())
+    tipFrame:EnableMouse(true)
+    tipFrame:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
         GameTooltip:ClearLines()
         GameTooltip:AddLine("Used models")
         GameTooltip:AddLine("There's a funmade modification for WotLK client that brings modern high quality character models from \"Warlords of Draenor\" expansion. Unfortunately, preview for the modern models has different setup. If your game client's using the modern models, choose \"modern\" in this popup menu and \"classic\" otherwise.", 1, 1, 1, 1, true)
         GameTooltip:Show()
     end)
-    menuTip:SetScript("OnLeave", function()
+    tipFrame:SetScript("OnLeave", function()
         GameTooltip:Hide()
     end)
     
-    menu:SetPoint("TOPLEFT", menuTitle:GetWidth() + 10, -16)
+    menu:SetPoint("TOPLEFT", label:GetWidth() + 10, -16)
 
-    --------- Character background color
+    settingsTab.SetPreviewSetup = function(self, mode)
+        menu_OnClick(nil, mode)
+    end
+end
 
-    local colorPicker = CreateFrame("Frame", addon.."BorderDressingRoomBackgroundColorPicker", settingsTab)
-    colorPicker:SetSize(24, 24)
-    colorPicker:SetBackdrop({bgFile = "Interface\\ChatFrame\\ChatFrameBackground"})
-    colorPicker:SetBackdropColor(0.15, 0.15, 0.15, 1)
-    local btnColorPicker = CreateFrame("Button", "$parentButton", colorPicker)
-    btnColorPicker:SetPoint("TOPLEFT", 2, -2)
-    btnColorPicker:SetPoint("BOTTOMRIGHT", -2, 2)
-    btnColorPicker:RegisterForClicks("LeftButtonDown")
+
+do  --------- Character background
+    local settingsTab = mainFrame.tabs.settings
+    local textures = mainFrame.dressingRoom.backgroundTextures
+
+    local colorButtonBackground = CreateFrame("Frame", "$parentBorderDressingRoomBackgroundColorPicker", settingsTab)
+    colorButtonBackground:SetSize(24, 24)
+    colorButtonBackground:SetBackdrop({bgFile = "Interface\\ChatFrame\\ChatFrameBackground"})
+    colorButtonBackground:SetBackdropColor(0.15, 0.15, 0.15, 1)
+
+    local colorButton = CreateFrame("Button", "$parentButton", colorButtonBackground)
+    colorButton:SetPoint("TOPLEFT", 2, -2)
+    colorButton:SetPoint("BOTTOMRIGHT", -2, 2)
+    colorButton:RegisterForClicks("LeftButtonDown")
     
-    btnColorPicker:SetBackdrop({bgFile = "Interface\\ChatFrame\\ChatFrameBackground"})
-    btnColorPicker:SetBackdropColor(unpack(defaultSettings.dressingRoomBackgroundColor))
+    colorButton:SetBackdrop({bgFile = "Interface\\ChatFrame\\ChatFrameBackground"})
+    colorButton:SetBackdropColor(unpack(defaultSettings.dressingRoomBackgroundColor))
 
-    local colorPickerTitle = colorPicker:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    colorPickerTitle:SetPoint("TOPLEFT", settingsTab, "TOPLEFT", 16, -80)
-    colorPickerTitle:SetText("Character background color:")
+    local label = colorButtonBackground:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("TOPLEFT", settingsTab, "TOPLEFT", 16, -80)
+    label:SetText("Character background:")
 
-    colorPicker:SetPoint("LEFT", colorPickerTitle, "RIGHT", 8, 0)
+    colorButtonBackground:SetPoint("TOPRIGHT", label, "BOTTOMRIGHT", 0, -4)
 
-    local function colorPicker_OnAccept(a, b, c)
+    local function colorPicker_OnAccept()
         local r, g, b = ColorPickerFrame:GetColorRGB() 
-        mainFrame.dressingRoom:SetBackdropColor(r, g, b)
-        btnColorPicker:SetBackdropColor(r, g, b)
+        textures.color:SetTexture(r, g, b)
+        colorButton:SetBackdropColor(r, g, b)
         GetSettings().dressingRoomBackgroundColor = {r, g, b}
     end
 
     local function colorPicker_OnCancel(previousValues)
-        mainFrame.dressingRoom:SetBackdropColor(unpack(previousValues))
-        btnColorPicker:SetBackdropColor(unpack(previousValues))
+        local settings = GetSettings()
+        textures.color:SetTexture(unpack(previousValues))
+        colorButton:SetBackdropColor(unpack(previousValues))
         GetSettings().dressingRoomBackgroundColor = {unpack(previousValues)}
     end
 
-    btnColorPicker:SetScript("OnClick", function(self)
-        local color = GetSettings().dressingRoomBackgroundColor
-        ColorPickerFrame.previousValues = {unpack(color)}
-        ColorPickerFrame:SetColorRGB(unpack(color))
+    colorButton:SetScript("OnClick", function(self)
+        local r, g, b = unpack(GetSettings().dressingRoomBackgroundColor)
+        ColorPickerFrame.previousValues = {r, g, b}
+        ColorPickerFrame:SetColorRGB(r, g, b)
         ColorPickerFrame.func = colorPicker_OnAccept
         ColorPickerFrame.cancelFunc = colorPicker_OnCancel
         ColorPickerFrame:Hide()
         ColorPickerFrame:Show()
     end)
 
-    local btnColorPickerReset = CreateFrame("Button", "$parentResetButton", colorPicker, "UIPanelButtonTemplate2")
-    btnColorPickerReset:SetPoint("TOPRIGHT", btnColorPickerReset:GetParent(), "BOTTOMRIGHT", 0, -4)
-    btnColorPickerReset:SetText("Reset Color")
-    btnColorPickerReset:SetWidth(120)
-    btnColorPickerReset:SetScript("OnClick", function(self)
-        local settings = GetSettings()
-        local color = {unpack(defaultSettings.dressingRoomBackgroundColor)}
-        settings.dressingRoomBackgroundColor = color
-        mainFrame.dressingRoom:SetBackdropColor(unpack(color))
-        btnColorPicker:SetBackdropColor(unpack(color))
+    local btnReset = CreateFrame("Button", "$parentResetButton", colorButtonBackground, "UIPanelButtonTemplate2")
+    btnReset:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -6)
+    btnReset:SetText("Reset Color")
+    btnReset:SetWidth(100)
+    btnReset:SetScript("OnClick", function(self)
+        local r, g, b = unpack(defaultSettings.dressingRoomBackgroundColor)
+        GetSettings().dressingRoomBackgroundColor = {r, g, b}
+        textures.color:SetTexture(r, g, b)
+        colorButton:SetBackdropColor(r, g, b)
         PlaySound("gsTitleOptionOK")
     end)
 
-    --------- Show/hide "DressMe" button
+    settingsTab.backgroundMenu = CreateFrame("Frame", "$parentDropDownMenu", colorButtonBackground, "UIDropDownMenuTemplate")
     
-    local showDressMeButtonCheckBox = CreateFrame("CheckButton", addon.."ShowDressMeButtonCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
-
-    do
-        local checkbox = showDressMeButtonCheckBox
-        checkbox:SetPoint("TOPLEFT", settingsTab, "TOPLEFT", 15, -150)
-        checkbox:SetScript("OnClick", function(self)
-            if self:GetChecked() then
-                btnDressMe:Show()
-                GetSettings().showDressMeButton = true
-            else
-                btnDressMe:Hide()
-                GetSettings().showDressMeButton = false
-            end
-        end)
-        checkbox:HookScript("OnEnter", function(self)
-            GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
-            GameTooltip:ClearLines()
-            GameTooltip:AddLine("Show \"DressMe\" button")
-            GameTooltip:AddLine("Show or hide \"DressMe\" button in the character window.", 1, 1, 1, 1, true)
-            GameTooltip:AddLine("The addon can be still accessed via \"/dressme\" chat command.", 1, 1, 1, 1, true)
-            GameTooltip:Show()
-        end)
-        checkbox:HookScript("OnLeave", function(self)
-            GameTooltip:Hide()
-        end)
-
-        local text = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        text:SetText("Show \"DressMe\" button")
-        text:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
+    local menu = settingsTab.backgroundMenu
+    local function getText(background)
+        return  (background == "deathknight" and "Death Knight")
+                or (background == "nightelf" and "Night Elf")
+                or (background == "bloodelf" and "Blood Elf")
+                or (background == "scourge" and "Forsaken")
+                or background:gsub("^%l", string.upper)
     end
 
-    --------- Show shortcuts in tooltips
-    
-    local showShortcutsInTooltipCheckBox = CreateFrame("CheckButton", addon.."ShowShortcutsInTooltipCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
-    
-    do
-        local checkbox = showShortcutsInTooltipCheckBox
-        checkbox:SetPoint("TOP", showDressMeButtonCheckBox, "BOTTOM", 0, -10)
-        checkbox:SetScript("OnClick", function(self)
-            GetSettings().showShortcutsInTooltip = self:GetChecked() ~= nil
-        end)
-        local text = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        text:SetText("Show shortcuts in tooltip")
-        text:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
+    local function menu_OnClick(self, background)
+        GetSettings().dressingRoomBackgroundTexture[GetRealmName()][GetUnitName("player")] = background
+        for _, tex in pairs(textures) do
+            tex:Hide()
+        end
+        textures[background]:Show()
+        UIDropDownMenu_SetText(menu, getText(background))
     end
 
-        --------- Hide hair on cloak preview
-    
-    local hideHairOnCloakPreviewCheckBox = CreateFrame("CheckButton", addon.."HideHairOnCloakPreviewCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
+    UIDropDownMenu_Initialize(menu, function()
+        local currBackground = GetSettings().dressingRoomBackgroundTexture[GetRealmName()][GetUnitName("player")]:lower()
+        local info = UIDropDownMenu_CreateInfo()
+        for background in ("color,human,dwarf,nightelf,gnome,draenei,orc,scourge,tauren,troll,bloodelf,deathknight"):gmatch("%w+") do
+            info.text = getText(background)
+            info.checked = currBackground == background
+            info.arg1 = background
+            info.func = menu_OnClick
+            UIDropDownMenu_AddButton(info)
+        end
+    end)
 
-    do
-        local checkbox = hideHairOnCloakPreviewCheckBox
-        checkbox:SetPoint("TOP", showShortcutsInTooltipCheckBox, "BOTTOM", 0, -20)
-        checkbox:SetScript("OnClick", function(self)
-            GetSettings().hideHairOnCloakPreview = self:GetChecked() ~= nil
-        end)
-        local text = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        text:SetText("Hide hair on cloak preview")
-        text:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
+    settingsTab.SetCharacterBackground = function(self, background, r, g, b)
+        menu_OnClick(nil, background:lower())
+        colorButton:SetBackdropColor(r, g, b)
+        textures.color:SetTexture(r, g, b)
     end
+    
+    menu:SetPoint("LEFT", label, "RIGHT")
+    UIDropDownMenu_SetWidth(menu, 100)
+end
 
-    --------- Hide hair and beard on chest preview
-    
-    local hideHairBeardOnChestPreviewCheckBox = CreateFrame("CheckButton", addon.."HideHairBeardOnChestPreviewCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
-    
-    do
-        local checkbox = hideHairBeardOnChestPreviewCheckBox
-        checkbox:SetPoint("TOP", hideHairOnCloakPreviewCheckBox, "BOTTOM", 0, -10)
-        checkbox:SetScript("OnClick", function(self)
-            GetSettings().hideHairBeardOnChestPreview = self:GetChecked() ~= nil
-        end)
-        local text = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        text:SetText("Hide hair and beard on chest/shirt/tabard preview")
-        text:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
-    end
 
-    --------- Use server time in received appearances
-    
-    local useServerTimeInReceivedAppearancesCheckBox = CreateFrame("CheckButton", addon.."UseServerTimeInReceivedAppearancesCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
-    
-    do
-        local checkbox = useServerTimeInReceivedAppearancesCheckBox
-        checkbox:SetPoint("TOP", hideHairBeardOnChestPreviewCheckBox, "BOTTOM", 0, -20)
-        checkbox:SetScript("OnClick", function(self)
-            GetSettings().useServerTimeInReceivedAppearances = self:GetChecked() ~= nil
-        end)
-        local text = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        text:SetText("Use Server Time in \"Received Appearences\" list")
-        text:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
-    end
+do  --------- Show/hide "DressMe" button
+    local settingsTab = mainFrame.tabs.settings
+    settingsTab.showDressMeButtonCheckBox = CreateFrame("CheckButton", "$parentShowDressMeButtonCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
 
-    --------- Apply settings on addon loaded
+    local checkbox = settingsTab.showDressMeButtonCheckBox
+    checkbox:SetPoint("TOPLEFT", settingsTab, "TOPLEFT", 15, -150)
+    checkbox:SetScript("OnClick", function(self)
+        if self:GetChecked() then
+            btnDressMe:Show()
+            GetSettings().showDressMeButton = true
+        else
+            btnDressMe:Hide()
+            GetSettings().showDressMeButton = false
+        end
+    end)
+    checkbox:HookScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+        GameTooltip:ClearLines()
+        GameTooltip:AddLine("Show \"DressMe\" button")
+        GameTooltip:AddLine("Show or hide \"DressMe\" button in the character window.", 1, 1, 1, 1, true)
+        GameTooltip:AddLine("The addon can be still accessed via \"/dressme\" chat command.", 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    checkbox:HookScript("OnLeave", function(self)
+        GameTooltip:Hide()
+    end)
+    local label = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetText("Show \"DressMe\" button")
+    label:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
+end
+
+
+do  --------- Show shortcuts in tooltips
+    local settingsTab = mainFrame.tabs.settings
+    settingsTab.showShortcutsInTooltipCheckBox = CreateFrame("CheckButton", "$parentShowShortcutsInTooltipCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
+    
+    local checkbox = settingsTab.showShortcutsInTooltipCheckBox
+    checkbox:SetPoint("TOP", settingsTab.showDressMeButtonCheckBox, "BOTTOM", 0, -10)
+    checkbox:SetScript("OnClick", function(self)
+        GetSettings().showShortcutsInTooltip = self:GetChecked() ~= nil
+    end)
+    local label = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetText("Show shortcuts in tooltip")
+    label:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
+end
+
+
+do  --------- Hide hair on cloak preview
+    local settingsTab = mainFrame.tabs.settings
+    settingsTab.hideHairOnCloakPreviewCheckBox = CreateFrame("CheckButton", "$parentHideHairOnCloakPreviewCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
+
+    local checkbox = settingsTab.hideHairOnCloakPreviewCheckBox
+    checkbox:SetPoint("TOP", settingsTab.showShortcutsInTooltipCheckBox, "BOTTOM", 0, -20)
+    checkbox:SetScript("OnClick", function(self)
+        GetSettings().hideHairOnCloakPreview = self:GetChecked() ~= nil
+    end)
+    local label = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetText("Hide hair on cloak preview")
+    label:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
+end
+
+
+do  --------- Hide hair and beard on chest preview
+    local settingsTab = mainFrame.tabs.settings
+    settingsTab.hideHairBeardOnChestPreviewCheckBox = CreateFrame("CheckButton", "$parentHideHairBeardOnChestPreviewCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
+    
+    local checkbox = settingsTab.hideHairBeardOnChestPreviewCheckBox
+    checkbox:SetPoint("TOP", settingsTab.hideHairOnCloakPreviewCheckBox, "BOTTOM", 0, -10)
+    checkbox:SetScript("OnClick", function(self)
+        GetSettings().hideHairBeardOnChestPreview = self:GetChecked() ~= nil
+    end)
+    local label = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetText("Hide hair and beard on chest/shirt/tabard preview")
+    label:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
+end
+
+
+do  --------- Use server time in received appearances
+    local settingsTab = mainFrame.tabs.settings
+    settingsTab.useServerTimeInReceivedAppearancesCheckBox = CreateFrame("CheckButton", "$parentUseServerTimeInReceivedAppearancesCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
+    
+    local checkbox = settingsTab.useServerTimeInReceivedAppearancesCheckBox
+    checkbox:SetPoint("TOP", settingsTab.hideHairBeardOnChestPreviewCheckBox, "BOTTOM", 0, -20)
+    checkbox:SetScript("OnClick", function(self)
+        GetSettings().useServerTimeInReceivedAppearances = self:GetChecked() ~= nil
+    end)
+    local label = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetText("Use Server Time in \"Received Appearences\" list")
+    label:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
+end
+
+
+do  --------- Apply settings on addon loaded
+    local settingsTab = mainFrame.tabs.settings
 
     local function applySettings(settings)
         -- Dressing room background color
-        mainFrame.dressingRoom:SetBackdropColor(unpack(settings.dressingRoomBackgroundColor))
-        btnColorPicker:SetBackdropColor(unpack(settings.dressingRoomBackgroundColor))
+        settingsTab:SetCharacterBackground(settings.dressingRoomBackgroundTexture[GetRealmName()][GetUnitName("player")], unpack(settings.dressingRoomBackgroundColor))
         -- Preview setup popup menu
-        previewSetupVersion = settings.previewSetup
+        settingsTab:SetPreviewSetup(settings.previewSetup)
         -- Show/hide "DressMe" button
-        showDressMeButtonCheckBox:SetChecked(settings.showDressMeButton)
+        settingsTab.showDressMeButtonCheckBox:SetChecked(settings.showDressMeButton)
         if settings.showDressMeButton then
             btnDressMe:Show()
         else
             btnDressMe:Hide()
         end
         -- Show shortcuts in tooltip
-        showShortcutsInTooltipCheckBox:SetChecked(settings.showShortcutsInTooltip)
+        settingsTab.showShortcutsInTooltipCheckBox:SetChecked(settings.showShortcutsInTooltip)
         -- Hide hair on cloak preview
-        hideHairOnCloakPreviewCheckBox:SetChecked(settings.hideHairOnCloakPreview)
+        settingsTab.hideHairOnCloakPreviewCheckBox:SetChecked(settings.hideHairOnCloakPreview)
         -- Hide hair and beard on chest preview
-        hideHairBeardOnChestPreviewCheckBox:SetChecked(settings.hideHairBeardOnChestPreview)
+        settingsTab.hideHairBeardOnChestPreviewCheckBox:SetChecked(settings.hideHairBeardOnChestPreview)
         -- Use server time in Received Appearences list
-        useServerTimeInReceivedAppearancesCheckBox:SetChecked(settings.useServerTimeInReceivedAppearances)
-        UIDropDownMenu_SetText(menu, settings.previewSetup)
+        settingsTab.useServerTimeInReceivedAppearancesCheckBox:SetChecked(settings.useServerTimeInReceivedAppearances)
     end
 
     settingsTab:RegisterEvent("ADDON_LOADED")
