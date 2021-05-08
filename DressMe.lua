@@ -75,7 +75,7 @@ local defaultArmorSubclass = {
 
 
 local defaultSettings = {
-    dressingRoomBackgroundColor = {0.55, 0.55, 0.55, 1},
+    dressingRoomBackgroundColor = {0.6, 0.6, 0.6, 1},
     dressingRoomBackgroundTexture = {
         [GetRealmName()] = {
             [GetUnitName("player")] = classFileName == "DEATHKNIGHT" and classFileName or raceFileName,
