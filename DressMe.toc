@@ -4,7 +4,7 @@
 ## Notes: Transmog addon for WotLK 3.3.5
 ## SavedVariables: DressMeSavedLooks
 ## SavedVariables: DressMeSettings
-## Version: 1.2.1
+## Version: 1.3
 
 db\ItemsDB.lua
 db\ItemsAPI.lua
