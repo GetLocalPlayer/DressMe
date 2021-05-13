@@ -88,6 +88,7 @@ local defaultSettings = {
     hideHairBeardOnChestPreview = false,
     useServerTimeInReceivedAppearances = false,
     announceAppearanceReceiving = true,
+    ignoreUIScaling = false,
 }
 
 local function GetSettings()
@@ -1711,7 +1712,7 @@ do  --------- Hide hair on cloak preview
     settingsTab.hideHairOnCloakPreviewCheckBox = CreateFrame("CheckButton", "$parentHideHairOnCloakPreviewCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
 
     local checkbox = settingsTab.hideHairOnCloakPreviewCheckBox
-    checkbox:SetPoint("TOP", settingsTab.showShortcutsInTooltipCheckBox, "BOTTOM", 0, -20)
+    checkbox:SetPoint("LEFT", settingsTab.showDressMeButtonCheckBox, "RIGHT", 250, 0)
     checkbox:SetScript("OnClick", function(self)
         GetSettings().hideHairOnCloakPreview = self:GetChecked() ~= nil
     end)
@@ -1731,7 +1732,8 @@ do  --------- Hide hair and beard on chest preview
         GetSettings().hideHairBeardOnChestPreview = self:GetChecked() ~= nil
     end)
     local label = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetText("Hide hair and beard on chest/shirt/tabard preview")
+    label:SetText("Hide hair and beard on chest,\nshirt, and tabard previews")
+    label:SetJustifyH("LEFT")
     label:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
 end
 
@@ -1741,12 +1743,13 @@ do  --------- Use server time in received appearances
     settingsTab.useServerTimeInReceivedAppearancesCheckBox = CreateFrame("CheckButton", "$parentUseServerTimeInReceivedAppearancesCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
     
     local checkbox = settingsTab.useServerTimeInReceivedAppearancesCheckBox
-    checkbox:SetPoint("TOP", settingsTab.hideHairBeardOnChestPreviewCheckBox, "BOTTOM", 0, -20)
+    checkbox:SetPoint("TOP", settingsTab.showShortcutsInTooltipCheckBox, "BOTTOM", 0, -30)
     checkbox:SetScript("OnClick", function(self)
         GetSettings().useServerTimeInReceivedAppearances = self:GetChecked() ~= nil
     end)
     local label = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetText("Use Server Time in \"Received Appearences\" list")
+    label:SetText("Use Server Time in \"Received\nAppearences\" list")
+    label:SetJustifyH("LEFT")
     label:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
 end
 
@@ -1761,7 +1764,50 @@ do  --------- Announce appearance receiving
         GetSettings().announceAppearanceReceiving = self:GetChecked() ~= nil
     end)
     local label = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetText("Announce in the chat if an appearance has been received from another player")
+    label:SetText("Announce in the chat if an appearance\nhas been received from another player")
+    label:SetJustifyH("LEFT")
+    label:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
+end
+
+
+do  --------- Ignore UI sclaing
+    local settingsTab = mainFrame.tabs.settings
+    settingsTab.ignoreUIScalingCheckBox = CreateFrame("CheckButton", "$parentIgnoreUIScalingCheckBox", settingsTab, "ChatConfigCheckButtonTemplate")
+    
+    local checkbox = settingsTab.ignoreUIScalingCheckBox
+    checkbox:SetPoint("TOP", settingsTab.announceAppearanceReceivingCheckBox, "BOTTOM", 0, -30)
+    checkbox:SetScript("OnClick", function(self)
+        GetSettings().ignoreUIScaling = self:GetChecked() ~= nil
+        if self:GetChecked() then
+            mainFrame:SetParent(nil)
+            mainFrame:SetScale(0.9)
+        else
+            mainFrame:SetParent(UIParent)
+            mainFrame:SetScale(1)
+        end
+        if mainFrame:IsVisible() then
+            -- only to update the main dressing room
+            mainFrame:Hide()
+            mainFrame:Show()
+        end
+    end)
+    local origingSetChecked = checkbox.SetChecked
+    checkbox.SetChecked = function(self, enable)
+        origingSetChecked(self, enable)
+        checkbox:GetScript("OnClick")(self)
+    end
+    checkbox:HookScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+        GameTooltip:ClearLines()
+        GameTooltip:AddLine("Ignore UI scaling")
+        GameTooltip:AddLine("The game's 3D rendering can break correct displaying of previews with too small values of UI scaling in video settings. Set this checkbox to ignore UI scaling.", 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    checkbox:HookScript("OnLeave", function(self)
+        GameTooltip:Hide()
+    end)
+    local label = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetText("Ignore UI scaling")
     label:SetPoint("LEFT", checkbox, "RIGHT", 4, 2)
 end
 
@@ -1792,6 +1838,8 @@ do  --------- Apply settings on addon loaded
         settingsTab.useServerTimeInReceivedAppearancesCheckBox:SetChecked(settings.useServerTimeInReceivedAppearances)
         -- Announce appearance receiving
         settingsTab.announceAppearanceReceivingCheckBox:SetChecked(settings.announceAppearanceReceiving)
+        -- Ignore UI scaling
+        settingsTab.ignoreUIScalingCheckBox:SetChecked(settings.ignoreUIScaling)
     end
 
     settingsTab:RegisterEvent("ADDON_LOADED")
