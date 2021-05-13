@@ -1,6 +1,6 @@
 local addon, ns = ...
 
-local mainFrameTitle = "|ccff6ff98DressMe |cffffffff1.3|r"
+local mainFrameTitle = "|ccff6ff98DressMe |cffffffff1.3.1|r"
 
 local sex = UnitSex("player")
 local _, raceFileName = UnitRace("player")
