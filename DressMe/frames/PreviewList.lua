@@ -244,7 +244,6 @@ end
 local function PreviewList_Update(self)
     assert(self.dressingRoomSetup ~= nil, "`SetupModel` first.")
     assert(#self.itemIds > 0, "`SetItemIds` first.")
-    self.tryOnItem = nil
     local perPage = #self.dressingRooms
     for i, dr in ipairs(self.dressingRooms) do
         local dr = self.dressingRooms[i]

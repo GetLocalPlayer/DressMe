@@ -893,6 +893,7 @@ do
         local setup = ns.GetPreviewSetup(previewSetupVersion, raceFileName, sex, slot, subclass)
         list:SetupModel(setup.width, setup.height, setup.x, setup.y, setup.z, setup.facing, setup.sequence)
 
+        list:TryOn(nil)
         local page = slotSubclassPage[slot][subclass] ~= nil and slotSubclassPage[slot][subclass] or 1
         local pageCount = list:GetPageCount()
         --[[ SetMinMaxValues triggers "OnValueChanged"
