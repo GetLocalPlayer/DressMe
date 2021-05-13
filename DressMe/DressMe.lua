@@ -913,6 +913,10 @@ do
         hairBeardControl(slot)
     end
 
+    previewTab:SetScript("OnShow", function(self)
+        self:Update(currSlot, currSubclass)
+    end)
+
     slider:HookScript("OnValueChanged", function(self, value)
         list:SetPage(value)
         list:Update()
